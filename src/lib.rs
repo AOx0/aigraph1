@@ -1,40 +1,39 @@
 #[macro_export]
 macro_rules! count {
-        () => (0usize);
-        ( $x:tt $($xs:tt)* ) => (1usize + count!($($xs)*));
-    }
+    () => (0usize);
+    ( $x:tt $($xs:tt)* ) => (1usize + count!($($xs)*));
+}
 
 #[macro_export]
 macro_rules! graph {
-        (
-            with_node: $node:expr,
-            with_edges: $type:tt,
-            nodes: [$($ident:expr),*],
-            connections: [ $($from:expr => {$(($cost:expr) $to:expr),+}),* ]
-        ) => {
-            graph!{
-                nodes: [$($ident => $node),*],
-                connections: [ $($from => {$(($type, $cost) {$to}),+}),* ]
-            }
-        };
+    (
+        with_node: $node:expr,
+        with_edges: $type:tt,
+        nodes: [$($ident:expr),*],
+        connections: [ $($from:expr => {$(($cost:expr) $to:expr),+}),* ]
+    ) => {
+        graph!{
+            nodes: [$($ident => $node),*],
+            connections: [ $($from => {$(($type, $cost) {$to}),+}),* ]
+        }
+    };
 
-        (
-            nodes: [$($ident:expr => $node:expr),*],
-            connections: [ $($from:expr => {$(($type:tt, $cost:expr) {$($to:expr),+}),+}),* ]
-        ) => {{
+    (
+        nodes: [$($ident:expr => $node:expr),*],
+        connections: [ $($from:expr => {$(($type:tt, $cost:expr) {$($to:expr),+}),+}),* ]
+    ) => {{
 
-            let mut g = Graph::with_capacity(count!($($node)*));
-            $(g.register($ident, $node).unwrap());*;
-            $(
-                $($(g.$type($from, $to,$cost).unwrap());+);+
-            );*;
-            g
-        }};
-    }
+        let mut g = Graph::with_capacity(count!($($node)*));
+        $(g.register($ident, $node).unwrap());*;
+        $(
+            $($(g.$type($from, $to,$cost).unwrap());+);+
+        );*;
+        g
+    }};
+}
 
 pub use petgraph;
 use petgraph::{
-    algo::{dijkstra, Measure},
     graph::{EdgeIndex, NodeIndex},
     stable_graph::{DefaultIx, IndexType},
     visit::{VisitMap, Visitable},
@@ -79,8 +78,20 @@ impl<S, Ix> Iterator for Steps<S, Ix> {
     }
 }
 
+/// The libray principal Graph structure. The struct is an abstract layer built on top
+/// of the petgraph::Graph<N, E, Ty, Ix> implementation to support named nodes using `I` identifiers
+///
+/// - `I` is the type used for identifying the nodes, because of its purpose only values that implement
+/// `Copy` are allowed like `&'static str` or {`u8`, `i8`, ...}. If the identifier is a number it is better
+/// to just use petgraph::Graph since that is the default behaviour wihtout any other overhead.
+/// - `N` is the type used to store values within the graph's nodes
+/// - `E` is the type used to store values within the graph's edges
+/// - `Ty` is the Graph connection type. `petgraph::Directed` by default
+/// - `Ix` is the number type value used as indexer for Edges and Nodes.
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
+    /// The inner `petgrap::Graph`
     pub inner: PGraph<N, E, Ty, Ix>,
+    /// The map of node-name to node-index
     pub nodes: HashMap<I, NodeIndex<Ix>>,
 }
 
@@ -89,6 +100,7 @@ where
     NodeIndex: From<NodeIndex<Ix>>,
     NodeIndex<Ix>: From<NodeIndex>,
 {
+    /// The Graph constructor
     pub fn new() -> Self {
         Self {
             inner: PGraph::<N, E, Ty, Ix>::default(),
@@ -96,6 +108,9 @@ where
         }
     }
 
+    /// Construct a new Graph with a fixed initial size.
+    /// Since we use a macro to construct the graph we do call this constructor
+    /// to save a couple calls to alloc
     pub fn with_capacity(cap: usize) -> Self {
         Self {
             inner: PGraph::with_capacity(cap, cap),
@@ -103,16 +118,25 @@ where
         }
     }
 
+    /// Get the high-level node name from the low-level node index. Ej. NodeIndex(0) -> "Arad"
     pub fn index_name<'a>(&'a self, value: NodeIndex<Ix>) -> Option<I> {
         self.nodes
             .iter()
             .find_map(|(key, val)| if val == &value { Some(*key) } else { None })
     }
 
+    /// Get the low-level node index from the high-level node name. Ej. "Arad" -> NodeIndex(0)
     pub fn name_index(&self, ident: I) -> Option<NodeIndex<Ix>> {
         self.nodes.get(&ident).copied()
     }
 
+    /// Connect to nodes by their high-level names. "Arad" -> "Neamt"
+    ///
+    /// The method calls the necessary low-level methods to connect both node indexes
+    /// within the inner graph.
+    ///
+    /// Adds values to the inner graph's `Vec<Edge<E, Ix>>` to represent neighbors between nodes
+    /// and the binded `E` value
     pub fn next(&mut self, from: I, to: I, edge: E) -> Result<(), ()> {
         match (self.name_index(from), self.name_index(to)) {
             (Some(fidx), Some(tidx)) => {
@@ -125,6 +149,13 @@ where
         }
     }
 
+    /// Register a node with a given name and stored `N` value
+    ///
+    /// The method calls the necessary low-level methods to connect both node indexes
+    /// within the inner graph.
+    ///
+    /// Adds values to the inner graph's `Vec<Node<N, Ix>>` to represent neighbors between nodes
+    /// and the binded `N` value
     pub fn register(&mut self, ident: I, node: N) -> Result<(), ()> {
         if self.nodes.contains_key(&ident) {
             Err(())
@@ -150,6 +181,7 @@ where
         }
     }
 
+    /*
     pub fn dijkstra<'a, F, K>(
         &self,
         inicio: NodeIndex<Ix>,
@@ -211,6 +243,7 @@ where
         }
         Err(())
     }
+    */
 
     pub fn breadth_first_impl(
         &self,
@@ -265,42 +298,42 @@ where
     }
 }
 
-// fn main() {
-//     let graph: Graph<&'static str, (), u32> = graph! {
-//         with_node: (),
-//         with_edges: next,
-//         nodes: [
-//             "Arad",        "Zerind",      "Oradea",     "Sibiu",
-//             "Fagaras",     "Timisoara",   "Lugoj",      "Mehadia",
-//             "Drobeta",     "Craiova",     "Pitesti",    "Rimnieu Vilcea",
-//             "Bucharest",   "Giurgiu",     "Urziceni",   "Hirsova",
-//             "Eforie",      "Vasiui",      "Iasi",       "Neamt"
-//         ],
-//         connections: [
-//             "Arad" => {(140) "Sibiu", (75) "Zerind", (118) "Timisoara"},
-//             "Zerind" => {(71) "Oradea"},
-//             "Oradea" => {(151) "Sibiu"},
-//             "Sibiu" => {(99) "Fagaras", (80) "Rimnieu Vilcea"},
-//             "Timisoara" => {(111) "Lugoj"},
-//             "Lugoj" => {(70) "Mehadia"},
-//             "Mehadia" => {(75) "Drobeta"},
-//             "Drobeta" => {(120) "Craiova"},
-//             "Craiova" => {(138) "Pitesti"},
-//             "Pitesti" => {(101) "Bucharest"},
-//             "Rimnieu Vilcea" => {(97) "Pitesti", (146) "Craiova"},
-//             "Fagaras" => {(211) "Bucharest"},
-//             "Bucharest" => {(90) "Giurgiu", (85) "Urziceni"},
-//             "Urziceni" => {(98) "Hirsova", (142) "Vasiui"},
-//             "Vasiui" => {(92) "Iasi"},
-//             "Iasi" => {(87) "Neamt"},
-//             "Hirsova" => {(86) "Eforie"}
-//         ]
-//     };
+fn main() {
+    let graph: Graph<&'static str, (), u32> = graph! {
+        with_node: (),
+        with_edges: next,
+        nodes: [
+            "Arad",        "Zerind",      "Oradea",     "Sibiu",
+            "Fagaras",     "Timisoara",   "Lugoj",      "Mehadia",
+            "Drobeta",     "Craiova",     "Pitesti",    "Rimnieu Vilcea",
+            "Bucharest",   "Giurgiu",     "Urziceni",   "Hirsova",
+            "Eforie",      "Vasiui",      "Iasi",       "Neamt"
+        ],
+        connections: [
+            "Arad" => {(140) "Sibiu", (75) "Zerind", (118) "Timisoara"},
+            "Zerind" => {(71) "Oradea"},
+            "Oradea" => {(151) "Sibiu"},
+            "Sibiu" => {(99) "Fagaras", (80) "Rimnieu Vilcea"},
+            "Timisoara" => {(111) "Lugoj"},
+            "Lugoj" => {(70) "Mehadia"},
+            "Mehadia" => {(75) "Drobeta"},
+            "Drobeta" => {(120) "Craiova"},
+            "Craiova" => {(138) "Pitesti"},
+            "Pitesti" => {(101) "Bucharest"},
+            "Rimnieu Vilcea" => {(97) "Pitesti", (146) "Craiova"},
+            "Fagaras" => {(211) "Bucharest"},
+            "Bucharest" => {(90) "Giurgiu", (85) "Urziceni"},
+            "Urziceni" => {(98) "Hirsova", (142) "Vasiui"},
+            "Vasiui" => {(92) "Iasi"},
+            "Iasi" => {(87) "Neamt"},
+            "Hirsova" => {(86) "Eforie"}
+        ]
+    };
 
-//     let a = graph.breadth_first("Arad", "Neamt");
-//     if let Ok(mut res) = a {
-//         while let Some(node) = res.next() {
-//             println!("{:#?}", graph.index_name(node.idx).unwrap());
-//         }
-//     }
-// }
+    let a = graph.breadth_first("Arad", "Neamt");
+    if let Ok(mut res) = a {
+        while let Some(node) = res.next() {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
+}
