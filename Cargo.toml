@@ -7,3 +7,10 @@ edition = "2021"
 
 [dependencies]
 petgraph = "0.6.3"
+
+[dev-dependencies]
+iai = { git = "https://github.com/AlexMikhalev/iai", branch = "memory_usage" }
+
+[[bench]]
+name = "iai_benchmarks"
+harness = false
