@@ -79,17 +79,20 @@ impl<S, Ix> Iterator for Steps<S, Ix> {
 }
 
 /// The libray principal Graph structure. The struct is an abstract layer built on top
-/// of the petgraph::Graph<N, E, Ty, Ix> implementation to support named nodes using `I` identifiers
+/// of the [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html) implementation to
+/// support named nodes using `I` identifiers
 ///
 /// - `I` is the type used for identifying the nodes, because of its purpose only values that implement
-/// `Copy` are allowed like `&'static str` or {`u8`, `i8`, ...}. If the identifier is a number it is better
-/// to just use petgraph::Graph since that is the default behaviour wihtout any other overhead.
+/// [`Copy`](https://doc.rust-lang.org/1.66.1/core/marker/trait.Copy.html) are allowed like `&'static str`
+/// or {`u8`, `i8`, ...}. If the identifier is a number it is better
+/// to just use [`petgraph::Graph`] since its default
+/// behaviour is to work identifying nodes with numbers named indexes wihtout any overhead.
 /// - `N` is the type used to store values within the graph's nodes
 /// - `E` is the type used to store values within the graph's edges
-/// - `Ty` is the Graph connection type. `petgraph::Directed` by default
+/// - `Ty` is the Graph connection type. [`petgraph::Directed`](../petgraph/enum.Directed.html) by default
 /// - `Ix` is the number type value used as indexer for Edges and Nodes.
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
-    /// The inner `petgrap::Graph`
+    /// The inner [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
     pub inner: PGraph<N, E, Ty, Ix>,
     /// The map of node-name to node-index
     pub nodes: HashMap<I, NodeIndex<Ix>>,
