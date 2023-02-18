@@ -41,15 +41,6 @@ fn test_graph() -> Graph<&'static str, (), usize> {
 //     });
 // }
 
-fn breadth_test1(iai: &mut Iai) {
-    let graph = black_box(test_graph());
-    iai.run(|| {
-        graph
-            .breadth_first(black_box("Arad"), black_box(Some("Neamt")))
-            .unwrap();
-    });
-}
-
 // fn depth_test1(iai: &mut Iai) {
 //     let graph = black_box(test_graph());
 //     iai.run(|| {
@@ -63,6 +54,15 @@ fn breadth_test1(iai: &mut Iai) {
 //         dijkstra(black_box(&graph), black_box("Arad"), black_box("")).ok();
 //     });
 // }
+
+fn breadth_test1(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph
+            .breadth_first(black_box("Arad"), black_box(Some("Neamt")))
+            .unwrap();
+    });
+}
 
 fn breadth_test2(iai: &mut Iai) {
     let graph = black_box(test_graph());
@@ -95,6 +95,47 @@ fn breadth_test4(iai: &mut Iai) {
     });
 }
 
+fn dijkstra_test1(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph
+            .dijkstra(black_box("Arad"), black_box(Some("Neamt")), |e| *e)
+            .unwrap();
+    });
+}
+
+fn dijkstra_test2(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph.dijkstra(black_box("Arad"), None, |e| *e).ok();
+    });
+}
+
+fn dijkstra_test3(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph
+            .dijkstra_impl(
+                black_box(graph.name_index("Arad").unwrap()),
+                Some(10000.into()),
+                |e| *e,
+            )
+            .ok();
+    });
+}
+
+fn dijkstra_test4(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph
+            .dijkstra_impl(
+                black_box(graph.name_index("Arad").unwrap()),
+                black_box(Some(graph.name_index("Neamt").unwrap())),
+                |e| *e,
+            )
+            .ok();
+    });
+}
 // fn depth_test2(iai: &mut Iai) {
 //     let graph = black_box(test_graph());
 //     iai.run(|| {
@@ -168,6 +209,10 @@ iai::main!(
     breadth_test2,
     breadth_test3,
     breadth_test4,
+    dijkstra_test1,
+    dijkstra_test2,
+    dijkstra_test3,
+    dijkstra_test4,
     // depth_test1,
     // depth_test2,
     // backtracking1,
