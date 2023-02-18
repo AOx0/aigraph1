@@ -330,7 +330,7 @@ fn main() {
         ]
     };
 
-    let a = graph.breadth_first("Arad", "Neamt");
+    let a = graph.breadth_first("Arad", Some("Neamt"));
     if let Ok(mut res) = a {
         while let Some(node) = res.next() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
