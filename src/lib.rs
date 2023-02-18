@@ -232,15 +232,6 @@ where
         });
 
         while let Some(parent) = {
-            frontera.retain(|step| {
-                self.inner
-                    .neighbors_directed(step.idx, petgraph::Direction::Outgoing)
-                    .count()
-                    != 0
-                    || meta
-                        .and_then(|meta| Some(meta == step.idx))
-                        .unwrap_or(false)
-            });
             let i = frontera
                 .iter()
                 .enumerate()
@@ -248,16 +239,20 @@ where
                 .map(|(x, _)| x);
             i.map(|i| frontera.remove(i).unwrap())
         } {
-            if meta
-                .and_then(|meta| Some(meta == parent.idx))
-                .unwrap_or(false)
-            {
-                return Ok(parent.into_iter());
-            }
-            self.inner
+            for child_idx in self
+                .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
-                .for_each(|child_idx| {
-                    frontera.push_front(Step {
+            {
+                let es_meta = meta
+                    .and_then(|meta| Some(meta == child_idx))
+                    .unwrap_or(false);
+                let tiene_hijos = self
+                    .inner
+                    .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
+                    .count()
+                    != 0;
+                if es_meta || tiene_hijos {
+                    let step = Step {
                         caller: Some(Rc::new(Step {
                             caller: parent.caller.clone(),
                             idx: parent.idx.into(),
@@ -270,8 +265,14 @@ where
                             + edge_cost(
                                 &self.inner[self.inner.find_edge(parent.idx, child_idx).unwrap()],
                             ),
-                    })
-                });
+                    };
+
+                    if es_meta {
+                        return Ok(step.into_iter());
+                    }
+                    frontera.push_front(step)
+                }
+            }
         }
         Err(())
     }
