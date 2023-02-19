@@ -8,14 +8,12 @@ on:
 
 jobs:
   docs:
-    # if: github.event_name == 'push' && github.event.ref == 'refs/heads/main'
     name: docs
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-
       - name: Install toolchain
-        uses: actions-rs/toolchain@v2
+        uses: actions-rs/toolchain@v1
         with:
             toolchain: nightly
             override: true
