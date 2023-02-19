@@ -1,0 +1,49 @@
+name: publish
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docs:
+    # if: github.event_name == 'push' && github.event.ref == 'refs/heads/main'
+    name: docs
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v2
+        with:
+            toolchain: nightly
+            override: true
+
+      - name: Update apt repositories
+        run: sudo apt update
+
+      - name: Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            target
+            target/debug
+            target/release
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Fetch submodules
+        run: |
+          git submodule update --init --recursive
+      - name: Build documentation
+        run: cargo doc --release
+      - name: Publish documentation
+        run: |
+          cd target/doc
+          git init
+          git add .
+          git -c user.name='ci' -c user.email='ci' commit -m 'Deploy documentation'
+          git push -f -q https://git:${{ secrets.github_token }}@github.com/${{ github.repository }} HEAD:gh-pages
