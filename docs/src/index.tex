@@ -5,7 +5,7 @@
 \invisiblesection{Portada}
 
 \begin{center}
-    {\huge Aplicación del Álgebra Lineal:\\Ofuscación binaria}\\    \quad\\
+    {\huge First Partial Project:\\Graph Search Algorithms}\\    \quad\\
     {\large Universidad Panamericana}\\
     {\large Facultad de Ingeniería}\\
     \quad\\
@@ -23,7 +23,7 @@
     \end{tabular}\\
     \quad\\
     \quad\\
-	02 22 2022
+	02-22-2022
 \end{center}
 
 \vfill
@@ -32,9 +32,9 @@
 \tableofcontents
 
 \newpage
-\section{Objetivos}
+\section{Objectives}
 
-1. Design and implement searching algorithms for graph structures using
+1. Design and implement search algorithms for graph structures using
 the Rust programming language
 
 \begin{enumerate}[label={}]
@@ -84,13 +84,13 @@ de una librería de cifrado de archivos por medio de una ofuscación binaria
 lograda por transformaciones.
 
 \newpage
-\section{Execution}
+\section{Installation \& Execution}
 
-The programming language we used to execute the code is Rust, it is a compiled,
-general purpose, low-level programming language with a strong type system,
+The programming language we chose is Rust, it is a compiled,
+general purpose, low-level systems language with a strong type system,
 no garbage collector nor manual allocators but a lifetime borrow-checker that
 makes code compiled with it memory safety, performant as C but with high-level
-abstractions like with C++.
+abstractions like with zero-cost abstractions.
 
 \subsection{Install Rust}
 
@@ -102,6 +102,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 After the installation is finished, we must add \texttt{\$HOME/.cargo/bin} to the \texttt{\$PATH}.
 Yo may want to restart your terminal emulator for the changes to the \texttt{\$PATH} to take effect.
+
+More information at \texttt{https://www.rust-lang.org/tools/install}
 
 \subsection{Install the program}
 
@@ -191,15 +193,69 @@ This command will compile and run the project.
 
 
 \newpage
+\section{Dependencies}
 
-\subsection{Descifrado}
+There are two types of dependencies in the project, for benchmarking and graph related.
+
+\subsection{Graph dependencies}
+
+\subsubsection{petgraph v0.6.3}
+
+Graphs are collections of nodes, and edges between nodes. \texttt{petgraph} provides several graph types 
+(each differing in the tradeoffs taken in their internal representation), algorithms on those graphs, 
+and functionality to output graphs in \texttt{graphviz} format. Both nodes and edges can have arbitrary associated data, 
+and edges may be either directed or undirected. \autocite{petgraph}
+
+For the graph, the team uses \texttt{petgraph::Graph}, which is a performant adjacency list representation based graph
+with an API that identifies nodes and edges with indexes.
+
+\subsubsection{fixedbitset v0.4.2}
+
+\texttt{petgraph} exposes methods that return a \texttt{fixedbitset::FixedBitSet}, which is a collection of bits that can be either 1 (\texttt{true})
+or 0 \texttt{false}. \texttt{petgraph} uses these sets, for example, to track nodes that have already been visited.
+
+Some methods of our implementation re-export returned values by \texttt{petgraph}. Thus, it's necessary to know the type, making
+\texttt{fixedbitset} a dependency. 
+
+\autocite{fixedbitset}
+
+\subsection{Benchmark dependencies}
+
+\newpage
+\section{Documentation}
+
+The documentation shown here is a mirror that may be outdated. 
+The intent is to show the general idea of the structures and features.
+
+Detailed, up to date documentation at \texttt{https://aox0.github.io/aigraph1/graph/}.
+
+\subsection{graph::Graph}
+
 \begin{minted}{rust}
-
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     pub inner: PGraph<N, E, Ty, Ix>,
     pub nodes: HashMap<I, NodeIndex<Ix>>,
 }
 \end{minted}
+
+The team implemented a new abstraction layer on top of \texttt{petgraph::Graph} to add high-level identifiers for nodes.
+Hence, the end-user instead of handling \texttt{petgraph::NodeIndex} and \texttt{petgraph::EdgeIndex} can just use a string like \texttt{'Arad'}.
+
+The structure is generic over various types including data types binded to Nodes and Edges, node identifier type, graph direction and bit-size of
+\texttt{petgraph::NodeIndex} and \texttt{petgraph::EdgeIndex}.
+
+\begin{itemize}
+ \item \texttt{I} is the type used for identifying the nodes. Because of its purpose, only values that implement
+ \texttt{Copy} are allowed like \texttt{\&'\_ T} or \{\texttt{u8}, \texttt{i8}, \texttt{i16}, \texttt{u16}, ...\}. 
+ If the identifier is a number it is better to just use \texttt{petgraph::Graph} since its default
+ behaviour is to work identifying nodes with numbers, these numbers are named indexes and don't add any overhead
+ like this more high-level API which uses a \texttt{HashMap}.
+ \item \texttt{N} is the type used to store values within the graph's nodes
+ \item \texttt{E} is the type used to store values within the graph's edges
+ \item \texttt{Ty} is the Graph connection type. \texttt{petgraph::Directed} by default
+ \item \texttt{Ix} is the number type value used as indexer for Edges and Nodes.
+\end{itemize}
+
 
 \newpage
 \section{Conclusiones y Recomendaciones}
@@ -210,7 +266,6 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
 \printbibliography[heading=none]
 
 \newpage
-
 \appendix
 
 \section{Appendix}
@@ -225,24 +280,6 @@ y su versión cifrada por el \texttt{Método 1}
 original y el cifrado.}\label{fig:d2}
 \end{figure}
 
-Gráficas elaboradas en Mathematica 13 con el código:
-
-donde \texttt{baa} es un arreglo de bytes conteniendo el estado del archivo
-original y donde \texttt{bx} es una matriz que se usa como arreglo de bytes que
-contiene el estado cifrado de los contenidos de donde \texttt{baa}.
-
 \newpage
 \section{Appendix}
-
-
-\newpage
-\section{Appendix: Notebook de Mathematica completo y repositorio de LaTeX}
-
-\begin{enumerate}
-\item El cuaderno está disponible en GitHub,\\ junto con todas las imágenes:
-\texttt{https://github.com/AOx0/proyecto-al}
-\item El repositorio de código de LaTeX para crear\\ este escrito está
-disponible en\\  \texttt{https://www.overleaf.com/read/gkdvygxgntsh} y en
-\texttt{https://github.com/AOx0/proyecto-al}
-\end{enumerate}
 
