@@ -32,7 +32,9 @@ macro_rules! graph {
     }};
 }
 
+use fixedbitset::FixedBitSet;
 pub use petgraph;
+pub use petgraph::Direction;
 use petgraph::{
     algo::Measure,
     graph::{EdgeIndex, NodeIndex},
@@ -61,9 +63,9 @@ pub struct Steps<S, Ix> {
     start: Option<Rc<Step<S, Ix>>>,
 }
 
-impl<S, Ix> IntoIterator for Step<S, Ix> {
+impl<S: Debug, Ix: Debug> IntoIterator for Step<S, Ix> {
     type IntoIter = Steps<S, Ix>;
-    type Item = Step<S, Ix>;
+    type Item = Rc<Step<S, Ix>>;
     fn into_iter(self) -> Self::IntoIter {
         Steps {
             start: Some(Rc::new(self)),
@@ -71,18 +73,197 @@ impl<S, Ix> IntoIterator for Step<S, Ix> {
     }
 }
 
-impl<S, Ix> Iterator for Steps<S, Ix> {
-    type Item = Step<S, Ix>;
+impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
+    type Item = Rc<Step<S, Ix>>;
     fn next(&mut self) -> Option<Self::Item> {
         let head = self.start.clone();
         self.start = head.as_ref().and_then(|head| head.caller.clone());
-        head.and_then(|head| Rc::try_unwrap(head).ok().and_then(|inner| Some(inner)))
+        head.and_then(|head| Some(head))
+    }
+}
+
+enum WalkerState<S, Ix> {
+    Done,
+    Found(Step<S, Ix>),
+    NotFound(Rc<Step<S, Ix>>),
+}
+
+trait Walker<S, Ix> {
+    fn step(&mut self) -> WalkerState<S, Ix>;
+}
+
+struct BreadthFirst<'a, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<(), Ix>>,
+    visited: FixedBitSet,
+    direction: Direction,
+}
+
+struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<K, Ix>>,
+    direction: Direction,
+    edge_cost: F,
+}
+
+impl<'a, F, K: Default, I, N, E, Ty: EdgeType, Ix: IndexType> Dijkstra<'a, F, K, I, N, E, Ty, Ix>
+where
+    K: Measure + Copy + Eq + Default + Ord + PartialOrd,
+    F: FnMut(&E) -> K,
+{
+    pub fn new(
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        direction: Direction,
+        edge_cost: F,
+    ) -> Self {
+        Self {
+            goal,
+            graph,
+            border: {
+                let mut border = VecDeque::with_capacity(graph.node_count());
+                border.push_front(Step {
+                    caller: None,
+                    idx: start,
+                    rel: None,
+                    state: K::default(),
+                });
+                border
+            },
+            direction,
+            edge_cost,
+        }
+    }
+}
+
+impl<'a, F, K, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<K, Ix>
+    for Dijkstra<'a, F, K, I, N, E, Ty, Ix>
+where
+    K: Measure + Copy + Eq + Default + Ord + PartialOrd,
+    F: FnMut(&E) -> K,
+    EdgeIndex: From<EdgeIndex<Ix>>,
+    EdgeIndex<Ix>: From<EdgeIndex>,
+{
+    fn step(&mut self) -> WalkerState<K, Ix> {
+        if let Some(parent) = {
+            let i = self
+                .border
+                .iter()
+                .enumerate()
+                .min_by(|(_, s1), (_, s2)| s1.state.cmp(&s2.state))
+                .map(|(x, _)| x);
+            i.map(|i| self.border.remove(i).unwrap())
+        } {
+            let parent = Rc::new(parent);
+            for child_idx in self
+                .graph
+                .inner
+                .neighbors_directed(parent.idx.into(), self.direction)
+            {
+                let es_goal = self
+                    .goal
+                    .and_then(|goal| Some(goal == child_idx))
+                    .unwrap_or(false);
+                let tiene_hijos = self
+                    .graph
+                    .inner
+                    .neighbors_directed(child_idx, self.direction)
+                    .count()
+                    != 0;
+                if es_goal || tiene_hijos {
+                    let edge = self
+                        .graph
+                        .inner
+                        .find_edge_undirected(parent.idx, child_idx)
+                        .unwrap();
+                    let step = Step {
+                        caller: Some(parent.clone()),
+                        idx: child_idx.into(),
+                        rel: Some(edge.0.into()),
+                        state: parent.state + (self.edge_cost)(&self.graph.inner[edge.0]),
+                    };
+
+                    if es_goal {
+                        return WalkerState::Found(step);
+                    }
+                    self.border.push_front(step)
+                }
+            }
+            WalkerState::NotFound(parent)
+        } else {
+            WalkerState::Done
+        }
+    }
+}
+
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> BreadthFirst<'a, I, N, E, Ty, Ix> {
+    pub fn new(
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        direction: Direction,
+    ) -> Self {
+        Self {
+            goal,
+            graph,
+            border: {
+                let mut border = VecDeque::with_capacity(graph.node_count());
+                border.push_front(Step {
+                    caller: None,
+                    idx: start,
+                    rel: None,
+                    state: (),
+                });
+                border
+            },
+            visited: graph.visit_map(),
+            direction,
+        }
+    }
+}
+
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
+    for BreadthFirst<'a, I, N, E, Ty, Ix>
+{
+    fn step(&mut self) -> WalkerState<(), Ix> {
+        if let Some(parent) = self.border.pop_front() {
+            if self
+                .goal
+                .and_then(|goal| Some(goal == parent.idx))
+                .unwrap_or(false)
+            {
+                return WalkerState::Found(parent);
+            }
+
+            let parent = Rc::new(parent);
+            self.graph
+                .inner
+                .neighbors_directed(parent.idx.into(), self.direction)
+                .for_each(|child_idx| {
+                    (!self.visited.is_visited(&child_idx)).then(|| {
+                        self.visited.visit(child_idx);
+                        self.border.push_back(Step {
+                            caller: Some(parent.clone()),
+                            idx: child_idx.into(),
+                            rel: None,
+                            state: (),
+                        });
+                    });
+                });
+            WalkerState::NotFound(parent)
+        } else {
+            WalkerState::Done
+        }
     }
 }
 
 /// The library's principal Graph structure.
 ///
-/// The struct is an abstract layer built on top of the [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
+/// The struct is an abstract layer built on top of the
+/// [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
 /// implementation to support named nodes using `I` identifiers
 ///
 /// - `I` is the type used for identifying the nodes, because of its purpose only values that implement
@@ -102,11 +283,10 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     pub nodes: HashMap<I, NodeIndex<Ix>>,
 }
 
-impl<I: Copy + Eq + Hash + Debug + Display, N: Eq, E, Ty: EdgeType, Ix: IndexType>
-    Graph<I, N, E, Ty, Ix>
+impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
 where
-    NodeIndex: From<NodeIndex<Ix>>,
-    NodeIndex<Ix>: From<NodeIndex>,
+    Ty: EdgeType,
+    Ix: IndexType,
 {
     /// The Graph constructor
     pub fn new() -> Self {
@@ -126,6 +306,30 @@ where
         }
     }
 
+    pub fn node_count(&self) -> usize {
+        self.inner.node_count()
+    }
+
+    pub fn edge_count(&self) -> usize {
+        self.inner.edge_count()
+    }
+
+    pub fn visit_map(&self) -> FixedBitSet {
+        self.inner.visit_map()
+    }
+}
+
+impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
+where
+    N: Eq,
+    Ty: EdgeType,
+    Ix: IndexType,
+    I: Copy + Hash + Eq + Debug + Display,
+    NodeIndex: From<NodeIndex<Ix>>,
+    NodeIndex<Ix>: From<NodeIndex>,
+    EdgeIndex: From<EdgeIndex<Ix>>,
+    EdgeIndex<Ix>: From<EdgeIndex>,
+{
     /// Get the high-level node name from the low-level node index. E.g. NodeIndex(0) -> "Arad"
     pub fn index_name<'a>(&'a self, value: NodeIndex<Ix>) -> Option<I> {
         self.nodes
@@ -174,15 +378,15 @@ where
         }
     }
 
-    pub fn breadth_first(&self, inicio: I, meta: Option<I>) -> Result<Steps<(), Ix>, ()> {
-        match meta {
-            Some(meta) => match (self.name_index(inicio), self.name_index(meta)) {
+    pub fn breadth_first(&self, start: I, goal: Option<I>) -> Result<Steps<(), Ix>, ()> {
+        match goal {
+            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
                 (Some(fidx), Some(tidx)) => self.breadth_first_impl(fidx, Some(tidx)),
                 (None, None) => Err(()),
                 (None, Some(_)) => Err(()),
                 (Some(_), None) => Err(()),
             },
-            _ => match self.name_index(inicio) {
+            _ => match self.name_index(start) {
                 Some(fidx) => self.breadth_first_impl(fidx, None),
                 _ => Err(()),
             },
@@ -191,22 +395,22 @@ where
 
     pub fn dijkstra<K, F>(
         &self,
-        inicio: I,
-        meta: Option<I>,
+        start: I,
+        goal: Option<I>,
         edge_cost: F,
     ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
         F: FnMut(&E) -> K,
     {
-        match meta {
-            Some(meta) => match (self.name_index(inicio), self.name_index(meta)) {
+        match goal {
+            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
                 (Some(fidx), Some(tidx)) => self.dijkstra_impl(fidx, Some(tidx), edge_cost),
                 (None, None) => Err(()),
                 (None, Some(_)) => Err(()),
                 (Some(_), None) => Err(()),
             },
-            _ => match self.name_index(inicio) {
+            _ => match self.name_index(start) {
                 Some(fidx) => self.dijkstra_impl(fidx, None, edge_cost),
                 _ => Err(()),
             },
@@ -215,62 +419,56 @@ where
 
     pub fn dijkstra_impl<'a, K, F>(
         &self,
-        inicio: NodeIndex<Ix>,
-        meta: Option<NodeIndex<Ix>>,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
         mut edge_cost: F,
     ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
         F: FnMut(&E) -> K,
     {
-        let mut frontera = VecDeque::with_capacity(self.inner.node_count());
-        frontera.push_front(Step {
+        let mut border = VecDeque::with_capacity(self.inner.node_count());
+        border.push_front(Step {
             caller: None,
-            idx: inicio,
+            idx: start,
             rel: None,
             state: K::default(),
         });
 
         while let Some(parent) = {
-            let i = frontera
+            let i = border
                 .iter()
                 .enumerate()
                 .min_by(|(_, s1), (_, s2)| s1.state.cmp(&s2.state))
                 .map(|(x, _)| x);
-            i.map(|i| frontera.remove(i).unwrap())
+            i.map(|i| border.remove(i).unwrap())
         } {
+            let parent = Rc::new(parent);
             for child_idx in self
                 .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
             {
-                let es_meta = meta
-                    .and_then(|meta| Some(meta == child_idx))
+                let es_goal = goal
+                    .and_then(|goal| Some(goal == child_idx))
                     .unwrap_or(false);
                 let tiene_hijos = self
                     .inner
                     .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
                     .count()
                     != 0;
-                if es_meta || tiene_hijos {
+                if es_goal || tiene_hijos {
+                    let edge = self.inner.find_edge(parent.idx, child_idx).unwrap();
                     let step = Step {
-                        caller: Some(Rc::new(Step {
-                            caller: parent.caller.clone(),
-                            idx: parent.idx.into(),
-                            rel: parent.rel,
-                            state: parent.state,
-                        })),
+                        caller: Some(parent.clone()),
                         idx: child_idx.into(),
-                        rel: None,
-                        state: parent.state
-                            + edge_cost(
-                                &self.inner[self.inner.find_edge(parent.idx, child_idx).unwrap()],
-                            ),
+                        rel: Some(edge.into()),
+                        state: parent.state + edge_cost(&self.inner[edge]),
                     };
 
-                    if es_meta {
+                    if es_goal {
                         return Ok(step.into_iter());
                     }
-                    frontera.push_front(step)
+                    border.push_front(step)
                 }
             }
         }
@@ -279,52 +477,47 @@ where
 
     pub fn breadth_first_impl(
         &self,
-        inicio: NodeIndex<Ix>,
-        meta: Option<NodeIndex<Ix>>,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
     ) -> Result<Steps<(), Ix>, ()> {
-        let mut frontera = VecDeque::with_capacity(self.inner.node_count());
-        let mut visitados = self.inner.visit_map();
-        frontera.push_front(Step {
+        let mut border = VecDeque::with_capacity(self.inner.node_count());
+        let mut visited = self.inner.visit_map();
+        border.push_front(Step {
             caller: None,
-            idx: inicio,
+            idx: start,
             rel: None,
             state: (),
         });
 
-        while let Some(Step {
-            caller,
-            idx,
-            rel,
-            state,
-        }) = frontera.pop_front()
-        {
-            if meta.and_then(|meta| Some(meta == idx)).unwrap_or(false) {
-                return Ok(Step {
-                    caller,
-                    idx: idx.into(),
-                    rel,
-                    state: (),
-                }
-                .into_iter());
+        while let Some(parent) = border.pop_front() {
+            if goal
+                .and_then(|goal| Some(goal == parent.idx))
+                .unwrap_or(false)
+            {
+                return Ok(parent.into_iter());
             }
-            self.inner
-                .neighbors_directed(idx.into(), petgraph::Direction::Outgoing)
-                .for_each(|child_idx| {
-                    (!visitados.is_visited(&child_idx)).then(|| {
-                        visitados.visit(child_idx);
-                        frontera.push_back(Step {
-                            caller: Some(Rc::new(Step {
-                                caller: caller.clone(),
-                                idx: idx.into(),
-                                rel,
-                                state,
-                            })),
-                            idx: child_idx.into(),
-                            rel: None,
-                            state: (),
+
+            if self
+                .inner
+                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
+                .count()
+                != 0
+            {
+                let parent = Rc::new(parent);
+                self.inner
+                    .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
+                    .for_each(|child_idx| {
+                        (!visited.is_visited(&child_idx)).then(|| {
+                            visited.visit(child_idx);
+                            border.push_back(Step {
+                                caller: Some(parent.clone()),
+                                idx: child_idx.into(),
+                                rel: None,
+                                state: (),
+                            });
                         });
                     });
-                });
+            }
         }
         Err(())
     }
@@ -369,30 +562,85 @@ mod tests {
     }
 
     #[test]
-    fn test_breadth_first() {
+    fn test_breadth() {
         let graph = grap();
-        let a = graph.breadth_first("Arad", Some("Neamt"));
+        let a = graph.breadth_first("Arad", Some("Neamt")).unwrap();
 
-        assert!(a.is_ok());
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
 
-        if let Ok(mut res) = a {
-            while let Some(node) = res.next() {
-                println!("{:#?}", graph.index_name(node.idx).unwrap());
+    #[test]
+    fn test_breadth_walker() {
+        let graph = grap();
+        let mut a = BreadthFirst::new(
+            &graph,
+            graph.name_index("Neamt").unwrap(),
+            Some(graph.name_index("Arad").unwrap()),
+            Direction::Incoming,
+        );
+
+        let a = {
+            loop {
+                match a.step() {
+                    WalkerState::Found(result) => {
+                        break Some(result.into_iter());
+                    }
+                    WalkerState::Done => {
+                        break None;
+                    }
+                    _ => {}
+                }
             }
+        }
+        .unwrap();
+
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
 
     #[test]
     fn test_dijkstra() {
         let graph = grap();
-        let a = graph.dijkstra("Arad", Some("Neamt"), |state| *state);
+        let a = graph
+            .dijkstra("Arad", Some("Neamt"), |state| *state)
+            .unwrap();
 
-        assert!(a.is_ok());
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
 
-        if let Ok(mut res) = a {
-            while let Some(node) = res.next() {
-                println!("{:#?}", graph.index_name(node.idx).unwrap());
+    #[test]
+    fn test_dijkstra_walker() {
+        let graph = grap();
+        let mut a = Dijkstra::new(
+            &graph,
+            graph.name_index("Neamt").unwrap(),
+            Some(graph.name_index("Arad").unwrap()),
+            Direction::Incoming,
+            |state| *state,
+        );
+
+        let a = {
+            loop {
+                match a.step() {
+                    WalkerState::Found(result) => {
+                        break Some(result.into_iter());
+                    }
+                    WalkerState::Done => {
+                        break None;
+                    }
+                    _ => {}
+                }
             }
+        }
+        .unwrap();
+
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
 }
