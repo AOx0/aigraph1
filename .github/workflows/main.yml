@@ -37,7 +37,7 @@ jobs:
         run: |
           git submodule update --init --recursive
       - name: Build documentation
-        run: cargo doc --release
+        run: cargo doc --release 
       - name: Publish documentation
         run: |
           cd target/doc
