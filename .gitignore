@@ -1,2 +1,4 @@
 
 target/**
+docs/build/**
+.DS_Store

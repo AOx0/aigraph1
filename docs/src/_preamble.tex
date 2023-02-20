@@ -1,0 +1,61 @@
+\documentclass[a4paper]{article}
+\usepackage[spanish]{babel}
+
+\usepackage[backend=biber,
+style=apa,
+]{biblatex}
+
+\newcommand\invisiblesection[1]{%
+  \refstepcounter{section}%
+  \addcontentsline{toc}{section}{\protect\numberline{\thesection}#1}%
+  \sectionmark{#1}}
+
+\defbibenvironment{bibliography}
+  {\enumerate
+     {}
+     {\setlength{\leftmargin}{\bibhang}%
+      \setlength{\itemindent}{-\leftmargin}%
+      \setlength{\itemsep}{\bibitemsep}%
+      \setlength{\parsep}{\bibparsep}}}
+  {\endenumerate}
+  {\item}
+
+
+\usepackage{caption} % Para poner captions the multiples renglones
+\usepackage{float} % Para colocar las imágenes
+\usepackage{fullpage} % Package to use full page
+\usepackage{parskip} % Package to tweak paragraph skipping
+\usepackage{tikz} % Package for drawing
+\usepackage{amsmath}
+\usepackage{amssymb} % Para usar \mathbb
+\usepackage{csquotes}
+\usepackage{enumitem}
+\usepackage{outlines} % Para enumerar con multiples niveles
+\usepackage{graphicx} % Para instertar pdfs como imágenes y usar \scalebox
+\usepackage{tcolorbox}
+\usepackage{etoolbox}
+
+% Paraa induces:
+\usepackage{imakeidx}
+\makeindex[columns=3, title=Alphabetical Index, intoc]
+
+
+\newcommand*{\Scale}[2][4]{\scalebox{#1}{$#2$}}%
+\newcommand*{\Resize}[2]{\resizebox{#1}{!}{$#2$}}%
+
+\usepackage{minted} % Para colocar código
+\usemintedstyle{tango} % Para usar blanco y negro como colores de código
+% \usemintedstyle{bw} % Para usar blanco y negro como colores de código
+
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabla}
+\renewcommand\listingscaption{Listado}
+
+\setlength{\parskip}{\baselineskip}%
+\setlength{\parindent}{0pt}%
+
+\BeforeBeginEnvironment{minted}{\begin{tcolorbox}}%
+\AfterEndEnvironment{minted}{\end{tcolorbox}}%
+
+\addbibresource{bibliography.bib}
+\begin{document}

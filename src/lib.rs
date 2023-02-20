@@ -33,6 +33,7 @@ macro_rules! graph {
 }
 
 use fixedbitset::FixedBitSet;
+use num::{One, Zero};
 pub use petgraph;
 pub use petgraph::Direction;
 use petgraph::{
@@ -47,6 +48,7 @@ use std::{
     collections::{HashMap, VecDeque},
     fmt::{Debug, Display},
     hash::Hash,
+    ops::Add,
     rc::Rc,
 };
 
@@ -278,9 +280,9 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
 /// - `Ix` is the number type value used as indexer for Edges and Nodes.
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     /// The inner [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
-    pub inner: PGraph<N, E, Ty, Ix>,
+    inner: PGraph<N, E, Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
-    pub nodes: HashMap<I, NodeIndex<Ix>>,
+    nodes: HashMap<I, NodeIndex<Ix>>,
 }
 
 impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
@@ -376,6 +378,62 @@ where
             self.nodes.insert(ident, ix);
             Ok(())
         }
+    }
+
+    pub fn depth_first<D>(&self, start: I, goal: Option<I>) -> Result<Step<D, Ix>, ()>
+    where
+        D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
+    {
+        match goal {
+            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
+                (Some(fidx), Some(tidx)) => self.depth_first_impl::<D>(fidx, Some(tidx)),
+                (None, None) => Err(()),
+                (None, Some(_)) => Err(()),
+                (Some(_), None) => Err(()),
+            },
+            _ => match self.name_index(start) {
+                Some(fidx) => self.depth_first_impl(fidx, None),
+                _ => Err(()),
+            },
+        }
+    }
+
+    pub fn depth_first_impl<D>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+    ) -> Result<Step<D, Ix>, ()>
+    where
+        D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
+    {
+        let mut border = VecDeque::with_capacity(self.node_count());
+        border.push_front(Step {
+            caller: None,
+            idx: start,
+            rel: None,
+            state: Zero::zero(),
+        });
+
+        while let Some(parent) = border.pop_front() {
+            if goal
+                .and_then(|goal| Some(goal == parent.idx))
+                .unwrap_or(false)
+            {
+                return Ok(parent.clone());
+            }
+            for child in self
+                .inner
+                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
+            {
+                border.push_front(Step {
+                    caller: parent.caller.clone(),
+                    idx: child,
+                    rel: None,
+                    state: parent.state + One::one(),
+                })
+            }
+        }
+        Err(())
     }
 
     pub fn breadth_first(&self, start: I, goal: Option<I>) -> Result<Steps<(), Ix>, ()> {
@@ -527,8 +585,8 @@ where
 mod tests {
     use super::*;
 
-    fn grap() -> Graph<&'static str, (), u32> {
-        let graph: Graph<&'static str, (), u32> = graph! {
+    fn grap() -> Graph<&'static str, (), u16> {
+        let graph: Graph<&'static str, (), u16> = graph! {
             with_node: (),
             with_edges: next,
             nodes: [
@@ -559,6 +617,15 @@ mod tests {
             ]
         };
         graph
+    }
+    #[test]
+    fn test_depth() {
+        let graph = grap();
+        let a = graph.depth_first::<u32>("Arad", Some("Neamt")).unwrap();
+
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
     }
 
     #[test]
