@@ -380,19 +380,58 @@ where
         }
     }
 
-    pub fn depth_first<D>(&self, start: I, goal: Option<I>) -> Result<Step<D, Ix>, ()>
+    pub fn iterative_depth_first<D>(
+        &self,
+        start: I,
+        goal: Option<I>,
+        limit: Option<D>,
+    ) -> Result<Step<D, Ix>, ()>
     where
         D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
     {
         match goal {
             Some(goal) => match (self.name_index(start), self.name_index(goal)) {
-                (Some(fidx), Some(tidx)) => self.depth_first_impl::<D>(fidx, Some(tidx)),
+                (Some(fidx), Some(tidx)) => {
+                    let mut cur_limit: D = One::one();
+                    loop {
+                        if limit.and_then(|limit| Some(limit == cur_limit)).unwrap_or(false)  {
+                            return Err(());
+                        }
+                        match self.depth_first_impl::<D>(fidx, Some(tidx), Some(cur_limit)) {
+                            Ok(res) => {return Ok(res);}
+                            Err(_) => {cur_limit = cur_limit + One::one() ;continue;}
+                        }
+                    }
+                },
                 (None, None) => Err(()),
                 (None, Some(_)) => Err(()),
                 (Some(_), None) => Err(()),
             },
             _ => match self.name_index(start) {
-                Some(fidx) => self.depth_first_impl(fidx, None),
+                Some(fidx) => self.depth_first_impl(fidx, None, limit),
+                _ => Err(()),
+            },
+        }
+    }
+
+    pub fn depth_first<D>(
+        &self,
+        start: I,
+        goal: Option<I>,
+        limit: Option<D>,
+    ) -> Result<Step<D, Ix>, ()>
+    where
+        D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
+    {
+        match goal {
+            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
+                (Some(fidx), Some(tidx)) => self.depth_first_impl::<D>(fidx, Some(tidx), limit),
+                (None, None) => Err(()),
+                (None, Some(_)) => Err(()),
+                (Some(_), None) => Err(()),
+            },
+            _ => match self.name_index(start) {
+                Some(fidx) => self.depth_first_impl(fidx, None, limit),
                 _ => Err(()),
             },
         }
@@ -402,6 +441,7 @@ where
         &self,
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
+        limit: Option<D>,
     ) -> Result<Step<D, Ix>, ()>
     where
         D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
@@ -413,14 +453,23 @@ where
             rel: None,
             state: Zero::zero(),
         });
+        let mut nivel;
 
         while let Some(parent) = border.pop_front() {
+            if limit
+                .and_then(|limit| Some(parent.state == limit))
+                .unwrap_or(false)
+            {
+                continue;
+            }
             if goal
                 .and_then(|goal| Some(goal == parent.idx))
                 .unwrap_or(false)
             {
                 return Ok(parent.clone());
             }
+
+            nivel = parent.state + One::one();
             for child in self
                 .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
@@ -429,7 +478,7 @@ where
                     caller: parent.caller.clone(),
                     idx: child,
                     rel: None,
-                    state: parent.state + One::one(),
+                    state: nivel,
                 })
             }
         }
@@ -621,7 +670,9 @@ mod tests {
     #[test]
     fn test_depth() {
         let graph = grap();
-        let a = graph.depth_first::<u32>("Arad", Some("Neamt")).unwrap();
+        let a = graph
+            .depth_first::<u32>("Arad", Some("Fagaras"), Some(3))
+            .unwrap();
 
         for node in a {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
