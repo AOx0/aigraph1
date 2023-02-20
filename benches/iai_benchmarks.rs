@@ -1,7 +1,7 @@
 use graph::*;
 use iai::{black_box, Iai};
 
-fn test_graph() -> Graph<&'static str, (), usize> {
+fn test_graph() -> Graph<&'static str, (), u16> {
     black_box(graph! {
         with_node: (),
         with_edges: next,
@@ -88,6 +88,45 @@ fn breadth_test4(iai: &mut Iai) {
     iai.run(|| {
         graph
             .breadth_first_impl(
+                black_box(graph.name_index("Arad").unwrap()),
+                black_box(Some(graph.name_index("Neamt").unwrap())),
+            )
+            .ok();
+    });
+}
+fn depth_test1(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph
+            .depth_first::<u32>(black_box("Arad"), black_box(Some("Neamt")))
+            .unwrap();
+    });
+}
+
+fn depth_test2(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph.depth_first::<u32>(black_box("Arad"), None).ok();
+    });
+}
+
+fn depth_test3(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph
+            .depth_first_impl::<u32>(
+                black_box(graph.name_index("Arad").unwrap()),
+                Some(10000.into()),
+            )
+            .ok();
+    });
+}
+
+fn depth_test4(iai: &mut Iai) {
+    let graph = black_box(test_graph());
+    iai.run(|| {
+        graph
+            .depth_first_impl::<u32>(
                 black_box(graph.name_index("Arad").unwrap()),
                 black_box(Some(graph.name_index("Neamt").unwrap())),
             )
@@ -209,6 +248,10 @@ iai::main!(
     breadth_test2,
     breadth_test3,
     breadth_test4,
+    depth_test1,
+    depth_test2,
+    depth_test3,
+    depth_test4,
     dijkstra_test1,
     dijkstra_test2,
     dijkstra_test3,
