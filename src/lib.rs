@@ -91,7 +91,7 @@ pub enum WalkerState<S, Ix> {
     Cutoff,
 }
 
-trait Walker<S, Ix> {
+pub trait Walker<S, Ix> {
     fn step(&mut self) -> WalkerState<S, Ix>;
 }
 
@@ -657,6 +657,59 @@ where
                             });
                         });
                     });
+            }
+        }
+        Err(())
+    }
+
+    pub fn bidirectional<S>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        mut algo1: impl Walker<S, Ix>,
+        mut algo2: impl Walker<S, Ix>,
+    ) -> Result<Step<S, Ix>, ()> {
+        let mut res1;
+        let mut res2;
+        let mut visited1 = self.visit_map();
+        let mut visited2 = self.visit_map();
+
+        let mut last_step_1 = None;
+        let mut last_step_2 = None;
+        loop {
+            res1 = algo1.step();
+            res2 = algo2.step();
+
+            if let WalkerState::NotFound(ref node) = res1 {
+                last_step_1 = Some(node);
+            }
+            if let WalkerState::NotFound(ref node) = res2 {
+                last_step_2 = Some(node);
+            }
+
+            if matches!(&res1, WalkerState::Done) && matches!(&res2, WalkerState::Done) {
+                return Err(());
+            }
+
+            match res1 {
+                WalkerState::Cutoff => {
+                    continue;
+                }
+                WalkerState::NotFound(node) if !visited1.visit(node.idx) => break,
+                WalkerState::Found(node) => {
+                    return Ok(node);
+                }
+                _ => {}
+            }
+            match res2 {
+                WalkerState::Cutoff => {
+                    continue;
+                }
+                WalkerState::NotFound(node) if !visited2.visit(node.idx) => break,
+                WalkerState::Found(node) => {
+                    return Ok(node);
+                }
+                _ => {}
             }
         }
         Err(())
