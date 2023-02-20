@@ -84,10 +84,11 @@ impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
     }
 }
 
-enum WalkerState<S, Ix> {
+pub enum WalkerState<S, Ix> {
     Done,
     Found(Step<S, Ix>),
     NotFound(Rc<Step<S, Ix>>),
+    Cutoff,
 }
 
 trait Walker<S, Ix> {
@@ -390,25 +391,41 @@ where
         D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
     {
         match goal {
-            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
-                (Some(fidx), Some(tidx)) => {
-                    let mut cur_limit: D = One::one();
-                    loop {
-                        if limit.and_then(|limit| Some(limit == cur_limit)).unwrap_or(false)  {
-                            return Err(());
+            Some(goal) => {
+                match (self.name_index(start), self.name_index(goal)) {
+                    (Some(fidx), Some(tidx)) => {
+                        let mut cur_limit: D = One::one();
+                        loop {
+                            if limit
+                                .and_then(|limit| Some(limit == cur_limit))
+                                .unwrap_or(false)
+                            {
+                                return Err(());
+                            }
+                            match self.depth_first_impl::<D>(fidx, Some(tidx), Some(cur_limit)) {
+                            Ok(res) => {
+                                return Ok(res);
+                            }
+                            Err(err) => match err {
+                                WalkerState::Done => {
+                                    return Err(());
+                                }
+                                WalkerState::Cutoff => {
+                                    cur_limit = cur_limit + One::one();
+                                    continue;
+                                },
+                                _ => unreachable!("Only WalkerState::Done and WalkerState::Cutoff are returned")
+                            },
                         }
-                        match self.depth_first_impl::<D>(fidx, Some(tidx), Some(cur_limit)) {
-                            Ok(res) => {return Ok(res);}
-                            Err(_) => {cur_limit = cur_limit + One::one() ;continue;}
                         }
                     }
-                },
-                (None, None) => Err(()),
-                (None, Some(_)) => Err(()),
-                (Some(_), None) => Err(()),
-            },
+                    (None, None) => Err(()),
+                    (None, Some(_)) => Err(()),
+                    (Some(_), None) => Err(()),
+                }
+            }
             _ => match self.name_index(start) {
-                Some(fidx) => self.depth_first_impl(fidx, None, limit),
+                Some(fidx) => self.depth_first_impl(fidx, None, limit).map_err(|_| ()),
                 _ => Err(()),
             },
         }
@@ -425,13 +442,15 @@ where
     {
         match goal {
             Some(goal) => match (self.name_index(start), self.name_index(goal)) {
-                (Some(fidx), Some(tidx)) => self.depth_first_impl::<D>(fidx, Some(tidx), limit),
+                (Some(fidx), Some(tidx)) => self
+                    .depth_first_impl::<D>(fidx, Some(tidx), limit)
+                    .map_err(|_| ()),
                 (None, None) => Err(()),
                 (None, Some(_)) => Err(()),
                 (Some(_), None) => Err(()),
             },
             _ => match self.name_index(start) {
-                Some(fidx) => self.depth_first_impl(fidx, None, limit),
+                Some(fidx) => self.depth_first_impl(fidx, None, limit).map_err(|_| ()),
                 _ => Err(()),
             },
         }
@@ -442,7 +461,7 @@ where
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
         limit: Option<D>,
-    ) -> Result<Step<D, Ix>, ()>
+    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
     where
         D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
     {
@@ -453,6 +472,7 @@ where
             rel: None,
             state: Zero::zero(),
         });
+        let mut cutoff = false;
         let mut nivel;
 
         while let Some(parent) = border.pop_front() {
@@ -460,6 +480,14 @@ where
                 .and_then(|limit| Some(parent.state == limit))
                 .unwrap_or(false)
             {
+                if self
+                    .inner
+                    .neighbors_directed(parent.idx.into(), Direction::Outgoing)
+                    .count()
+                    != 0
+                {
+                    cutoff = true;
+                }
                 continue;
             }
             if goal
@@ -482,7 +510,12 @@ where
                 })
             }
         }
-        Err(())
+
+        if cutoff {
+            Err(WalkerState::Cutoff)
+        } else {
+            Err(WalkerState::Done)
+        }
     }
 
     pub fn breadth_first(&self, start: I, goal: Option<I>) -> Result<Steps<(), Ix>, ()> {
