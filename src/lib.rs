@@ -46,9 +46,8 @@ use petgraph::{
 
 use std::{
     collections::{HashMap, VecDeque},
-    fmt::{Debug, Display},
+    fmt::Debug,
     hash::Hash,
-    ops::Add,
     rc::Rc,
 };
 
@@ -159,7 +158,7 @@ struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
     edge_cost: F,
 }
 
-pub struct Depth<'a, D, I, N, E, Ty, Ix> {
+pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
     border: VecDeque<Step<D, Ix>>,
@@ -169,7 +168,8 @@ pub struct Depth<'a, D, I, N, E, Ty, Ix> {
     direction: Direction,
 }
 
-impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> Depth<'a, D, I, N, E, Ty, Ix> {
+impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, E, Ty, Ix> {
+    #[allow(dead_code)]
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
         start: NodeIndex<Ix>,
@@ -198,9 +198,10 @@ impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> Depth<'a, D, I, N, E, Ty
     }
 }
 
-impl<'a, D, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<D, Ix> for Depth<'a, D, I, N, E, Ty, Ix>
+impl<'a, D, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<D, Ix>
+    for DepthFirst<'a, D, I, N, E, Ty, Ix>
 where
-    D: Copy + Eq + PartialOrd + One + Add<Output = D> + Zero,
+    D: Measure + Copy + One + Zero,
 {
     fn step(&mut self) -> WalkerState<D, Ix> {
         if let Some(parent) = self.border.pop_front() {
@@ -252,6 +253,7 @@ where
 impl<'a, F: FnMut(&E) -> K, K: Zero, I, N, E, Ty: EdgeType, Ix: IndexType>
     Dijkstra<'a, F, K, I, N, E, Ty, Ix>
 {
+    #[allow(dead_code)]
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
         start: NodeIndex<Ix>,
@@ -338,6 +340,7 @@ where
 }
 
 impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> BreadthFirst<'a, I, N, E, Ty, Ix> {
+    #[allow(dead_code)]
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
         start: NodeIndex<Ix>,
@@ -1045,7 +1048,7 @@ mod tests {
             Some(graph.name_index("Neamt").unwrap()),
             Direction::Outgoing,
         );
-        let b = Depth::new(
+        let b = DepthFirst::new(
             &graph,
             graph.name_index("Neamt").unwrap(),
             Some(graph.name_index("Arad").unwrap()),
