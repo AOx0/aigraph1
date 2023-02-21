@@ -84,6 +84,12 @@ impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
     }
 }
 
+impl<S, Ix> Steps<S, Ix> {
+    pub fn from_step(step: Rc<Step<S, Ix>>) -> Self {
+        Self { start: Some(step) }
+    }
+}
+
 pub enum WalkerState<S, Ix> {
     Done,
     Found(Step<S, Ix>),
@@ -662,10 +668,8 @@ where
         Err(())
     }
 
-    pub fn bidirectional<S>(
+    pub fn bidirectional<S: Debug>(
         &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
         mut algo1: impl Walker<S, Ix>,
         mut algo2: impl Walker<S, Ix>,
     ) -> Result<Step<S, Ix>, ()> {
@@ -674,17 +678,23 @@ where
         let mut visited1 = self.visit_map();
         let mut visited2 = self.visit_map();
 
+        let mut steps1: HashMap<NodeIndex<Ix>, Rc<Step<S, Ix>>> = HashMap::new();
+        let mut steps2: HashMap<NodeIndex<Ix>, Rc<Step<S, Ix>>> = HashMap::new();
+
         let mut last_step_1 = None;
         let mut last_step_2 = None;
-        loop {
+        let mut i = 0;
+        let matching_on = loop {
+            i += 1;
+            println!("{i}");
             res1 = algo1.step();
             res2 = algo2.step();
 
             if let WalkerState::NotFound(ref node) = res1 {
-                last_step_1 = Some(node);
+                last_step_1 = Some(node.clone());
             }
             if let WalkerState::NotFound(ref node) = res2 {
-                last_step_2 = Some(node);
+                last_step_2 = Some(node.clone());
             }
 
             if matches!(&res1, WalkerState::Done) && matches!(&res2, WalkerState::Done) {
@@ -695,7 +705,13 @@ where
                 WalkerState::Cutoff => {
                     continue;
                 }
-                WalkerState::NotFound(node) if !visited1.visit(node.idx) => break,
+                WalkerState::NotFound(node) => {
+                    visited1.visit(node.idx);
+                    steps1.insert(node.idx, node.clone());
+                    if visited2.is_visited(&node.idx) {
+                        break 1;
+                    }
+                }
                 WalkerState::Found(node) => {
                     return Ok(node);
                 }
@@ -705,14 +721,47 @@ where
                 WalkerState::Cutoff => {
                     continue;
                 }
-                WalkerState::NotFound(node) if !visited2.visit(node.idx) => break,
+                WalkerState::NotFound(node) => {
+                    visited2.visit(node.idx);
+                    steps2.insert(node.idx, node.clone());
+                    if visited1.is_visited(&node.idx) {
+                        break 2;
+                    }
+                }
                 WalkerState::Found(node) => {
                     return Ok(node);
                 }
                 _ => {}
             }
+        };
+
+        println!("Break on {}", matching_on);
+        if let (Some(mut last1), Some(mut last2)) = (last_step_1, last_step_2) {
+            let mut trace1 = Vec::new();
+            let mut trace2 = Vec::new();
+
+            if matching_on == 2 {
+                std::mem::swap(&mut last1, &mut last2);
+                std::mem::swap(&mut steps1, &mut steps2);
+            }
+
+            last2 = steps2.get(&last1.idx).unwrap().clone();
+
+            println!("***1");
+            for i in Steps::from_step(last1) {
+                trace1.push(i.clone());
+                println!("{:?}", self.index_name(i.idx));
+            }
+
+            println!("***2");
+            for i in Steps::from_step(last2) {
+                trace2.push(i.clone());
+                println!("{:?}", self.index_name(i.idx));
+            }
+            Err(())
+        } else {
+            unreachable!("This point should always have valid last steps")
         }
-        Err(())
     }
 }
 
@@ -829,7 +878,10 @@ mod tests {
         );
 
         let a = {
+            let mut i = 0;
             loop {
+                i += 1;
+                println!("{i}");
                 match a.step() {
                     WalkerState::Found(result) => {
                         break Some(result.into_iter());
@@ -846,5 +898,27 @@ mod tests {
         for node in a {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
+    }
+
+    #[test]
+    fn test_bidirectional() {
+        let graph = grap();
+
+        let a = Dijkstra::new(
+            &graph,
+            graph.name_index("Arad").unwrap(),
+            Some(graph.name_index("Neamt").unwrap()),
+            Direction::Outgoing,
+            |state| *state,
+        );
+        let b = Dijkstra::new(
+            &graph,
+            graph.name_index("Neamt").unwrap(),
+            Some(graph.name_index("Arad").unwrap()),
+            Direction::Incoming,
+            |state| *state,
+        );
+
+        graph.bidirectional(a, b);
     }
 }
