@@ -169,10 +169,7 @@ pub struct Depth<'a, D, I, N, E, Ty, Ix> {
     direction: Direction,
 }
 
-impl<'a, D, I, N, E, Ty: EdgeType, Ix: IndexType> Depth<'a, D, I, N, E, Ty, Ix>
-where
-    D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
-{
+impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> Depth<'a, D, I, N, E, Ty, Ix> {
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
         start: NodeIndex<Ix>,
@@ -203,7 +200,7 @@ where
 
 impl<'a, D, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<D, Ix> for Depth<'a, D, I, N, E, Ty, Ix>
 where
-    D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
+    D: Copy + Eq + PartialOrd + One + Add<Output = D> + Zero,
 {
     fn step(&mut self) -> WalkerState<D, Ix> {
         if let Some(parent) = self.border.pop_front() {
@@ -252,10 +249,8 @@ where
     }
 }
 
-impl<'a, F, K: Default, I, N, E, Ty: EdgeType, Ix: IndexType> Dijkstra<'a, F, K, I, N, E, Ty, Ix>
-where
-    K: Measure + Copy + Eq + Default + Ord + PartialOrd,
-    F: FnMut(&E) -> K,
+impl<'a, F: FnMut(&E) -> K, K: Zero, I, N, E, Ty: EdgeType, Ix: IndexType>
+    Dijkstra<'a, F, K, I, N, E, Ty, Ix>
 {
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
@@ -273,7 +268,7 @@ where
                     caller: None,
                     idx: start,
                     rel: None,
-                    state: K::default(),
+                    state: Zero::zero(),
                 });
                 border
             },
@@ -286,10 +281,9 @@ where
 impl<'a, F, K, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<K, Ix>
     for Dijkstra<'a, F, K, I, N, E, Ty, Ix>
 where
-    K: Measure + Copy + Eq + Default + Ord + PartialOrd,
+    K: Measure + Copy + Ord,
     F: FnMut(&E) -> K,
     EdgeIndex: From<EdgeIndex<Ix>>,
-    EdgeIndex<Ix>: From<EdgeIndex>,
 {
     fn step(&mut self) -> WalkerState<K, Ix> {
         if let Some(parent) = {
@@ -463,16 +457,11 @@ where
     }
 }
 
-impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
+impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
 where
-    N: Eq,
-    Ty: EdgeType,
-    Ix: IndexType,
-    I: Copy + Hash + Eq + Debug + Display,
+    I: Copy + Hash + Eq,
     NodeIndex: From<NodeIndex<Ix>>,
-    NodeIndex<Ix>: From<NodeIndex>,
     EdgeIndex: From<EdgeIndex<Ix>>,
-    EdgeIndex<Ix>: From<EdgeIndex>,
 {
     /// Get the high-level node name from the low-level node index. E.g. NodeIndex(0) -> "Arad"
     pub fn index_name<'a>(&'a self, value: NodeIndex<Ix>) -> Option<I> {
@@ -529,7 +518,7 @@ where
         limit: Option<D>,
     ) -> Result<Step<D, Ix>, ()>
     where
-        D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
+        D: Measure + Copy + One + Zero,
     {
         match goal {
             Some(goal) => {
@@ -579,7 +568,7 @@ where
         limit: Option<D>,
     ) -> Result<Step<D, Ix>, ()>
     where
-        D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
+        D: Measure + Copy + One + Zero,
     {
         match goal {
             Some(goal) => match (self.name_index(start), self.name_index(goal)) {
@@ -604,7 +593,7 @@ where
         limit: Option<D>,
     ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
     where
-        D: Copy + Eq + Default + Ord + PartialOrd + One + Add<Output = D> + Zero,
+        D: Measure + Copy + One + Zero,
     {
         let mut border = VecDeque::with_capacity(self.node_count());
         border.push_front(Step {
@@ -818,10 +807,10 @@ where
 
         let mut last_step_1 = None;
         let mut last_step_2 = None;
-        let mut i = 0;
+        // let mut i = 0;
         let matching_on = loop {
-            i += 1;
-            println!("{i}");
+            // i += 1;
+            // println!("{i}");
             res1 = algo1.step();
             res2 = algo2.step();
 
@@ -855,7 +844,7 @@ where
             }
         };
 
-        println!("Break on {}", matching_on);
+        // println!("Break on {}", matching_on);
         if let (Some(mut last1), Some(mut last2)) = (last_step_1, last_step_2) {
             let mut trace1 = VecDeque::new();
             let mut trace2 = VecDeque::new();
@@ -868,27 +857,24 @@ where
                 *res1_p.0 = res1_p.1.get(&res2_p.0.idx).unwrap().clone();
             }
 
-            println!("***1");
+            // println!("***1");
             let mut last1 = Some(last1);
             while let Some(i) = last1 {
                 trace1.push_back(i.clone());
-                println!("{:?}", self.index_name(i.idx));
+                // println!("{:?}", self.index_name(i.idx));
                 last1 = i.caller.clone();
             }
-            println!("***2");
+            // println!("***2");
             let mut last2 = Some(last2);
             while let Some(i) = last2 {
                 trace2.push_back(i.clone());
-                println!("{:?}", self.index_name(i.idx));
+                // println!("{:?}", self.index_name(i.idx));
                 last2 = i.caller.clone();
             }
 
-            println!("***3");
+            // println!("***3");
             for i in trace1.range(1..) {
                 trace2.push_front(i.clone());
-            }
-            for i in trace2.iter() {
-                println!("{:?}", i.idx);
             }
 
             let first = trace2.pop_front().unwrap();
@@ -1027,10 +1013,10 @@ mod tests {
         );
 
         let a = {
-            let mut i = 0;
+            // let mut i = 0;
             loop {
-                i += 1;
-                println!("{i}");
+                // i += 1;
+                // println!("{i}");
                 match a.step() {
                     WalkerState::Found(result) => {
                         break Some(result.into_iter());
