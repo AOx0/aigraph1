@@ -60,6 +60,7 @@ pub struct Step<S, Ix> {
     pub state: S,
 }
 
+#[derive(Debug)]
 pub struct StepUnit<Ix> {
     pub caller: Option<Rc<StepUnit<Ix>>>,
     pub idx: NodeIndex<Ix>,
@@ -77,12 +78,23 @@ impl<Ix: IndexType> StepUnit<Ix> {
             rel: step.rel,
         })
     }
-    pub fn into_step<S>(step: Rc<StepUnit<Ix>>) -> Step<(), Ix> {
+    pub fn make_void<S>(step: Rc<Step<S, Ix>>) -> Step<(), Ix> {
         Step {
             caller: step
                 .caller
                 .as_ref()
-                .and_then(|step| Some(Rc::new(Self::into_step::<S>(step.clone())))),
+                .and_then(|step| Some(Rc::new(Self::make_void(step.clone())))),
+            idx: step.idx,
+            rel: step.rel,
+            state: (),
+        }
+    }
+    pub fn into_step(step: Rc<StepUnit<Ix>>) -> Step<(), Ix> {
+        Step {
+            caller: step
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Rc::new(Self::into_step(step.clone())))),
             idx: step.idx,
             rel: step.rel,
             state: (),
@@ -209,7 +221,7 @@ where
                 {
                     self.cutoff = true;
                 }
-                return WalkerState::Cutoff;
+                return WalkerState::NotFound(Rc::new(parent));
             }
             if self
                 .goal
@@ -220,7 +232,6 @@ where
             }
 
             let parent = Rc::new(parent);
-
             self.level = parent.state + One::one();
             for child in self
                 .graph
@@ -228,7 +239,7 @@ where
                 .neighbors_directed(parent.idx.into(), self.direction)
             {
                 self.border.push_front(Step {
-                    caller: parent.caller.clone(),
+                    caller: Some(parent.clone()),
                     idx: child,
                     rel: None,
                     state: self.level,
@@ -633,7 +644,7 @@ where
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
             {
                 border.push_front(Step {
-                    caller: parent.caller.clone(),
+                    caller: Some(Rc::new(parent.clone())),
                     idx: child,
                     rel: None,
                     state: nivel,
@@ -822,6 +833,7 @@ where
                     break 1;
                 }
             }
+
             if let WalkerState::NotFound(ref node) = res2 {
                 visited2.visit(node.idx);
                 steps2.insert(node.idx, StepUnit::from_step(node.clone()));
@@ -836,10 +848,10 @@ where
             }
 
             if let WalkerState::Found(node) = res1 {
-                return Ok(StepUnit::into_step::<S>(StepUnit::from_step(Rc::new(node))));
+                return Ok(StepUnit::make_void(Rc::new(node)));
             }
             if let WalkerState::Found(node) = res2 {
-                return Ok(StepUnit::into_step::<S>(StepUnit::from_step(Rc::new(node))));
+                return Ok(StepUnit::make_void(Rc::new(node)));
             }
         };
 
@@ -848,8 +860,8 @@ where
             let mut trace1 = VecDeque::new();
             let mut trace2 = VecDeque::new();
 
-            let mut res1_p = (&mut last1, &mut steps1);
-            let mut res2_p = (&mut last2, &mut steps2);
+            let res1_p = (&mut last1, &mut steps1);
+            let res2_p = (&mut last2, &mut steps2);
             if matching_on == 1 {
                 *res2_p.0 = res2_p.1.get(&res1_p.0.idx).unwrap().clone();
             } else {
@@ -874,6 +886,9 @@ where
             println!("***3");
             for i in trace1.range(1..) {
                 trace2.push_front(i.clone());
+            }
+            for i in trace2.iter() {
+                println!("{:?}", i.idx);
             }
 
             let first = trace2.pop_front().unwrap();
@@ -1038,19 +1053,18 @@ mod tests {
     fn test_bidirectional() {
         let graph = grap();
 
-        let a = Dijkstra::new(
+        let a = BreadthFirst::new(
             &graph,
             graph.name_index("Arad").unwrap(),
             Some(graph.name_index("Neamt").unwrap()),
             Direction::Outgoing,
-            |s| *s,
         );
-        let b = Dijkstra::new(
+        let b = Depth::new(
             &graph,
             graph.name_index("Neamt").unwrap(),
             Some(graph.name_index("Arad").unwrap()),
+            None::<usize>,
             Direction::Incoming,
-            |s| *s,
         );
 
         let res = graph.bidirectional(a, b).unwrap();
