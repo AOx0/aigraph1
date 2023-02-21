@@ -60,6 +60,36 @@ pub struct Step<S, Ix> {
     pub state: S,
 }
 
+pub struct StepUnit<Ix> {
+    pub caller: Option<Rc<StepUnit<Ix>>>,
+    pub idx: NodeIndex<Ix>,
+    pub rel: Option<EdgeIndex>,
+}
+
+impl<Ix: IndexType> StepUnit<Ix> {
+    pub fn from_step<S>(step: Rc<Step<S, Ix>>) -> Rc<Self> {
+        Rc::new(Self {
+            caller: step
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Self::from_step(step.clone()))),
+            idx: step.idx,
+            rel: step.rel,
+        })
+    }
+    pub fn into_step<S>(step: Rc<StepUnit<Ix>>) -> Step<(), Ix> {
+        Step {
+            caller: step
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Rc::new(Self::into_step::<S>(step.clone())))),
+            idx: step.idx,
+            rel: step.rel,
+            state: (),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Steps<S, Ix> {
     start: Option<Rc<Step<S, Ix>>>,
@@ -206,11 +236,7 @@ where
             }
             WalkerState::NotFound(parent)
         } else {
-            if self.cutoff {
-                WalkerState::Cutoff
-            } else {
-                WalkerState::Done
-            }
+            WalkerState::Done
         }
     }
 }
@@ -766,18 +792,18 @@ where
         Err(())
     }
 
-    pub fn bidirectional<S: Debug>(
+    pub fn bidirectional<S: Debug, D: Debug>(
         &self,
         mut algo1: impl Walker<S, Ix>,
-        mut algo2: impl Walker<S, Ix>,
-    ) -> Result<Step<S, Ix>, ()> {
+        mut algo2: impl Walker<D, Ix>,
+    ) -> Result<Step<(), Ix>, ()> {
         let mut res1;
         let mut res2;
         let mut visited1 = self.visit_map();
         let mut visited2 = self.visit_map();
 
-        let mut steps1: HashMap<NodeIndex<Ix>, Rc<Step<S, Ix>>> = HashMap::new();
-        let mut steps2: HashMap<NodeIndex<Ix>, Rc<Step<S, Ix>>> = HashMap::new();
+        let mut steps1: HashMap<_, Rc<StepUnit<_>>> = HashMap::new();
+        let mut steps2: HashMap<_, Rc<StepUnit<_>>> = HashMap::new();
 
         let mut last_step_1 = None;
         let mut last_step_2 = None;
@@ -789,74 +815,84 @@ where
             res2 = algo2.step();
 
             if let WalkerState::NotFound(ref node) = res1 {
-                last_step_1 = Some(node.clone());
+                visited1.visit(node.idx);
+                steps1.insert(node.idx, StepUnit::from_step(node.clone()));
+                last_step_1 = Some(StepUnit::from_step(node.clone()));
+                if visited2.is_visited(&node.idx) {
+                    break 1;
+                }
             }
             if let WalkerState::NotFound(ref node) = res2 {
-                last_step_2 = Some(node.clone());
+                visited2.visit(node.idx);
+                steps2.insert(node.idx, StepUnit::from_step(node.clone()));
+                last_step_2 = Some(StepUnit::from_step(node.clone()));
+                if visited1.is_visited(&node.idx) {
+                    break 2;
+                }
             }
 
             if matches!(&res1, WalkerState::Done) && matches!(&res2, WalkerState::Done) {
                 return Err(());
             }
 
-            match res1 {
-                WalkerState::Cutoff => {
-                    continue;
-                }
-                WalkerState::NotFound(node) => {
-                    visited1.visit(node.idx);
-                    steps1.insert(node.idx, node.clone());
-                    if visited2.is_visited(&node.idx) {
-                        break 1;
-                    }
-                }
-                WalkerState::Found(node) => {
-                    return Ok(node);
-                }
-                _ => {}
+            if let WalkerState::Found(node) = res1 {
+                return Ok(StepUnit::into_step::<S>(StepUnit::from_step(Rc::new(node))));
             }
-            match res2 {
-                WalkerState::Cutoff => {
-                    continue;
-                }
-                WalkerState::NotFound(node) => {
-                    visited2.visit(node.idx);
-                    steps2.insert(node.idx, node.clone());
-                    if visited1.is_visited(&node.idx) {
-                        break 2;
-                    }
-                }
-                WalkerState::Found(node) => {
-                    return Ok(node);
-                }
-                _ => {}
+            if let WalkerState::Found(node) = res2 {
+                return Ok(StepUnit::into_step::<S>(StepUnit::from_step(Rc::new(node))));
             }
         };
 
         println!("Break on {}", matching_on);
         if let (Some(mut last1), Some(mut last2)) = (last_step_1, last_step_2) {
-            let mut trace1 = Vec::new();
-            let mut trace2 = Vec::new();
+            let mut trace1 = VecDeque::new();
+            let mut trace2 = VecDeque::new();
 
-            if matching_on == 2 {
-                std::mem::swap(&mut last1, &mut last2);
-                std::mem::swap(&mut steps1, &mut steps2);
+            let mut res1_p = (&mut last1, &mut steps1);
+            let mut res2_p = (&mut last2, &mut steps2);
+            if matching_on == 1 {
+                *res2_p.0 = res2_p.1.get(&res1_p.0.idx).unwrap().clone();
+            } else {
+                *res1_p.0 = res1_p.1.get(&res2_p.0.idx).unwrap().clone();
             }
-
-            last2 = steps2.get(&last1.idx).unwrap().clone();
 
             println!("***1");
-            for i in Steps::from_step(last1) {
-                trace1.push(i.clone());
+            let mut last1 = Some(last1);
+            while let Some(i) = last1 {
+                trace1.push_back(i.clone());
                 println!("{:?}", self.index_name(i.idx));
+                last1 = i.caller.clone();
+            }
+            println!("***2");
+            let mut last2 = Some(last2);
+            while let Some(i) = last2 {
+                trace2.push_back(i.clone());
+                println!("{:?}", self.index_name(i.idx));
+                last2 = i.caller.clone();
             }
 
-            println!("***2");
-            for i in Steps::from_step(last2) {
-                trace2.push(i.clone());
-                println!("{:?}", self.index_name(i.idx));
+            println!("***3");
+            for i in trace1.range(1..) {
+                trace2.push_front(i.clone());
             }
-            Err(())
+
+            let first = trace2.pop_front().unwrap();
+            let mut result = Step {
+                caller: None,
+                idx: first.idx,
+                rel: None,
+                state: (),
+            };
+
+            while let Some(i) = trace2.pop_front() {
+                result = Step {
+                    caller: Some(Rc::new(result.clone())),
+                    idx: i.idx,
+                    state: (),
+                    rel: i.rel,
+                }
+            }
+            Ok(result)
         } else {
             unreachable!("This point should always have valid last steps")
         }
@@ -1007,16 +1043,19 @@ mod tests {
             graph.name_index("Arad").unwrap(),
             Some(graph.name_index("Neamt").unwrap()),
             Direction::Outgoing,
-            |state| *state,
+            |s| *s,
         );
         let b = Dijkstra::new(
             &graph,
             graph.name_index("Neamt").unwrap(),
             Some(graph.name_index("Arad").unwrap()),
             Direction::Incoming,
-            |state| *state,
+            |s| *s,
         );
 
-        graph.bidirectional(a, b);
+        let res = graph.bidirectional(a, b).unwrap();
+        for node in res {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
     }
 }
