@@ -2,7 +2,7 @@
 \hspace{0pt}
 \vfill
 
-\invisiblesection{Portada}
+\invisiblesection{Cover page}
 
 \begin{center}
     {\huge First Partial Project:\\Graph Search Algorithms}\\    \quad\\
@@ -29,6 +29,7 @@
 \vfill
 
 \newpage
+\invisiblesection{Contents}
 \tableofcontents
 
 \newpage
@@ -51,37 +52,8 @@ the Rust programming language
 2. Correct and efficient documentation of the code and features
 
 
-\section{Resumen}
+\section{Abstract}
 
-El objetivo de este proyecto es utilizar transformaciones lineales como llaves
-para cifrar y descifrar bits de información.
-Se explora el uso de la aritmética modular para mantener la congruencia de la
-información
- a la vez que se experimenta con distintos métodos de cifrado por medio de
-algoritmos varios que emplean las transformaciones en su proceso.
-La meta es implementar una herramienta de cifrado y descifrado que pueda
-proteger tanto archivos de texto como ejecutables con un procedimiento
-que permita su auto descifrado junto con soporte a \textit{passphrases} para
-obtener mayor seguridad.
-
-Los métodos estudiados son dos. 
-
-El primero es una modificación de un cifrado de sustitución. Primero se
-construye una matriz que contiene todos los valores representables en un 
-byte y modifica la matriz por medio de multiplicaciones matriciales para
-después sustituir cada byte en el archivo por su nuevo valor. 
-
-El segundo, ordena todos los bytes del mensaje a cifrar, como puede ser un
-archivo, y le aplica una multiplicación matricial a la totalidad del archivo. 
-
-Para dar soporte al auto-descifrado de los archivos, cuando se utilice la
-bandera --auto, se almacenan en el archivo los valores para descifrarse a sí
-mismo, 
-con bytes de meta información que facilitan el proceso y permiten una mayor
-seguridad lograda por el factor aleatorio. Este proyecto plantea la
-implementación 
-de una librería de cifrado de archivos por medio de una ofuscación binaria
-lograda por transformaciones.
 
 \newpage
 \section{Installation \& Execution}
@@ -215,11 +187,23 @@ with an API that identifies nodes and edges with indexes.
 or 0 \texttt{false}. \texttt{petgraph} uses these sets, for example, to track nodes that have already been visited.
 
 Some methods of our implementation re-export returned values by \texttt{petgraph}. Thus, it's necessary to know the type, making
-\texttt{fixedbitset} a dependency. 
-
-\autocite{fixedbitset}
+\texttt{fixedbitset} a dependency. \autocite{fixedbitset}
 
 \subsection{Benchmark dependencies}
+
+\subsubsection{criterion v0.4.0}
+
+Criterion is a Statistics-driven benchmarking library for Rust that performs millions of iterations to measure code preformance
+even for minimal regressions. \autocite{criterion}
+ 
+\subsubsection{iai fork @AlexMikhalev}
+
+Iai is an experimental benchmarking harness that uses Cachegrind to perform extremely precise
+single-shot measurements of Rust code.
+
+The fork we used at \texttt{github.com/AlexMikhalev/iai/tree/322cd46} (branch \texttt{'memory\_usage'}) is slighlty
+modified to allow setup on bench functions so we measure the exact lines of code we want and not the whole
+graph initialization. \autocite{iai}
 
 \newpage
 \section{Documentation}
@@ -231,7 +215,7 @@ Detailed, up to date documentation at \texttt{https://aox0.github.io/aigraph1/gr
 
 \subsection{graph::Graph}
 
-\begin{minted}{rust}
+\begin{minted}[fontsize=\footnotesize]{rust}
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     pub inner: PGraph<N, E, Ty, Ix>,
     pub nodes: HashMap<I, NodeIndex<Ix>>,
@@ -255,6 +239,12 @@ The structure is generic over various types including data types binded to Nodes
  \item \texttt{Ty} is the Graph connection type. \texttt{petgraph::Directed} by default
  \item \texttt{Ix} is the number type value used as indexer for Edges and Nodes.
 \end{itemize}
+
+\subsection{graph::Graph::breadth\_first}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn breadth_first(&self, start: I, goal: Option<I>) -> Result<Steps<(), Ix>, ()> { ... }
+\end{minted}
+
 
 
 \newpage

@@ -1,8 +1,8 @@
 \documentclass[a4paper]{article}
-\usepackage[spanish]{babel}
+\usepackage[english]{babel}
 
 \usepackage[backend=biber,
-style=apa,
+style=ieee,
 ]{biblatex}
 
 \newcommand\invisiblesection[1]{%
@@ -57,5 +57,20 @@ style=apa,
 \BeforeBeginEnvironment{minted}{\begin{tcolorbox}}%
 \AfterEndEnvironment{minted}{\end{tcolorbox}}%
 
+\raggedbottom % reduce itemize spacing
+
 \addbibresource{bibliography.bib}
+
+% Para tener links que si hacen algo
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+
+
 \begin{document}
