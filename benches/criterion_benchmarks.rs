@@ -123,6 +123,10 @@ fn breadth_test2(c: &mut Criterion) {
     });
 }
 
+// fn breadth_test3(c: &mut Criterion) {
+//     let group = c.benchmark_group("breadth evolution")
+// }
+
 fn depth_test1(c: &mut Criterion) {
     let graph = black_box(test_graph());
     c.bench_function("depth_full", |a| {

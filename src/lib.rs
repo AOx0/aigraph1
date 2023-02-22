@@ -913,39 +913,6 @@ where
 mod tests {
     use super::*;
 
-    fn grap() -> Graph<&'static str, (), u16> {
-        let graph: Graph<&'static str, (), u16> = graph! {
-            with_node: (),
-            with_edges: next,
-            nodes: [
-                "Arad",        "Zerind",      "Oradea",     "Sibiu",
-                "Fagaras",     "Timisoara",   "Lugoj",      "Mehadia",
-                "Drobeta",     "Craiova",     "Pitesti",    "Rimnieu Vilcea",
-                "Bucharest",   "Giurgiu",     "Urziceni",   "Hirsova",
-                "Eforie",      "Vasiui",      "Iasi",       "Neamt"
-            ],
-            connections: [
-                "Arad" => {(140) "Sibiu", (75) "Zerind", (118) "Timisoara"},
-                "Zerind" => {(71) "Oradea"},
-                "Oradea" => {(151) "Sibiu"},
-                "Sibiu" => {(99) "Fagaras", (80) "Rimnieu Vilcea"},
-                "Timisoara" => {(111) "Lugoj"},
-                "Lugoj" => {(70) "Mehadia"},
-                "Mehadia" => {(75) "Drobeta"},
-                "Drobeta" => {(120) "Craiova"},
-                "Craiova" => {(138) "Pitesti"},
-                "Pitesti" => {(101) "Bucharest"},
-                "Rimnieu Vilcea" => {(97) "Pitesti", (146) "Craiova"},
-                "Fagaras" => {(211) "Bucharest"},
-                "Bucharest" => {(90) "Giurgiu", (85) "Urziceni"},
-                "Urziceni" => {(98) "Hirsova", (142) "Vasiui"},
-                "Vasiui" => {(92) "Iasi"},
-                "Iasi" => {(87) "Neamt"},
-                "Hirsova" => {(86) "Eforie"}
-            ]
-        };
-        graph
-    }
     #[test]
     fn test_depth() {
         let graph = final_grap();
