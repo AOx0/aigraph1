@@ -193,8 +193,9 @@ Some methods of our implementation re-export returned values by \texttt{petgraph
 
 \subsubsection{criterion v0.4.0}
 
-Criterion is a benchmarking library 
-
+Criterion is a Statistics-driven benchmarking library for Rust that performs millions of iterations to measure code preformance
+even for minimal regressions. \autocite{criterion}
+ 
 \subsubsection{iai fork @AlexMikhalev}
 
 Iai is an experimental benchmarking harness that uses Cachegrind to perform extremely precise
@@ -202,7 +203,7 @@ single-shot measurements of Rust code.
 
 The fork we used at \texttt{github.com/AlexMikhalev/iai/tree/322cd46} (branch \texttt{'memory\_usage'}) is slighlty
 modified to allow setup on bench functions so we measure the exact lines of code we want and not the whole
-graph initialization.
+graph initialization. \autocite{iai}
 
 \newpage
 \section{Documentation}
@@ -238,6 +239,12 @@ The structure is generic over various types including data types binded to Nodes
  \item \texttt{Ty} is the Graph connection type. \texttt{petgraph::Directed} by default
  \item \texttt{Ix} is the number type value used as indexer for Edges and Nodes.
 \end{itemize}
+
+\subsection{graph::Graph::breadth\_first}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn breadth_first(&self, start: I, goal: Option<I>) -> Result<Steps<(), Ix>, ()> { ... }
+\end{minted}
+
 
 
 \newpage
