@@ -485,15 +485,18 @@ where
     ///
     /// Adds values to the inner graph's `Vec<Edge<E, Ix>>` to represent neighbors between nodes
     /// and the binded `E` value
-    pub fn next(&mut self, from: I, to: I, edge: E) -> Result<(), ()> {
+    pub fn next(&mut self, from: I, to: I, edge: E) -> Result<(), ()>
+    where
+        I: Debug,
+    {
         match (self.name_index(from), self.name_index(to)) {
             (Some(fidx), Some(tidx)) => {
                 self.inner.add_edge(fidx.into(), tidx.into(), edge);
                 Ok(())
             }
-            (None, None) => Err(()),
-            (None, Some(_)) => Err(()),
-            (Some(_), None) => Err(()),
+            (None, None) => panic!("Los nodos {:?} y {:?} no existen", from, to),
+            (None, Some(_)) => panic!("El nodo {:?} no existe", from),
+            (Some(_), None) => panic!("El nodo {:?} no existe", to),
         }
     }
 
@@ -504,9 +507,12 @@ where
     ///
     /// Adds values to the inner graph's `Vec<Node<N, Ix>>` to represent neighbors between nodes
     /// and the binded `N` value
-    pub fn register(&mut self, ident: I, node: N) -> Result<(), ()> {
+    pub fn register(&mut self, ident: I, node: N) -> Result<(), ()>
+    where
+        I: Debug,
+    {
         if self.nodes.contains_key(&ident) {
-            Err(())
+            panic!("El nodo {:?} ya existe", ident);
         } else {
             let ix = self.inner.add_node(node);
             self.nodes.insert(ident, ix);
@@ -942,9 +948,9 @@ mod tests {
     }
     #[test]
     fn test_depth() {
-        let graph = grap();
+        let graph = final_grap();
         let a = graph
-            .depth_first::<u32>("Arad", Some("Fagaras"), Some(3))
+            .depth_first::<u32>("Cancun", Some("Cabo San Lucas"), None)
             .unwrap();
 
         for node in a {
@@ -954,8 +960,10 @@ mod tests {
 
     #[test]
     fn test_breadth() {
-        let graph = grap();
-        let a = graph.breadth_first("Arad", Some("Neamt")).unwrap();
+        let graph = final_grap();
+        let a = graph
+            .breadth_first("Cancun", Some("Cabo San Lucas"))
+            .unwrap();
 
         for node in a {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
@@ -964,11 +972,11 @@ mod tests {
 
     #[test]
     fn test_breadth_walker() {
-        let graph = grap();
+        let graph = final_grap();
         let mut a = BreadthFirst::new(
             &graph,
-            graph.name_index("Neamt").unwrap(),
-            Some(graph.name_index("Arad").unwrap()),
+            graph.name_index("Cabo San Lucas").unwrap(),
+            Some(graph.name_index("Cancun").unwrap()),
             Direction::Incoming,
         );
 
@@ -994,9 +1002,9 @@ mod tests {
 
     #[test]
     fn test_dijkstra() {
-        let graph = grap();
+        let graph = final_grap();
         let a = graph
-            .dijkstra("Arad", Some("Neamt"), |state| *state)
+            .dijkstra("Cancun", Some("Cabo San Lucas"), |state| *state)
             .unwrap();
 
         for node in a {
@@ -1006,11 +1014,11 @@ mod tests {
 
     #[test]
     fn test_dijkstra_walker() {
-        let graph = grap();
+        let graph = final_grap();
         let mut a = Dijkstra::new(
             &graph,
-            graph.name_index("Neamt").unwrap(),
-            Some(graph.name_index("Arad").unwrap()),
+            graph.name_index("Cabo San Lucas").unwrap(),
+            Some(graph.name_index("Cancun").unwrap()),
             Direction::Incoming,
             |state| *state,
         );
@@ -1040,18 +1048,18 @@ mod tests {
 
     #[test]
     fn test_bidirectional() {
-        let graph = grap();
+        let graph = final_grap();
 
         let a = BreadthFirst::new(
             &graph,
-            graph.name_index("Arad").unwrap(),
-            Some(graph.name_index("Neamt").unwrap()),
+            graph.name_index("Cancun").unwrap(),
+            Some(graph.name_index("Cabo San Lucas").unwrap()),
             Direction::Outgoing,
         );
         let b = DepthFirst::new(
             &graph,
-            graph.name_index("Neamt").unwrap(),
-            Some(graph.name_index("Arad").unwrap()),
+            graph.name_index("Cancun").unwrap(),
+            Some(graph.name_index("Cabo San Lucas").unwrap()),
             None::<usize>,
             Direction::Incoming,
         );
@@ -1068,19 +1076,19 @@ mod tests {
             with_edges: next,
             nodes: [
                 "Acapulco",        "Villa Hermosa",      "Guanajuato",     "Cancun",
-                "Chilpancingo",     "Agua Prieta",   "Alvarado",      "Valladolid",
-                "Acayuncan",     "Santa Ana",     "Oaxaca",    "Chetumal",
+                "Chilpancingo",     "Aguaprieta",   "Alvarado",      "Valladolid",
+                "Acayucan",     "Santa Ana",     "Oaxaca",    "Chetumal",
                 "Tehuantepec",   "Aguascalientes",     "Atlacomulco",   "Campeche",
                 "Tuxtla",      "Guadalajara",      "Queretaro",       "Felipe Carrillo Puerto",
                 "Merida", "Chihuahua", "Janos", "Juarez", "Ojinaga", "Iguala", "Ciudad Altamirano",
                 "Cuernavaca", "Toluca de Lerdo", "Zihuatanejo", "Ciudad del Carmen", "Ciudad Obregon",
                 "Guaymas", "Ciudad Victoria", "Matamoros", "Soto la Marina", "Tampico", "Colima",
                 "Morelia", "Playa Azul", "Cordoba", "Veracruz", "Culiacan", "Hidalgo del Parral",
-                "Topolobampo", "Durango", "Mazatlan", "Torreon", "Ensenada", "San Quitin" , "Francisco Escarcega",
-                "Manzanillo", "Salamanca", "Hermosillo", "San Luis Potosi", "Izucar de Matamoros", "La paz",
+                "Topolobampo", "Durango", "Mazatlan", "Torreon", "Ensenada", "San Quintin" , "Francisco Escarcega",
+                "Manzanillo", "Salamanca", "Hermosillo", "San Luis Potosi", "Izucar de Matamoros", "La Paz",
                 "Cabo San Lucas", "Reynosa", "Mexicalli", "San Felipe", "Tijuana", "Ciudad de Mexico", "Pachuca de Soto",
                 "Puebla", "Tlaxcala", "Monclova", "Piedras Negras", "Monterrey", "Nuevo Laredo" , "Puerto Angel",
-                "Tehuacan", "Tuxpan de Rodriguez Cano", "Pinotepa Nacional", "Zacatecas", "Santa Rosalia", "Santo Domingo"
+                "Tehuacan", "Tuxpan de Rodriguez Cano", "Pinotepa Nacional", "Zacatecas", "Santa Rosalia", "Santo Domingo", "Tepic", "Ciudad Juarez"
 
             ],
             connections: [
@@ -1101,11 +1109,11 @@ mod tests {
                 "Cuernavaca" => {(100) "Ciudad de Mexico", (100) "Ciudad Altamirano"},
                 "Puebla" => {(90) "Ciudad de Mexico", (80) "Cordoba"},
                 "Acapulco" => {(140) "Chilpancingo"},
-                "Ciudad de Mexico" => {(100) "Tlaxcala", (110) "Toluca", (90) "Queretaro", (100) "Pachuca de Soto"},
+                "Ciudad de Mexico" => {(100) "Tlaxcala", (110) "Toluca de Lerdo", (90) "Queretaro", (100) "Pachuca de Soto"},
                 "Ciudad Altamirano" => {(90) "Zihuatanejo"},
                 "Cordoba" => {(90) "Veracruz"},
                 "Chilpancingo" => {(90) "Iguala"},
-                "Toluca" => {(100) "Ciudad Altamirano"},
+                "Toluca de Lerdo" => {(100) "Ciudad Altamirano"},
                 "Queretaro" => {(90) "Atlacomulco", (90) "Salamanca", (90) "San Luis Potosi"},
                 "Pachuca de Soto" => {(110) "Tuxpan de Rodriguez Cano"},
                 "Zihuatanejo" => {(90) "Playa Azul"},
@@ -1120,7 +1128,7 @@ mod tests {
                 "Durango" => {(90) "Hidalgo del Parral", (90) "Mazatlan"},
                 "Tampico" => {(80) "Ciudad Victoria"},
                 "Morelia" => {(90) "Salamanca"},
-                "Manzanillo" => {(50) "colima", (80) "Guadalajara"},
+                "Manzanillo" => {(50) "Colima", (80) "Guadalajara"},
                 "Colima" => {(90) "Morelia", (50) "Guadalajara"},
                 "Tepic" =>{(50) "Mazatlan"},
                 "Hidalgo del Parral" => {(130) "Chihuahua", (110) "Topolobampo", (80) "Culiacan"},
@@ -1128,7 +1136,7 @@ mod tests {
                 "Ciudad Victoria" => {(80) "Soto la Marina", (80) "Matamoros", (80) "Monterrey", (80) "Durango"},
                 "Chihuahua" => {(90) "Ciudad Juarez", (90) "Janos"},
                 "Topolobampo" => {(90) "Ciudad Obregon"},
-                "Culiacan" => {(110), "Topolobampo"},
+                "Culiacan" => {(110) "Topolobampo"},
                 "Matamoros" => {(90) "Reynosa"},
                 "Monterrey" => {(110) "Nuevo Laredo",(70) "Monclova"},
                 "Janos" => {(110) "Aguaprieta"},
@@ -1145,14 +1153,12 @@ mod tests {
                 "Hermosillo" => {(100) "Santa Ana"},
                 "Mexicalli" => {(50) "Tijuana", (70) "San Felipe"},
                 "Tijuana" => {(30) "Ensenada"},
-                "San Felipe" => {(50) "Enesenada"},
+                "San Felipe" => {(50) "Ensenada"},
                 "Ensenada" => {(90) "San Quintin"},
                 "San Quintin" => {(140) "Santa Rosalia"},
                 "Santa Rosalia" => {(100) "Santo Domingo"},
                 "Santo Domingo" => {(100) "La Paz"},
-                "La Paz" => {(40) "Cabo San Lucas"},
-
-
+                "La Paz" => {(40) "Cabo San Lucas"}
             ]
         };
         graph
