@@ -254,6 +254,162 @@ a bit set of type \texttt{fixedbitset::FixedBitSet} to mark node indexes as visi
 The breadth pattern is the result of pushing new children nodes to the back of the border
 and to pop from the front. Hence, we first verify all parents before going into all its children.
 
+
+\subsubsection{graph::Graph::depth\_first}
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn depth_first<D>(
+        &self,
+        start: I, 
+        goal: Option<I>,
+        limit: Option<D>,) -> Result<Step<D, Ix>, ()>{...}
+\end{minted}
+
+\subsubsection{graph::Graph::iterative\_depth\_first}
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn iterative_depth_first<D>(
+        &self,
+        start: I,
+        goal: Option<I>,
+        limit: Option<D>,
+    ) -> Result<Step<D, Ix>, ()>
+\end{minted}
+
+
+\subsubsection{graph::Graph::dijkstra}
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn dijkstra<K, F>(
+        &self,
+        start: I,
+        goal: Option<I>,
+        edge_cost: F,
+    ) -> Result<Steps<K, Ix>, ()>{...}
+\end{minted}
+
+
+\subsubsection{graph::Graph::Bidirectional}
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn bidirectional<S: Debug, D: Debug>(
+        &self,
+        mut algo1: impl Walker<S, Ix>,
+        mut algo2: impl Walker<D, Ix>,
+    ) -> Result<Step<(), Ix>, ()> {...}
+
+\end{minted}
+
+\subsubsection{graph::breadth\_first\_impl}
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn breadth_first_impl(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+    ) -> Result<Steps<(), Ix>, ()> {...}
+\end{minted}
+
+\subsubsection{graph::Depth\_first\_impl}
+\begin{minted}[fontsize=\footnotesize]{rust}
+
+    pub fn depth_first_impl<D>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        limit: Option<D>,
+    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
+
+\end{minted}
+
+
+\subsubsection{graph::dijkstrap\_impl}
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn dijkstra_impl<'a, K, F>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        mut edge_cost: F,
+    ) -> Result<Steps<K, Ix>, ()>
+
+\end{minted}
+
+\subsection{graph::WakerState}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub enum WalkerState<S, Ix> {
+    Done,
+    Found(Step<S, Ix>),
+    NotFound(Rc<Step<S, Ix>>),
+    Cutoff,
+}
+\end{minted}
+
+\subsection{Waker}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub trait Walker<S, Ix> {
+    fn step(&mut self) -> WalkerState<S, Ix>;
+}
+\end{minted}
+\subsection{BreadthFirst}
+\begin{minted}[fontsize=\footnotesize]{rust}
+
+pub struct BreadthFirst<'a, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<(), Ix>>,
+    visited: FixedBitSet,
+    direction: Direction,
+}
+\end{minted}
+
+\subsection{Dijkstrap}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<K, Ix>>,
+    direction: Direction,
+    edge_cost: F,
+}
+\end{minted}
+\subsection{DepthFirst}
+\begin{minted}[fontsize=\footnotesize]{rust}
+
+pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<D, Ix>>,
+    limit: Option<D>,
+    cutoff: bool,
+    level: D,
+    direction: Direction,
+}
+\end{minted}
+
+
+
+\newpage
+\section{Benchmarks}
+
+\begin{enumerate}[label={}]
+\item 1. The Evolution method give us the evolution in time and iterate the sons of each node of the graph.
+\item 2. Full method walk the whole all the tree.
+\item 3. The other benchmark Cancun to Cabo San Lucas gives us the time it takes to finish the method.
+\end{enumerate}
+
+\subsection{Evolution breadth\_first}
+
+\subsection{Dijkstra\_Cancun\_Cabo\_San\_Lucas}
+
+\subsection{dijkstra\_full}
+
+\subsection{depth\_Cancun\_Cabo\_San\_Lucas}
+
+\subsection{depth\_full}
+
+\subsection{Evolution bidirectional\_dijkstrap}
+
+\subsection{breadth\_Cancun\_Cabo\_San\_Lucas}
+
+\subsection{breadth\_full}
+
+
+
 \newpage
 \section{Conclusiones y Recomendaciones}
 
