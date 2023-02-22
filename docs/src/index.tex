@@ -2,7 +2,7 @@
 \hspace{0pt}
 \vfill
 
-\invisiblesection{Portada}
+\invisiblesection{Cover page}
 
 \begin{center}
     {\huge First Partial Project:\\Graph Search Algorithms}\\    \quad\\
@@ -29,6 +29,7 @@
 \vfill
 
 \newpage
+\invisiblesection{Contents}
 \tableofcontents
 
 \newpage
@@ -51,37 +52,8 @@ the Rust programming language
 2. Correct and efficient documentation of the code and features
 
 
-\section{Resumen}
+\section{Abstract}
 
-El objetivo de este proyecto es utilizar transformaciones lineales como llaves
-para cifrar y descifrar bits de información.
-Se explora el uso de la aritmética modular para mantener la congruencia de la
-información
- a la vez que se experimenta con distintos métodos de cifrado por medio de
-algoritmos varios que emplean las transformaciones en su proceso.
-La meta es implementar una herramienta de cifrado y descifrado que pueda
-proteger tanto archivos de texto como ejecutables con un procedimiento
-que permita su auto descifrado junto con soporte a \textit{passphrases} para
-obtener mayor seguridad.
-
-Los métodos estudiados son dos. 
-
-El primero es una modificación de un cifrado de sustitución. Primero se
-construye una matriz que contiene todos los valores representables en un 
-byte y modifica la matriz por medio de multiplicaciones matriciales para
-después sustituir cada byte en el archivo por su nuevo valor. 
-
-El segundo, ordena todos los bytes del mensaje a cifrar, como puede ser un
-archivo, y le aplica una multiplicación matricial a la totalidad del archivo. 
-
-Para dar soporte al auto-descifrado de los archivos, cuando se utilice la
-bandera --auto, se almacenan en el archivo los valores para descifrarse a sí
-mismo, 
-con bytes de meta información que facilitan el proceso y permiten una mayor
-seguridad lograda por el factor aleatorio. Este proyecto plantea la
-implementación 
-de una librería de cifrado de archivos por medio de una ofuscación binaria
-lograda por transformaciones.
 
 \newpage
 \section{Installation \& Execution}
@@ -218,6 +190,19 @@ Some methods of our implementation re-export returned values by \texttt{petgraph
 \texttt{fixedbitset} a dependency. \autocite{fixedbitset}
 
 \subsection{Benchmark dependencies}
+
+\subsubsection{criterion v0.4.0}
+
+Criterion is a benchmarking library 
+
+\subsubsection{iai fork @AlexMikhalev}
+
+Iai is an experimental benchmarking harness that uses Cachegrind to perform extremely precise
+single-shot measurements of Rust code.
+
+The fork we used at \texttt{github.com/AlexMikhalev/iai/tree/322cd46} (branch \texttt{'memory\_usage'}) is slighlty
+modified to allow setup on bench functions so we measure the exact lines of code we want and not the whole
+graph initialization.
 
 \newpage
 \section{Documentation}
