@@ -142,7 +142,7 @@ pub trait Walker<S, Ix> {
     fn step(&mut self) -> WalkerState<S, Ix>;
 }
 
-struct BreadthFirst<'a, I, N, E, Ty, Ix> {
+pub struct BreadthFirst<'a, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
     border: VecDeque<Step<(), Ix>>,
@@ -150,7 +150,7 @@ struct BreadthFirst<'a, I, N, E, Ty, Ix> {
     direction: Direction,
 }
 
-struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
+pub struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
     border: VecDeque<Step<K, Ix>>,
