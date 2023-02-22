@@ -215,7 +215,7 @@ Detailed, up to date documentation at \texttt{https://aox0.github.io/aigraph1/gr
 
 \subsection{graph::Graph}
 
-\begin{minted}{rust}
+\begin{minted}[fontsize=\footnotesize]{rust}
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     pub inner: PGraph<N, E, Ty, Ix>,
     pub nodes: HashMap<I, NodeIndex<Ix>>,
