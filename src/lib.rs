@@ -131,6 +131,7 @@ impl<S, Ix> Steps<S, Ix> {
     }
 }
 
+#[derive(Debug)]
 pub enum WalkerState<S, Ix> {
     Done,
     Found(Step<S, Ix>),
@@ -602,7 +603,7 @@ where
         limit: Option<D>,
     ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
     where
-        D: Measure + Copy + One + Zero,
+        D: Measure + Copy + One + Zero + Debug,
     {
         let mut border = VecDeque::with_capacity(self.node_count());
         border.push_front(Step {
@@ -722,12 +723,19 @@ where
                 .map(|(x, _)| x);
             i.map(|i| border.remove(i).unwrap())
         } {
+            if goal
+                .and_then(|goal| Some(goal == parent.idx))
+                .unwrap_or(false)
+            {
+                return Ok(parent.into_iter());
+            }
+
             let parent = Rc::new(parent);
             for child_idx in self
                 .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
             {
-                let es_goal = goal
+            let es_goal = goal
                     .and_then(|goal| Some(goal == child_idx))
                     .unwrap_or(false);
                 let tiene_hijos = self
@@ -744,7 +752,7 @@ where
                         state: parent.state + edge_cost(&self.inner[edge]),
                     };
 
-                    if es_goal {
+if es_goal {
                         return Ok(step.into_iter());
                     }
                     border.push_front(step)
@@ -971,7 +979,7 @@ mod tests {
     fn test_dijkstra() {
         let graph = final_grap();
         let a = graph
-            .dijkstra("Cancun", Some("Cabo San Lucas"), |state| *state)
+            .dijkstra("Cancun", Some("Felipe Carrillo Puerto"), |state| *state)
             .unwrap();
 
         for node in a {
@@ -984,7 +992,7 @@ mod tests {
         let graph = final_grap();
         let mut a = Dijkstra::new(
             &graph,
-            graph.name_index("Cabo San Lucas").unwrap(),
+            graph.name_index("Felipe Carrillo Puerto").unwrap(),
             Some(graph.name_index("Cancun").unwrap()),
             Direction::Incoming,
             |state| *state,

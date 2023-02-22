@@ -1,4 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+#![allow(dead_code)]
+
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use graph::*;
 
 fn test_graph() -> Graph<&'static str, (), u16> {
@@ -123,9 +125,163 @@ fn breadth_test2(c: &mut Criterion) {
     });
 }
 
-// fn breadth_test3(c: &mut Criterion) {
-//     let group = c.benchmark_group("breadth evolution")
-// }
+fn breadth_test3(c: &mut Criterion) {
+    let graph = black_box(test_graph());
+    let mut group = c.benchmark_group("Evolution breadth_first");
+    for (depth, city) in [
+        (26, "Cabo San Lucas"),
+        (25, "La Paz"),
+        (24, "Santo Domingo"),
+        (23, "Santa Rosalia"),
+        (22, "San Quintin"),
+        (21, "Ensenada"),
+        (20, "San Felipe"),
+        (19, "Mexicalli"),
+        (18, "Santa Ana"),
+        (17, "Aguaprieta"),
+        (16, "Janos"),
+        (15, "Chihuahua"),
+        (14, "Hidalgo del Parral"),
+        (13, "Durango"),
+        (12, "San Luis Potosi"),
+        (11, "Queretaro"),
+        (10, "Ciudad de Mexico"),
+        (9, "Cuernavaca"),
+        (8, "Izucar de Matamoros"),
+        (7, "Oaxaca"),
+        (6, "Alvarado"),
+        (5, "Acayucan"),
+        (4, "Tuxtla"),
+        (3, "Ciudad del Carmen"),
+        (2, "Campeche"),
+        (1, "Felipe Carrillo Puerto"),
+        (0, "Cancun"),
+    ] {
+        group.throughput(criterion::Throughput::Elements(depth));
+        group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
+            b.iter(|| {
+                graph
+                    .breadth_first_impl(
+                        graph.name_index("Cancun").unwrap(),
+                        Some(graph.name_index(name).unwrap()),
+                    )
+                    .unwrap()
+            })
+        });
+    }
+}
+fn depht_test3(c: &mut Criterion) {
+    let graph = black_box(test_graph());
+    let mut group = c.benchmark_group("Evolution depth_first");
+    for (depth, city) in [
+        (26, "Cabo San Lucas"),
+        (25, "La Paz"),
+        (24, "Santo Domingo"),
+        (23, "Santa Rosalia"),
+        (22, "San Quintin"),
+        (21, "Ensenada"),
+        (20, "San Felipe"),
+        (19, "Mexicalli"),
+        (18, "Santa Ana"),
+        (17, "Aguaprieta"),
+        (16, "Janos"),
+        (15, "Chihuahua"),
+        (14, "Hidalgo del Parral"),
+        (13, "Durango"),
+        (12, "San Luis Potosi"),
+        (11, "Queretaro"),
+        (10, "Ciudad de Mexico"),
+        (9, "Cuernavaca"),
+        (8, "Izucar de Matamoros"),
+        (7, "Oaxaca"),
+        (6, "Alvarado"),
+        (5, "Acayucan"),
+        (4, "Tuxtla"),
+        (3, "Ciudad del Carmen"),
+        (2, "Campeche"),
+        (1, "Felipe Carrillo Puerto"),
+        (0, "Cancun"),
+    ] {
+        group.throughput(criterion::Throughput::Elements(depth));
+        group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
+            b.iter(|| {
+                graph
+                    .depth_first_impl(
+                        graph.name_index("Cancun").unwrap(),
+                        Some(graph.name_index(name).unwrap()),
+                        None::<usize>
+                    )
+                    .unwrap()
+            })
+        });
+    }
+}
+fn dijkstra_test3(c: &mut Criterion) {
+    let graph = black_box(test_graph());
+    let mut group = c.benchmark_group("Evolution dijkstra");
+    for (depth, city) in [
+        (27,"Cabo San Lucas"),
+        (26,"La Paz"),
+        (25,"Santo Domingo"),
+        (24,"Santa Rosalia"),
+        (23,"San Quintin"),
+        (22,"Ensenada"),
+        (21,"Tijuana"),
+        (20,"Mexicalli"),
+        (19,"Santa Ana"),
+        (18,"Aguaprieta"),
+        (17,"Janos"),
+        (16,"Chihuahua"),
+        (15,"Hidalgo del Parral"),
+        (14,"Durango"),
+        (13,"San Luis Potosi"),
+        (12,"Queretaro"),
+        (11,"Ciudad de Mexico"),
+        (10,"Puebla"),
+        (9,"Izucar de Matamoros"),
+        (8,"Oaxaca"),
+        (7,"Alvarado"),
+        (6,"Acayucan"),
+        (5,"Tuxtla"),
+        (4,"Ciudad del Carmen"),
+        (3,"Campeche"),
+        (2,"Felipe Carrillo Puerto"),
+        (1,"Cancun"),
+        ] {
+        group.throughput(criterion::Throughput::Elements(depth));
+        group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
+            b.iter(|| {
+                graph
+                    .dijkstra_impl(
+                            graph.name_index("Cancun").unwrap(),
+                        Some(graph.name_index(name).unwrap()),
+                        |s| *s
+                    )
+                    .unwrap()
+            })
+        });
+    }
+}
+
+fn bidirectional_test3(c: &mut Criterion) {
+    let graph = black_box(test_graph());
+    let mut group = c.benchmark_group("Evolution bidirectional");
+    for (depth, city) in [
+        // expect nodes
+
+
+
+        ] {
+        group.throughput(criterion::Throughput::Elements(depth));
+        group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
+            b.iter(|| {
+                let a = Dijkstra::new(&graph, graph.name_index("Cancun").unwrap(), Some(graph.name_index(name).unwrap()), Direction::Outgoing, |e| *e);
+                let b = Dijkstra::new(&graph, graph.name_index(name).unwrap(), Some(graph.name_index("Cancun").unwrap()), Direction::Incoming, |e| *e);
+                graph.bidirectional(a, b).unwrap();
+            })
+        });
+    }
+}
 
 fn depth_test1(c: &mut Criterion) {
     let graph = black_box(test_graph());
@@ -155,6 +311,66 @@ fn depth_test2(c: &mut Criterion) {
                 .ok()
         })
     });
+}
+
+fn depth_test3(c: &mut Criterion) {
+    let graph = black_box(test_graph());
+    let mut group = c.benchmark_group("Evolution breadth_first");
+    for (depth, city) in [
+        (40, "Cabo San Lucas"),
+        (39, "La Paz"),
+        (38, "Santo Domingo"),
+        (37, "Santa Rosalia"),
+        (36, "San Quintin"),
+        (35, "Ensenada"),
+        (34, "Tijuana"),
+        (33, "Mexicalli"),
+        (32, "Santa Ana"),
+        (31, "Hermosillo"),
+        (30, "Guaymas"),
+        (29, "Ciudad Obregon"),
+        (28, "Topolobampo"),
+        (27, "Culiacan"),
+        (26, "Mazatlan"),
+        (25, "Tepic"),
+        (24, "Guadalajara"),
+        (23, "Aguascalientes"),
+        (22, "Guanajuato"),
+        (21, "Salamanca"),
+        (20, "Morelia"),
+        (19, "Playa Azul"),
+        (18, "Zihuatanejo"),
+        (17, "Ciudad Altamirano"),
+        (16, "Toluca de Lerdo"),
+        (15, "Ciudad de Mexico"),
+        (14, "Cuernavaca"),
+        (13, "Iguala"),
+        (12, "Chilpancingo"),
+        (11, "Acapulco"),
+        (10, "Pinotepa Nacional"),
+        (9, "Puerto Angel"),
+        (8, "Oaxaca"),
+        (7, "Alvarado"),
+        (6, "Acayucan"),
+        (5, "Villa Hermosa"),
+        (4, "Ciudad del Carmen"),
+        (3, "Campeche"),
+        (2, "Felipe Carrillo Puerto"),
+        (1, "Valladolid"),
+    ] {
+        group.throughput(criterion::Throughput::Elements(depth));
+        group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
+            b.iter(|| {
+                graph
+                    .depth_first_impl(
+                        graph.name_index("Cancun").unwrap(),
+                        Some(graph.name_index(name).unwrap()),
+                        None::<u8>,
+                    )
+                    .unwrap()
+            })
+        });
+    }
 }
 
 fn dijkstra_test1(c: &mut Criterion) {
@@ -197,13 +413,17 @@ fn construct_graph(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    breadth_test1,
-    breadth_test2,
-    depth_test1,
-    depth_test2,
-    dijkstra_test1,
-    dijkstra_test2,
-    construct_graph
+    // breadth_test1,
+    // breadth_test2,
+    // breadth_test3,
+    // depth_test1,
+    // depth_test2,
+    // depth_test3,
+    // dijkstra_test1,
+    // dijkstra_test2,
+    dijkstra_test3,
+    // bidirectional_test3,
+    // construct_graph
 );
 
 criterion_main!(benches);
