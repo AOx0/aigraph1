@@ -43,6 +43,7 @@ use petgraph::{
     visit::{VisitMap, Visitable},
     Directed, EdgeType, Graph as PGraph,
 };
+use unicase::Ascii;
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -422,7 +423,7 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     /// The inner [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
     inner: PGraph<N, E, Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
-    nodes: HashMap<I, NodeIndex<Ix>>,
+    pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
 }
 
 impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
@@ -464,19 +465,24 @@ where
 impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
 where
     I: Copy + Hash + Eq,
+    Ascii<I>: Copy + Hash + Eq,
     NodeIndex: From<NodeIndex<Ix>>,
     EdgeIndex: From<EdgeIndex<Ix>>,
 {
     /// Get the high-level node name from the low-level node index. E.g. NodeIndex(0) -> "Arad"
     pub fn index_name<'a>(&'a self, value: NodeIndex<Ix>) -> Option<I> {
-        self.nodes
-            .iter()
-            .find_map(|(key, val)| if val == &value { Some(*key) } else { None })
+        self.nodes.iter().find_map(|(key, val)| {
+            if val == &value {
+                Some(key.into_inner())
+            } else {
+                None
+            }
+        })
     }
 
     /// Get the low-level node index from the high-level node name. E.g. "Arad" -> NodeIndex(0)
     pub fn name_index(&self, ident: I) -> Option<NodeIndex<Ix>> {
-        self.nodes.get(&ident).copied()
+        self.nodes.get(&Ascii::new(ident)).copied()
     }
 
     /// Connect to nodes by their high-level names. E.g. "Arad" -> "Neamt"
@@ -512,11 +518,12 @@ where
     where
         I: Debug,
     {
-        if self.nodes.contains_key(&ident) {
+        let ascii = Ascii::new(ident);
+        if self.nodes.contains_key(&ascii) {
             panic!("El nodo {:?} ya existe", ident);
         } else {
             let ix = self.inner.add_node(node);
-            self.nodes.insert(ident, ix);
+            self.nodes.insert(ascii, ix);
             Ok(())
         }
     }
@@ -735,7 +742,7 @@ where
                 .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
             {
-            let es_goal = goal
+                let es_goal = goal
                     .and_then(|goal| Some(goal == child_idx))
                     .unwrap_or(false);
                 let tiene_hijos = self
@@ -752,7 +759,7 @@ where
                         state: parent.state + edge_cost(&self.inner[edge]),
                     };
 
-if es_goal {
+                    if es_goal {
                         return Ok(step.into_iter());
                     }
                     border.push_front(step)
