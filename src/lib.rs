@@ -103,7 +103,7 @@ impl<Ix: IndexType> StepUnit<Ix> {
 }
 
 #[derive(Debug)]
-pub struct Steps<S, Ix> {
+pub struct Steps<S, Ix = DefaultIx> {
     start: Option<Rc<Step<S, Ix>>>,
 }
 
@@ -133,33 +133,36 @@ impl<S, Ix> Steps<S, Ix> {
 }
 
 #[derive(Debug)]
-pub enum WalkerState<S, Ix> {
+pub enum WalkerState<S, Ix = DefaultIx> {
     Done,
     Found(Step<S, Ix>),
     NotFound(Rc<Step<S, Ix>>),
     Cutoff,
 }
 
-pub trait Walker<S, Ix> {
+pub trait Walker<S, Ix = DefaultIx> {
     fn step(&mut self) -> WalkerState<S, Ix>;
 }
 
+#[derive(Clone)]
 pub struct BreadthFirst<'a, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
     border: VecDeque<Step<(), Ix>>,
     visited: FixedBitSet,
-    direction: Direction,
+    pub direction: Direction,
 }
 
+#[derive(Clone)]
 pub struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
     border: VecDeque<Step<K, Ix>>,
-    direction: Direction,
+    pub direction: Direction,
     edge_cost: F,
 }
 
+#[derive(Clone)]
 pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
@@ -167,7 +170,7 @@ pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
     limit: Option<D>,
     cutoff: bool,
     level: D,
-    direction: Direction,
+    pub direction: Direction,
 }
 
 impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, E, Ty, Ix> {

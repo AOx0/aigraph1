@@ -268,9 +268,33 @@ fn bidirectional_test3(c: &mut Criterion) {
     let mut group = c.benchmark_group("Evolution bidirectional");
     for (depth, city) in [
         // expect nodes
-
-
-
+        (27, "Cabo San Lucas"),
+        (26, "La Paz"),
+        (25, "Santo Domingo"),
+        (24, "Santa Rosalia"),
+        (23, "San Quintin"),
+        (22, "Ensenada"),
+        (21, "Tijuana"),
+        (20, "Mexicalli"),
+        (19, "Santa Ana"),
+        (18, "Aguaprieta"),
+        (17, "Janos"),
+        (16, "Chihuahua"),
+        (15, "Hidalgo del Parral"),
+        (14, "Durango"),
+        (13, "San Luis Potosi"),
+        (12, "Queretaro"),
+        (11, "Ciudad de Mexico"),
+        (10, "Puebla"),
+        (9, "Izucar de Matamoros"),
+        (8, "Oaxaca"),
+        (7, "Alvarado"),
+        (6, "Acayucan"),
+        (5, "Tuxtla"),
+        (4, "Ciudad del Carmen"),
+        (3, "Campeche"),
+        (2, "Felipe Carrillo Puerto"),
+        (1, "Cancun"),
         ]
     {
         group.throughput(criterion::Throughput::Elements(depth));
@@ -426,17 +450,17 @@ fn construct_graph(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    breadth_test1,
-    breadth_test2,
-    breadth_test3,
-    depth_test1,
-    depth_test2,
-    depth_test3,
-    dijkstra_test1,
-    dijkstra_test2,
-    dijkstra_test3,
+    // breadth_test1,
+    // breadth_test2,
+    // breadth_test3,
+    // depth_test1,
+    // depth_test2,
+    // depth_test3,
+    // dijkstra_test1,
+    // dijkstra_test2,
+    // dijkstra_test3,
     bidirectional_test3,
-    construct_graph
+    // construct_graph
 );
 
 criterion_main!(benches);

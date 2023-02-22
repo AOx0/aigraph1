@@ -195,25 +195,25 @@ fn main() {
     }
 
     println!(
-        r#"
-The available operations are:
+        r#"The available operations are:
     1-Breadth first search
     2-Dijkstra search
     3-Depth first search (optional limit)
     4-Iterative depth first search (optional limit)
-    5-Exit"#
+    5-Bidirectional
+    6-Exit"#
     );
     
     let option = 'a: {
         for _ in 0..3 {
-            printf!("Select an option [1-5]: ");
+            printf!("Select an option [1-6]: ");
             let answer: Result<u8, _> = try_read!("{}\n");
 
             if answer.is_ok() {
                 let answer = answer.unwrap();
                 if answer > 6 || answer < 1 {
-                    println!("Error: Please write a number in range 1 to 5");
-                    if answer == 5 {
+                    println!("Error: Please write a number in range 1 to 6");
+                    if answer == 6 {
                         return;
                     }
                 } else {
@@ -384,6 +384,143 @@ The available operations are:
                 }
             }
         },
+        5 => {
+            let mut dijkstra_walker = Dijkstra::new(
+                    &graph,
+                    graph.name_index(&city_start.as_ref()).unwrap(),
+                    Some(graph.name_index(&city_end.as_ref()).unwrap()),
+                    Direction::Outgoing, |e| *e
+            );
+            let mut breadth_walker = BreadthFirst::new(
+                    &graph,
+                    graph.name_index(&city_start.as_ref()).unwrap(),
+                    Some(graph.name_index(&city_end.as_ref()).unwrap()),
+                    Direction::Outgoing
+            );
+            let mut depth_walker = DepthFirst::new(
+                    &graph,
+                    graph.name_index(&city_start.as_ref()).unwrap(),
+                    Some(graph.name_index(&city_end.as_ref()).unwrap()),
+                    None::<usize>,
+                    Direction::Outgoing
+            );
+            let mut dijkstra_walker_b = Dijkstra::new(
+                    &graph,
+                    graph.name_index(&city_end.as_ref()).unwrap(),
+                    Some(graph.name_index(&city_start.as_ref()).unwrap()),
+                    Direction::Incoming, |e| *e
+            );
+            let mut breadth_walker_b = BreadthFirst::new(
+                    &graph,
+                    graph.name_index(&city_end.as_ref()).unwrap(),
+                    Some(graph.name_index(&city_start.as_ref()).unwrap()),
+                    Direction::Incoming
+            );
+            let mut depth_walker_b = DepthFirst::new(
+                    &graph,
+                    graph.name_index(&city_end.as_ref()).unwrap(),
+                    Some(graph.name_index(&city_start.as_ref()).unwrap()),
+                    None::<usize>,
+                    Direction::Incoming
+            );
+
+            println!(
+ r#"The available searching strategies are:
+    1-Breadth first search
+    2-Dijkstra search
+    3-Depth first search (no limit)
+    4-Exit"#
+    );
+
+            let option_start = 'a: {
+                for _ in 0..3 {
+                    printf!("Select a strategy for START to END [1-4]: ");
+                    let answer: Result<u8, _> = try_read!("{}\n");
+
+                    if answer.is_ok() {
+                        let answer = answer.unwrap();
+                        if answer > 4 || answer < 1 {
+                            println!("Error: Please write a number in range 1 to 4");
+                            if answer == 4 {
+                                return;
+                            }
+                        } else {
+                            break 'a answer;
+                        }
+                    } else {
+                        println!("Error: Please write a valid number");
+                    }
+                    continue;
+                }
+                println!("Too many tries. Ending the application");
+                return;
+            };
+
+            let option_end = 'a: {
+                for _ in 0..3 {
+                    printf!("Select a strategy for END to START [1-4]: ");
+                    let answer: Result<u8, _> = try_read!("{}\n");
+
+                    if answer.is_ok() {
+                        let answer = answer.unwrap();
+                        if answer > 4 || answer < 1 {
+                            println!("Error: Please write a number in range 1 to 4");
+                            if answer == 4 {
+                                return;
+                            }
+                        } else {
+                            break 'a answer;
+                        }
+                    } else {
+                        println!("Error: Please write a valid number");
+                    }
+                    continue;
+                }
+                println!("Too many tries. Ending the application");
+                return;
+            };
+
+            // Esta horrible, lo sé. Pero no hay tiempo
+            let result = match (option_start, option_end) {
+                 (1, 1) => {
+                     graph.bidirectional(breadth_walker, breadth_walker_b)
+                 }
+                 (1, 2) => {
+                     graph.bidirectional(breadth_walker, dijkstra_walker_b)
+                 }
+                (1, 3) => {
+                     graph.bidirectional(breadth_walker, depth_walker_b)
+                 }
+                (2, 1) => {
+                     graph.bidirectional(dijkstra_walker, breadth_walker_b)
+                 }
+                (2, 2) => {
+                     graph.bidirectional(dijkstra_walker, dijkstra_walker_b)
+                 }
+                (2, 3) => {
+                     graph.bidirectional(dijkstra_walker, depth_walker_b)
+                 }
+                (3, 1) => {
+                     graph.bidirectional(depth_walker, breadth_walker_b)
+                 }
+                (3, 2) => {
+                     graph.bidirectional(depth_walker, dijkstra_walker_b)
+                 }
+                (3, 3) => {
+                     graph.bidirectional(depth_walker, depth_walker_b)
+                 }
+                _ => unreachable!()
+            };
+
+            if let Ok(step) = result {
+                println!("Found the route");
+                for city in step {
+                    println!("    {}", graph.index_name(city.idx).unwrap());
+                }
+            } else {
+                println!("There's no route from {} to {}", city_start, city_end);
+            };
+        }
         _ => {}
     }
 }
