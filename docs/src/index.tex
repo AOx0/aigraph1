@@ -1,0 +1,570 @@
+
+\hspace{0pt}
+\vfill
+
+\invisiblesection{Cover page}
+
+\begin{center}
+    {\huge First Partial Project:\\Graph Search Algorithms}\\    \quad\\
+    {\large Universidad Panamericana}\\
+    {\large Facultad de Ingeniería}\\
+    \quad\\
+    \quad\\
+    \includegraphics[scale=0.3]{../img/UP}
+    \quad\\
+    \quad\\
+    Inteligencia Artificial\\
+    Dr. Ari Yair Barrera Animas\\
+    \quad\\
+    \quad\\
+    \begin{tabular}{c|c}
+        Osornio López Daniel Alejandro & 0244685\\
+        Daniel Hernandez Toledo & 0243179\\
+    \end{tabular}\\
+    \quad\\
+    \quad\\
+    02-22-2022
+\end{center}
+
+\vfill
+
+\newpage
+\invisiblesection{Contents}
+\tableofcontents
+
+\newpage
+\section{Objectives}
+
+1. Design and implement search algorithms for graph structures using
+the Rust programming language
+
+\begin{enumerate}[label={}]
+    \item 1.1 Breadth First
+    \item 1.2 Uniform Cost (Dijkstra)
+    \item 1.3 Depth First
+    \item 1.4 Limited Depth First
+    \item 1.5 Iterative Depth First
+    \item 1.6 Bidirectional
+\end{enumerate}
+
+
+
+2. Correct and efficient documentation of the code and features
+
+
+\section{Abstract}
+
+
+\newpage
+\section{Installation \& Execution}
+
+The programming language we chose is Rust, it is a compiled,
+general purpose, low-level systems language with a strong type system,
+no garbage collector nor manual allocators but a lifetime borrow-checker that
+makes code compiled with it memory safety, performant as C but with high-level
+abstractions like with zero-cost abstractions.
+
+\subsection{Install Rust}
+
+To install rust, on Unix-like systems only the following command is needed:
+
+\begin{minted}{bash}
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+\end{minted}
+
+After the installation is finished, we must add \texttt{\$HOME/.cargo/bin} to the \texttt{\$PATH}.
+Yo may want to restart your terminal emulator for the changes to the \texttt{\$PATH} to take effect.
+
+More information at \texttt{https://www.rust-lang.org/tools/install}
+
+\subsection{Install the program}
+
+\subsubsection{Install from crates.io}
+
+\texttt{crates.io} is the Rust community’s crate registry which allows users to publish and download \textit{crates}.
+A crate is a compilation unit in Rust, like a library or an executable binary.
+
+To install the program from \texttt{crates.io} use \texttt{cargo}, the Rust package manager.
+
+\begin{minted}{bash}
+    cargo install aigraph1
+\end{minted}
+
+The command \texttt{aigraph1} should be available from the command prompt.
+To execute the program run the command \texttt{aigraph1} in the terminal prompt.
+
+\subsubsection{Install from GitHub}
+
+The source code within the GitHub repository is the same the team sent you via the Moodle assignment.
+We can either use \texttt{cargo} to compile from GitHub automatically or manually clone the repository and
+compile.
+
+To install using the source code from GitHub with a single command use:
+\begin{minted}{bash}
+    cargo install --git https://github.com/AOx0/aigraph1
+\end{minted}
+
+Otherwise, to compile/install manually. First, clone the GitHub repository and move inside the created directory.
+
+\begin{minted}{bash}
+    git clone https://github.com/AOx0/aigraph1 && cd ./airgraph1
+\end{minted}
+
+Now we can either install the program to \texttt{\$HOME/cargo/.bin} or run it in-place. When compiling a
+Rust program every temporary file and binary is placed inside a \texttt{target} directory. To clean everything
+related to the project, just remove the target directory inside aigraph1.
+
+Execute the following command to install the binary;
+
+\begin{minted}{bash}
+    cargo install --path .
+\end{minted}
+
+The command \texttt{aigraph1} should be available from the command prompt.
+To execute the program run the command \texttt{aigraph1} in the terminal prompt.
+
+The alternative is to run in-place. For this purpose use the following command inside the \texttt{aigraph1} directory:
+
+\begin{minted}{bash}
+    cargo run --release
+\end{minted}
+
+This command will compile and run the project.
+
+\subsubsection{Install from source code}
+
+The source code in the zip file is the same as in GitHub. To run or install the program unzip the file and move inside the
+directory.
+
+
+\begin{minted}{bash}
+    unzip -q aigrap1.zip && cd ./aigraph1
+\end{minted}
+
+
+Now we can either install the program to \texttt{\$HOME/cargo/.bin} or run it in-place. When compiling a
+Rust program every temporary file and binary is placed inside a \texttt{target} directory. To clean everything
+related to the project, just remove the target directory inside aigraph1.
+
+Execute the following command to install the binary;
+
+\begin{minted}{bash}
+    cargo install --path .
+\end{minted}
+
+The command \texttt{aigraph1} should be available from the command prompt.
+To execute the program run the command \texttt{aigraph1} in the terminal prompt.
+
+The alternative is to run in-place. For this purpose use the following command inside the \texttt{aigraph1} directory:
+
+\begin{minted}{bash}
+    cargo run --release
+\end{minted}
+
+This command will compile and run the project.
+
+
+\newpage
+\section{Dependencies}
+
+There are various types of dependencies in the project, for benchmarking, utilities and graph related.
+
+\subsection{Graph dependencies}
+
+\subsubsection{petgraph v0.6.3}
+
+Graphs are collections of nodes, and edges between nodes. \texttt{petgraph} provides several graph types
+(each differing in the tradeoffs taken in their internal representation), algorithms on those graphs,
+and functionality to output graphs in \texttt{graphviz} format. Both nodes and edges can have arbitrary associated data,
+and edges may be either directed or undirected. \autocite{petgraph}
+
+For the graph, the team uses \texttt{petgraph::Graph}, which is a performant adjacency list representation based graph
+with an API that identifies nodes and edges with indexes.
+
+\subsubsection{fixedbitset v0.4.2}
+
+\texttt{petgraph} exposes methods that return a \texttt{fixedbitset::FixedBitSet}, which is a collection of bits that can be either 1 (\texttt{true})
+or 0 \texttt{false}. \texttt{petgraph} uses these sets, for example, to track nodes that have already been visited.
+
+Some methods of our implementation re-export returned values by \texttt{petgraph}. Thus, it's necessary to know the type, making
+\texttt{fixedbitset} a dependency. \autocite{fixedbitset}
+
+
+\subsection{Utilities}
+
+\subsubsection{text\_io v0.1.12}
+
+Allows us to get user input as easy as with Python but with error capturing. This makes it possible to avoid
+low-level \texttt{stdio} invocations and repeat code when asking for information to the user.
+
+\subsubsection{unicase v2.6.0}
+
+Unicase is a library that handles ascii and utf8 string comparison. It has a internal original value which is
+transformed when comparing against right values.
+
+\subsubsection{num v0.4.0}
+
+Provides useful number related traits. We take advantage od \texttt{num::One} and \texttt{num::Zero} to initialize
+generic number types in our algorithms and increment them. E.g. with a generic over T to store depth function.
+
+\subsection{Benchmark dependencies}
+
+\subsubsection{criterion v0.4.0}
+
+Criterion is a Statistics-driven benchmarking library for Rust that performs millions of iterations to measure code preformance
+even for minimal regressions. \autocite{criterion}
+
+\subsubsection{iai fork @AlexMikhalev}
+
+Iai is an experimental benchmarking harness that uses Cachegrind to perform extremely precise
+single-shot measurements of Rust code.
+
+The fork we used at \texttt{https://github.com/AlexMikhalev/iai?branch=memory\_usage\#322cd462} (branch \texttt{'memory\_usage'}) is slighlty
+modified to allow setup on bench functions so we measure the exact lines of code we want and not the whole
+graph initialization. \autocite{iai}
+
+\newpage
+\section{Documentation}
+
+The documentation shown here is a mirror that may be outdated.
+The intent is to show the general idea of the structures and features.
+
+Detailed, up to date documentation at \texttt{https://aox0.github.io/aigraph1/graph/}.
+
+\subsection{graph::Graph}
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
+    pub inner: PGraph<N, E, Ty, Ix>,
+    pub nodes: HashMap<I, NodeIndex<Ix>>,
+}
+\end{minted}
+
+The team implemented a new abstraction layer on top of \texttt{petgraph::Graph} to add high-level identifiers for nodes.
+Hence, the end-user instead of handling \texttt{petgraph::NodeIndex} and \texttt{petgraph::EdgeIndex} can just use a string like \texttt{'Arad'}.
+
+The structure is generic over various types including data types binded to Nodes and Edges, node identifier type, graph direction and bit-size of
+\texttt{petgraph::NodeIndex} and \texttt{petgraph::EdgeIndex}.
+
+\begin{itemize}
+ \item \texttt{I} is the type used for identifying the nodes. Because of its purpose, only values that implement
+ \texttt{Copy} are allowed like \texttt{\&'\_ T} or \{\texttt{u8}, \texttt{i8}, \texttt{i16}, \texttt{u16}, ...\}.
+ If the identifier is a number it is better to just use \texttt{petgraph::Graph} since its default
+ behaviour is to work identifying nodes with numbers, these numbers are named indexes and don't add any overhead
+ like this more high-level API which uses a \texttt{HashMap}.
+ \item \texttt{N} is the type used to store values within the graph's nodes
+ \item \texttt{E} is the type used to store values within the graph's edges
+ \item \texttt{Ty} is the Graph connection type. \texttt{petgraph::Directed} by default
+ \item \texttt{Ix} is the number type value used as indexer for Edges and Nodes.
+\end{itemize}
+
+Almost all public user-frinedly algorithms have a low-level API which names end with \texttt{impl}. These
+impl functions are the true algorithm. The high-level functions that do not have an equivalent impl function
+means they use any of the other already impl function.
+
+\subsubsection{graph::Graph::breadth\_first}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn breadth_first(
+    &self,
+    start: I,
+    goal: Option<I>,
+) -> Result<Steps<(), Ix>, ()>
+\end{minted}
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn breadth_first_impl(
+    &self,
+    start: NodeIndex<Ix>,
+    goal: Option<NodeIndex<Ix>>,
+) -> Result<Steps<(), Ix>, ()>
+\end{minted}
+
+Algorithm to search by exploring the whole level before continuing to the next one.
+The function takes high-level node identifiers and maps them to \texttt{NodeIndex<Ix>} internally to
+call \texttt{breadth\_first\_impl}, which is the true implementation.
+
+The algorithm uses a border of type \texttt{VecDeque<Step<(), Ix>>} to keep track of nodes to visit and
+a bit set of type \texttt{fixedbitset::FixedBitSet} to mark node indexes as visited.
+The breadth pattern is the result of pushing new children nodes to the back of the border
+and to pop from the front. Hence, we first verify all parents before going into all its children.
+
+
+\subsubsection{graph::Graph::depth\_first}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn depth_first<D>(
+    &self,
+    start: I,
+    goal: Option<I>,
+    limit: Option<D>,
+) -> Result<Step<D, Ix>, ()>
+\end{minted}
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn depth_first_impl<D>(
+    &self,
+    start: NodeIndex<Ix>,
+    goal: Option<NodeIndex<Ix>>,
+    limit: Option<D>,
+    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
+\end{minted}
+
+Algorithm that explores depth-first, this is, it explores the current whole route up to the end before returning
+if the goal was not found. Depending on the data structure that provides an iterator to the nodes, the order the
+iterator yields values may be random.
+
+The function takes an optional limit, if the limit is specified the algorithm limits the number of nodes
+it explores for each given route, essentially cutting the graph at the specified limit.
+
+Internally, our implementation works in a similar way to breadth\_first, we just change the order nodes are
+pushed and poped from the border to give priority to a child of the current explored route.
+
+\subsubsection{graph::Graph::iterative\_depth\_first}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn iterative_depth_first<D>(
+    &self,
+    start: I,
+    goal: Option<I>,
+    limit: Option<D>,
+) -> Result<Step<D, Ix>, ()>
+\end{minted}
+
+The iterative depth first algoritm uses the implementation from \texttt{depth\_first\_impl} which returns either
+\texttt{WalkerState::Done} or \texttt{WalkerState::Cutoff}, it matches this value and if it was a cutoff
+increments the maximum limit.
+
+It has an internal infinite loop that breaks only when \texttt{depth\_first\_impl} yields \texttt{WalkerState::Done},
+else it increments a counter to repeat the search with a bigger limit.
+
+There's an optional limit, if the user specifies one, then theinternal loop will break either if the
+graph exploration has finished or if the limit is hitted.
+
+\subsubsection{graph::Graph::dijkstra}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn dijkstra<K, F>(
+    &self,
+    start: I,
+    goal: Option<I>,
+    edge_cost: F,
+) -> Result<Steps<K, Ix>, ()>
+\end{minted}
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+    pub fn dijkstra_impl<'a, K, F>(
+    &self,
+    start: NodeIndex<Ix>,
+    goal: Option<NodeIndex<Ix>>,
+    mut edge_cost: F,
+    ) -> Result<Steps<K, Ix>, ()>
+\end{minted}
+
+The cost-uniform algorithm or dijkstra uses our struct \texttt{Step<S, Ix>} to store the current cost of the
+node at the border. We iterate each time the border to find and explore the cheapest branch available.
+
+Because the final cheapest path is uncertain, theres no data structure to store a record of visited nodes to allow
+the algoritm to take steps back and explore from other potential routes.
+
+\subsubsection{graph::Graph::Bidirectional}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub fn bidirectional<S: Debug, D: Debug>(
+    &self,
+    mut algo1: impl Walker<S, Ix>,
+    mut algo2: impl Walker<D, Ix>,
+) -> Result<Step<(), Ix>, ()> {...}
+\end{minted}
+
+For the implementation of the bidirectional algorithm we created various structures that behave like state machines.
+These state machines implement the \texttt{Walker<S, Ix>} trait, which provides a \texttt{step} function that
+allows the caller to iterate over the states the machine has.
+
+A state machine informs of it's state via the return type of the \texttt{step} function that it must implement.
+The return type is the enumerator \texttt{WalkerState<S, Ix>}.
+
+The bidirectional method has two visited records for both ends of the search and keeps calling \texttt{step} for
+both state machines until there's an intersection, a route is found or the graph traversal is finished.
+
+The algorithm looks like the following loop, not taking care of which type it is iterating as long as it implements
+the walker trait.
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+let matching_on = loop {
+    machine1.step();
+    machine2.step();
+    ..
+};
+\end{minted}
+
+
+\subsection{Walker}
+
+The walker trait that makes possible to have a generic bidirectional search strategy.
+All types that want to have this trait must implement the step function that has the intention of
+returning the state the walker has on each step it does while exploring.
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub trait Walker<S, Ix> {
+    fn step(&mut self) -> WalkerState<S, Ix>;
+}
+\end{minted}
+
+\subsection{graph::WalkerState}
+
+This enums describes the possible states that \texttt{Walker} types may have. Callers can use this information
+to perform advanced search strategies, we supose.
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub enum WalkerState<S, Ix> {
+    Done,
+    Found(Step<S, Ix>),
+    NotFound(Rc<Step<S, Ix>>),
+    Cutoff,
+}
+\end{minted}
+
+\subsection{Walker State Machines}
+
+This sections has the intent to show the fields it state machine has. These fields are almost the same
+each of its equivalent function has to perform the exploration.
+
+\subsubsection{BreadthFirst}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub struct BreadthFirst<'a, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<(), Ix>>,
+    visited: FixedBitSet,
+    direction: Direction,
+}
+\end{minted}
+
+\subsubsection{Dijkstra}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<K, Ix>>,
+    direction: Direction,
+    edge_cost: F,
+}
+\end{minted}
+
+\subsubsection{DepthFirst}
+\begin{minted}[fontsize=\footnotesize]{rust}
+pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
+    goal: Option<NodeIndex<Ix>>,
+    graph: &'a Graph<I, N, E, Ty, Ix>,
+    border: VecDeque<Step<D, Ix>>,
+    limit: Option<D>,
+    cutoff: bool,
+    level: D,
+    direction: Direction,
+}
+\end{minted}
+
+
+\newpage
+\section{Benchmarks}
+
+\begin{enumerate}[label={}]
+\item 1. The Evolution method give us the evolution in time and iterate the sons of each node of the graph.
+\item 2. Full method walk the whole all the tree.
+\item 3. The other benchmark Cancun to Cabo San Lucas gives us the time it takes to finish the method.
+\end{enumerate}
+
+\subsection{Evolution breadth\_first}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{../img/Evolution breadth_first}
+\end{figure}
+
+You can notice a weird steepcourve at the end of the line graph perhaps there is a city with many
+connections that cause a longer execution time.
+
+\subsection{Evolution Dijkstra\_first}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{../img/Evolution bijkstrap_first}
+\end{figure}
+
+You can notice a proporcional increment in the linear graph, that incremental it is caused by
+the calculations that increase with the number of nodes.
+
+\subsection{Dijkstra\_Cancun\_Cabo\_San\_Lucas}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{../img/Dijkstrack_cancun}
+\end{figure}
+
+\subsection{dijkstra\_full}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{../img/Dijkstrak_full}
+\end{figure}
+
+\subsection{depth\_Cancun\_Cabo\_San\_Lucas}
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{../img/Depth_cancun}
+\end{figure}
+
+\subsection{depth\_full}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{../img/depth_full}
+\end{figure}
+
+\subsection{Evolution bidirectional\_dijkstra}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{../img/bidirectional}
+\end{figure}
+You can notice a section where the curve steeps at the end of the graph, the reason of that curve may be that
+theres nodes the two types of search methods find the goal.
+\subsection{breadth\_Cancun\_Cabo\_San\_Lucas}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{../img/breadth_cancun_cabo_san_lucas}
+\end{figure}
+
+\subsection{breadth\_full}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{../img/Breadth_full}
+\end{figure}
+
+
+
+\newpage
+\section{Thoughts}
+
+Our benchmarks show that the fastest method to treaverse the graph is breadth\_first. This may be because there's
+no need to keep track of the depth we are at, thus we avoid making calculations.
+
+depth\_first is fairly fast as well,
+at the core both search strategies use a deque of pending to visit, but because out implementation of depth\_fisrt
+does not include any kind of history there are branches of the tree that may be visited more than one time.
+
+Another reason depth\_first is some microseconds slow may be because we keep track of the level we are at and
+match againts the limit the user provides every time. Also, there's a small overhead with enum matching becuase
+the implementation it's also used for iterative\_depth\_first and that strategy requires to know if the termination
+status is because a limit cutoff.
+
+The slowest algorithm is dijkstra, this is because the algorithm keeps iterating each \texttt{Step<T, Ix>} at the border to take the smallest cost plus
+it needs to constantly calculate new costs. An alternative may be to use a deque with sorted pushes so that we always pop
+the cheapest route.
+
+The code needs further improvements on generic types. Maybe get rid of generic types that are bound to a state
+type \texttt{S},
+this may provide users of an easy api to call the bidirectional search strategy and avoid mistakes like the one
+shown in the bidirectional section of our user CLI appliction source code.
+
+\newpage
+\section{Bibliografía}
+\printbibliography[heading=none]
