@@ -34,58 +34,21 @@ fn test_graph() -> Graph<&'static str, (), u16> {
     })
 }
 
-// fn dijkstra_test1(iai: &mut Iai) {
-//     let graph = black_box(test_graph());
-//     iai.run(|| {
-//         dijkstra(black_box(&graph), black_box("Arad"), black_box("Neamt")).unwrap();
-//     });
-// }
-
-// fn depth_test1(iai: &mut Iai) {
-//     let graph = black_box(test_graph());
-//     iai.run(|| {
-//         depth_first(black_box(&graph), black_box("Arad"), black_box("Neamt")).unwrap();
-//     });
-// }
-
-// fn dijkstra_test2(iai: &mut Iai) {
-//     let graph = black_box(test_graph());
-//     iai.run(|| {
-//         dijkstra(black_box(&graph), black_box("Arad"), black_box("")).ok();
-//     });
-// }
-
 fn breadth_test1(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
-            .breadth_first(black_box("Arad"), black_box(Some("Neamt")))
-            .unwrap();
+            .breadth_first_impl(
+                black_box(graph.name_index("Arad").unwrap()),
+                Some(10000.into()),
+            )
+            .ok();
     });
 }
 
 fn breadth_test2(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
-        graph.breadth_first(black_box("Arad"), None).ok();
-    });
-}
-
-fn breadth_test3(iai: &mut Iai) {
-    let graph = black_box(test_graph());
-    iai.run(|| {
-        graph
-            .breadth_first_impl(
-                black_box(graph.name_index("Arad").unwrap()),
-                Some(10000.into()),
-            )
-            .ok();
-    });
-}
-
-fn breadth_test4(iai: &mut Iai) {
-    let graph = black_box(test_graph());
-    iai.run(|| {
         graph
             .breadth_first_impl(
                 black_box(graph.name_index("Arad").unwrap()),
@@ -94,41 +57,28 @@ fn breadth_test4(iai: &mut Iai) {
             .ok();
     });
 }
+
 fn depth_test1(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
-            .depth_first::<u32>(black_box("Arad"), black_box(Some("Neamt")))
-            .unwrap();
+            .depth_first_impl::<u32>(
+                black_box(graph.name_index("Arad").unwrap()),
+                Some(10000.into()),
+                None,
+            )
+            .ok();
     });
 }
 
 fn depth_test2(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
-        graph.depth_first::<u32>(black_box("Arad"), None).ok();
-    });
-}
-
-fn depth_test3(iai: &mut Iai) {
-    let graph = black_box(test_graph());
-    iai.run(|| {
-        graph
-            .depth_first_impl::<u32>(
-                black_box(graph.name_index("Arad").unwrap()),
-                Some(10000.into()),
-            )
-            .ok();
-    });
-}
-
-fn depth_test4(iai: &mut Iai) {
-    let graph = black_box(test_graph());
-    iai.run(|| {
         graph
             .depth_first_impl::<u32>(
                 black_box(graph.name_index("Arad").unwrap()),
                 black_box(Some(graph.name_index("Neamt").unwrap())),
+                None,
             )
             .ok();
     });
@@ -138,22 +88,6 @@ fn dijkstra_test1(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
-            .dijkstra(black_box("Arad"), black_box(Some("Neamt")), |e| *e)
-            .unwrap();
-    });
-}
-
-fn dijkstra_test2(iai: &mut Iai) {
-    let graph = black_box(test_graph());
-    iai.run(|| {
-        graph.dijkstra(black_box("Arad"), None, |e| *e).ok();
-    });
-}
-
-fn dijkstra_test3(iai: &mut Iai) {
-    let graph = black_box(test_graph());
-    iai.run(|| {
-        graph
             .dijkstra_impl(
                 black_box(graph.name_index("Arad").unwrap()),
                 Some(10000.into()),
@@ -163,7 +97,7 @@ fn dijkstra_test3(iai: &mut Iai) {
     });
 }
 
-fn dijkstra_test4(iai: &mut Iai) {
+fn dijkstra_test2(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
@@ -175,36 +109,6 @@ fn dijkstra_test4(iai: &mut Iai) {
             .ok();
     });
 }
-// fn depth_test2(iai: &mut Iai) {
-//     let graph = black_box(test_graph());
-//     iai.run(|| {
-//         depth_first(black_box(&graph), black_box("Arad"), black_box("")).ok();
-//     });
-// }
-// fn backtracking1(iai: &mut Iai) {
-//     let graph = black_box(test_graph());
-//     iai.run(|| {
-//         backtracking(
-//             black_box(&graph),
-//             black_box("Arad"),
-//             black_box("Neamt"),
-//             black_box(None),
-//         )
-//         .unwrap();
-//     });
-// }
-// fn backtracking2(iai: &mut Iai) {
-//     let graph = black_box(test_graph());
-//     iai.run(|| {
-//         backtracking(
-//             black_box(&graph),
-//             black_box("Arad"),
-//             black_box(""),
-//             black_box(None),
-//         )
-//         .ok();
-//     });
-// }
 
 fn construct_graph(iai: &mut Iai) {
     iai.run(|| {
@@ -242,23 +146,11 @@ fn construct_graph(iai: &mut Iai) {
 }
 
 iai::main!(
-    // dijkstra_test1,
-    // dijkstra_test2,
     breadth_test1,
     breadth_test2,
-    breadth_test3,
-    breadth_test4,
     depth_test1,
     depth_test2,
-    depth_test3,
-    depth_test4,
     dijkstra_test1,
     dijkstra_test2,
-    dijkstra_test3,
-    dijkstra_test4,
-    // depth_test1,
-    // depth_test2,
-    // backtracking1,
-    // backtracking2,
     construct_graph
 );

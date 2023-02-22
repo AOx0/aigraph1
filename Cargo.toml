@@ -13,7 +13,12 @@ petgraph = "0.6.3"
 
 [dev-dependencies]
 iai = { git = "https://github.com/AlexMikhalev/iai", branch = "memory_usage" }
+criterion = { version = "0.4.0", features = ["html_reports"] }
 
-# [[bench]]
-# name = "iai_benchmarks"
-# harness = false
+[[bench]]
+name = "iai_benchmarks"
+harness = false
+
+[[bench]]
+name = "criterion_benchmarks"
+harness = false
