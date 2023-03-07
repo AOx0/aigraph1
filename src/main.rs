@@ -1,3 +1,5 @@
+#![allow(unused_mut)]
+
 use graph::*;
 use text_io::try_read;
 
@@ -182,16 +184,18 @@ fn main() {
     };
 
     if !with_costs {
-            let result = graph.breadth_first(&city_start.as_str(), Some(&city_end.as_str()));
-            if let Ok(step) = result {
-                println!("Since there's no weights fallbacking to breadth_first. The shortest route is:");
-                for city in step {
-                    println!("    {}", graph.index_name(city.idx).unwrap());
-                }
-            } else {
-                println!("There's no route from {} to {}", city_start, city_end);
+        let result = graph.breadth_first(&city_start.as_str(), Some(&city_end.as_str()));
+        if let Ok(step) = result {
+            println!(
+                "Since there's no weights fallbacking to breadth_first. The shortest route is:"
+            );
+            for city in step {
+                println!("    {}", graph.index_name(city.idx).unwrap());
             }
-    return;
+        } else {
+            println!("There's no route from {} to {}", city_start, city_end);
+        }
+        return;
     }
 
     println!(
@@ -203,7 +207,7 @@ fn main() {
     5-Bidirectional
     6-Exit"#
     );
-    
+
     let option = 'a: {
         for _ in 0..3 {
             printf!("Select an option [1-6]: ");
@@ -239,7 +243,7 @@ fn main() {
             } else {
                 println!("There's no route from {} to {}", city_start, city_end);
             }
-        },
+        }
         2 => {
             let result = graph.dijkstra(&city_start.as_str(), Some(&city_end.as_str()), |s| *s);
             if let Ok(step) = result {
@@ -254,7 +258,6 @@ fn main() {
             } else {
                 println!("There's no route from {} to {}", city_start, city_end);
             }
-            
         }
         3 => {
             let want_limit = 'a: {
@@ -281,29 +284,31 @@ fn main() {
                 false
             };
 
-            let limit: Option<u8> = want_limit.then(|| 'a: {
-                for _ in 0..3 {
-                    printf!("Input a limit [1-255] or 0 to use no limit: ");
-                    let answer: Result<u8, _> = try_read!("{}\n");
+            let limit: Option<u8> = want_limit
+                .then(|| 'a: {
+                    for _ in 0..3 {
+                        printf!("Input a limit [1-255] or 0 to use no limit: ");
+                        let answer: Result<u8, _> = try_read!("{}\n");
 
-                    if answer.is_ok() {
-                        let answer = answer.unwrap();
-                        if answer <= 0 {
-                            println!("Error: Please write a number bigger than 0");
-                            if answer == 0 {
-                                break 'a None;
+                        if answer.is_ok() {
+                            let answer = answer.unwrap();
+                            if answer <= 0 {
+                                println!("Error: Please write a number bigger than 0");
+                                if answer == 0 {
+                                    break 'a None;
+                                }
+                            } else {
+                                break 'a Some(answer);
                             }
                         } else {
-                            break 'a Some(answer);
+                            println!("Error: Please write a valid limit, up to 255");
                         }
-                    } else {
-                        println!("Error: Please write a valid limit, up to 255");
+                        continue;
                     }
-                    continue;
-                }
-                println!("Too many tries. Not using a limit");
-                None
-            }).flatten();
+                    println!("Too many tries. Not using a limit");
+                    None
+                })
+                .flatten();
 
             let result = graph.depth_first(&city_start.as_str(), Some(&city_end.as_str()), limit);
             if let Ok(step) = result {
@@ -313,15 +318,19 @@ fn main() {
                 }
             } else {
                 if let Some(limit) = limit {
-                    println!("There's no route from {} to {} with a limit of {}", city_start, city_end, limit);
+                    println!(
+                        "There's no route from {} to {} with a limit of {}",
+                        city_start, city_end, limit
+                    );
                 } else {
-                    println!("There's no route from {} to {} with no limit", city_start, city_end);
+                    println!(
+                        "There's no route from {} to {} with no limit",
+                        city_start, city_end
+                    );
                 }
             }
-        
         }
         4 => {
-    
             let want_limit = 'a: {
                 for _ in 0..3 {
                     printf!("Do you want a limit? [Y/N]: ");
@@ -346,31 +355,34 @@ fn main() {
                 false
             };
 
-            let limit: Option<u8> = want_limit.then(|| 'a: {
-                for _ in 0..3 {
-                    printf!("Input a limit [1-255] or 0 to use no limit: ");
-                    let answer: Result<u8, _> = try_read!("{}\n");
+            let limit: Option<u8> = want_limit
+                .then(|| 'a: {
+                    for _ in 0..3 {
+                        printf!("Input a limit [1-255] or 0 to use no limit: ");
+                        let answer: Result<u8, _> = try_read!("{}\n");
 
-                    if answer.is_ok() {
-                        let answer = answer.unwrap();
-                        if answer <= 0 {
-                            println!("Error: Please write a number bigger than 0");
-                            if answer == 0 {
-                                break 'a None;
+                        if answer.is_ok() {
+                            let answer = answer.unwrap();
+                            if answer <= 0 {
+                                println!("Error: Please write a number bigger than 0");
+                                if answer == 0 {
+                                    break 'a None;
+                                }
+                            } else {
+                                break 'a Some(answer);
                             }
                         } else {
-                            break 'a Some(answer);
+                            println!("Error: Please write a valid limit, up to 255");
                         }
-                    } else {
-                        println!("Error: Please write a valid limit, up to 255");
+                        continue;
                     }
-                    continue;
-                }
-                println!("Too many tries. Not using a limit");
-                None
-            }).flatten();
+                    println!("Too many tries. Not using a limit");
+                    None
+                })
+                .flatten();
 
-            let result = graph.iterative_depth_first(&city_start.as_str(), Some(&city_end.as_str()), limit);
+            let result =
+                graph.iterative_depth_first(&city_start.as_str(), Some(&city_end.as_str()), limit);
             if let Ok(step) = result {
                 println!("The algorithm found the route:");
                 for city in step {
@@ -378,59 +390,67 @@ fn main() {
                 }
             } else {
                 if let Some(limit) = limit {
-                    println!("There's no route from {} to {} with a limit of {}", city_start, city_end, limit);
+                    println!(
+                        "There's no route from {} to {} with a limit of {}",
+                        city_start, city_end, limit
+                    );
                 } else {
-                    println!("There's no route from {} to {} with no limit", city_start, city_end);
+                    println!(
+                        "There's no route from {} to {} with no limit",
+                        city_start, city_end
+                    );
                 }
             }
-        },
+        }
         5 => {
             let mut dijkstra_walker = Dijkstra::new(
-                    &graph,
-                    graph.name_index(&city_start.as_ref()).unwrap(),
-                    Some(graph.name_index(&city_end.as_ref()).unwrap()),
-                    Direction::Outgoing, |e| *e
+                &graph,
+                graph.name_index(&city_start.as_ref()).unwrap(),
+                Some(graph.name_index(&city_end.as_ref()).unwrap()),
+                Direction::Outgoing,
+                |e| *e,
             );
             let mut breadth_walker = BreadthFirst::new(
-                    &graph,
-                    graph.name_index(&city_start.as_ref()).unwrap(),
-                    Some(graph.name_index(&city_end.as_ref()).unwrap()),
-                    Direction::Outgoing
+                &graph,
+                graph.name_index(&city_start.as_ref()).unwrap(),
+                Some(graph.name_index(&city_end.as_ref()).unwrap()),
+                Direction::Outgoing,
             );
             let mut depth_walker = DepthFirst::new(
-                    &graph,
-                    graph.name_index(&city_start.as_ref()).unwrap(),
-                    Some(graph.name_index(&city_end.as_ref()).unwrap()),
-                    None::<usize>,
-                    Direction::Outgoing
+                &graph,
+                graph.name_index(&city_start.as_ref()).unwrap(),
+                Some(graph.name_index(&city_end.as_ref()).unwrap()),
+                None::<usize>,
+                Direction::Outgoing,
             );
             let mut dijkstra_walker_b = Dijkstra::new(
-                    &graph,
-                    graph.name_index(&city_end.as_ref()).unwrap(),
-                    Some(graph.name_index(&city_start.as_ref()).unwrap()),
-                    Direction::Incoming, |e| *e
+                &graph,
+                graph.name_index(&city_end.as_ref()).unwrap(),
+                Some(graph.name_index(&city_start.as_ref()).unwrap()),
+                Direction::Incoming,
+                |e| *e,
             );
             let mut breadth_walker_b = BreadthFirst::new(
-                    &graph,
-                    graph.name_index(&city_end.as_ref()).unwrap(),
-                    Some(graph.name_index(&city_start.as_ref()).unwrap()),
-                    Direction::Incoming
+                &graph,
+                graph.name_index(&city_end.as_ref()).unwrap(),
+                Some(graph.name_index(&city_start.as_ref()).unwrap()),
+                Direction::Incoming,
             );
             let mut depth_walker_b = DepthFirst::new(
-                    &graph,
-                    graph.name_index(&city_end.as_ref()).unwrap(),
-                    Some(graph.name_index(&city_start.as_ref()).unwrap()),
-                    None::<usize>,
-                    Direction::Incoming
+                &graph,
+                graph.name_index(&city_end.as_ref()).unwrap(),
+                Some(graph.name_index(&city_start.as_ref()).unwrap()),
+                None::<usize>,
+                Direction::Incoming,
             );
 
             println!(
- r#"The available searching strategies are:
+                r#"The available searching strategies are:
     1-Breadth first search
     2-Dijkstra search
     3-Depth first search (no limit)
     4-Exit"#
-    );
+            );
 
             let option_start = 'a: {
                 for _ in 0..3 {
@@ -482,34 +502,16 @@ fn main() {
 
             // Esta horrible, lo sé. Pero no hay tiempo
             let result = match (option_start, option_end) {
-                 (1, 1) => {
-                     graph.bidirectional(breadth_walker, breadth_walker_b)
-                 }
-                 (1, 2) => {
-                     graph.bidirectional(breadth_walker, dijkstra_walker_b)
-                 }
-                (1, 3) => {
-                     graph.bidirectional(breadth_walker, depth_walker_b)
-                 }
-                (2, 1) => {
-                     graph.bidirectional(dijkstra_walker, breadth_walker_b)
-                 }
-                (2, 2) => {
-                     graph.bidirectional(dijkstra_walker, dijkstra_walker_b)
-                 }
-                (2, 3) => {
-                     graph.bidirectional(dijkstra_walker, depth_walker_b)
-                 }
-                (3, 1) => {
-                     graph.bidirectional(depth_walker, breadth_walker_b)
-                 }
-                (3, 2) => {
-                     graph.bidirectional(depth_walker, dijkstra_walker_b)
-                 }
-                (3, 3) => {
-                     graph.bidirectional(depth_walker, depth_walker_b)
-                 }
-                _ => unreachable!()
+                (1, 1) => graph.bidirectional(breadth_walker, breadth_walker_b),
+                (1, 2) => graph.bidirectional(breadth_walker, dijkstra_walker_b),
+                (1, 3) => graph.bidirectional(breadth_walker, depth_walker_b),
+                (2, 1) => graph.bidirectional(dijkstra_walker, breadth_walker_b),
+                (2, 2) => graph.bidirectional(dijkstra_walker, dijkstra_walker_b),
+                (2, 3) => graph.bidirectional(dijkstra_walker, depth_walker_b),
+                (3, 1) => graph.bidirectional(depth_walker, breadth_walker_b),
+                (3, 2) => graph.bidirectional(depth_walker, dijkstra_walker_b),
+                (3, 3) => graph.bidirectional(depth_walker, depth_walker_b),
+                _ => unreachable!(),
             };
 
             if let Ok(step) = result {

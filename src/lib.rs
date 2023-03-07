@@ -1,37 +1,3 @@
-#[macro_export]
-macro_rules! count {
-    () => (0usize);
-    ( $x:tt $($xs:tt)* ) => (1usize + count!($($xs)*));
-}
-
-#[macro_export]
-macro_rules! graph {
-    (
-        with_node: $node:expr,
-        with_edges: $type:tt,
-        nodes: [$($ident:expr),*],
-        connections: [ $($from:expr => {$(($cost:expr) $to:expr),+}),* ]
-    ) => {
-        graph!{
-            nodes: [$($ident => $node),*],
-            connections: [ $($from => {$(($type, $cost) {$to}),+}),* ]
-        }
-    };
-
-    (
-        nodes: [$($ident:expr => $node:expr),*],
-        connections: [ $($from:expr => {$(($type:tt, $cost:expr) {$($to:expr),+}),+}),* ]
-    ) => {{
-
-        let mut g = Graph::with_capacity(count!($($node)*), count!($($({$from;$($to)+})+)*) );
-        $(g.register($ident, $node).unwrap());*;
-        $(
-            $($(g.$type($from, $to,$cost).unwrap());+);+
-        );*;
-        g
-    }};
-}
-
 use fixedbitset::FixedBitSet;
 use num::{One, Zero};
 pub use petgraph;
@@ -52,18 +18,103 @@ use std::{
     rc::Rc,
 };
 
+/// Counts the number of nodes and edges of the graph
+///
+/// This is a recursive macro that calls itself *n* times where *n*
+/// is the depth the token tree has, hence the number of items it's been
+/// applied to.
+#[macro_export]
+macro_rules! count {
+    () => (0usize);
+    ( $x:tt $($xs:tt)* ) => (1usize + count!($($xs)*));
+}
+
+/// Declarative way to create Graph instances with ease.
+///
+/// The macro has two main fields:
+/// - `nodes`: A list of node identifiers (names)
+/// - `connections`: A list of type `identifier => connections`
+///
+/// There is the possibility to create overloading equivalent macros to initialize
+/// sets of fields to the same value. E.g. the `with_edges` field makes all edges to be of
+/// a specific type.
+///
+/// Example:
+/// ```rust
+/// use graph::{Graph, graph, count};
+/// let graph: Graph<&str, (), u8> = graph! {
+///     with_node: (),
+///     with_edges: next,
+///     nodes: [ "A", "B", "C", "D", "E" ],
+///     connections: [
+///         "A" => { (7) "C", (10) "B" },
+///         "B" => { (4) "C", (11) "D" },
+///         "D" => { (5) "E" }
+///     ]
+/// };
+/// ```
+#[macro_export]
+macro_rules! graph {
+    (
+        with_node: $node:expr,
+        with_edges: $type:tt,
+        nodes: [$($ident:expr),*],
+        connections: [ $($from:expr => {$(($cost:expr) $to:expr),+}),* ]
+    ) => {
+        graph!{
+            nodes: [$($ident => $node),*],
+            connections: [ $($from => {$(($type, $cost) {$to}),+}),* ]
+        }
+    };
+
+    (
+        nodes: [$($ident:expr => $node:expr),*],
+        connections: [ $($from:expr => {$(($type:tt, $cost:expr) {$($to:expr),+}),+}),* ]
+    ) => {{
+        let mut g = Graph::with_capacity(count!($($node)*), count!($($({$from;$($to)+})+)*) );
+        $(g.register($ident, $node).unwrap());*;
+        $(
+            $($(g.$type($from, $to,$cost).unwrap());+);+
+        );*;
+        g
+    }};
+}
+
+/// A single step in the graph
+///
+/// Steps are the way we compute and represent the graph traversal with the
+/// various algorithms.
+///
+/// Steps can store a type `S` which can be used to hold any information like
+/// total weight or any other primitive or structure.
 #[derive(Clone, Debug)]
 pub struct Step<S, Ix> {
+    /// The parent State that invoked this instance.
+    /// If the option is None then it means we arrived to the root state.
     pub caller: Option<Rc<Step<S, Ix>>>,
+    /// The current node index the step is at within the graph.
     pub idx: NodeIndex<Ix>,
+    /// The index of the edge that binds caller -> self
     pub rel: Option<EdgeIndex>,
+    /// State of the walking progress
     pub state: S,
 }
 
+/// A stateless step.
+///
+/// The structure comes in handy when working with two `Step` intances bound to
+/// diferent data types for storing state e.g. `Step<S, Ix>` and `Step<Y, Ix>`
+///
+/// We then construct a copy of the call-chain removing the state from each step,
+/// the final result is two `StepUnit<Ix>` that we can work with.
 #[derive(Debug)]
 pub struct StepUnit<Ix> {
+    /// The parent State that invoked this instance.
+    /// If the option is None then it means we arrived to the root state.
     pub caller: Option<Rc<StepUnit<Ix>>>,
+    /// The current node index the step is at within the graph.
     pub idx: NodeIndex<Ix>,
+    /// The index of the edge that binds caller -> self
     pub rel: Option<EdgeIndex>,
 }
 
@@ -102,6 +153,7 @@ impl<Ix: IndexType> StepUnit<Ix> {
     }
 }
 
+/// A Step iterator
 #[derive(Debug)]
 pub struct Steps<S, Ix = DefaultIx> {
     start: Option<Rc<Step<S, Ix>>>,
@@ -429,11 +481,7 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
 }
 
-impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
-where
-    Ty: EdgeType,
-    Ix: IndexType,
-{
+impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
     /// The Graph constructor
     pub fn new() -> Self {
         Self {
@@ -488,7 +536,7 @@ where
         self.nodes.get(&Ascii::new(ident)).copied()
     }
 
-    /// Connect to nodes by their high-level names. E.g. "Arad" -> "Neamt"
+    /// Connect two nodes by their high-level names. E.g. "Arad" -> "Neamt"
     ///
     /// The method calls the necessary low-level methods to connect both node indexes
     /// within the inner graph.
