@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error"],"fn":["match_next","parse_capture"],"macro":["read","scan","try_read","try_scan"]};

@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["aigraph1","anyhow","fixedbitset","graph","hashbrown","indexmap","num","num_bigint","num_complex","num_integer","num_iter","num_rational","num_traits","petgraph","text_io","unicase"];

@@ -1,0 +1,19 @@
+var sourcesIndex = JSON.parse('{\
+"aigraph1":["",[],["main.rs"]],\
+"anyhow":["",[],["backtrace.rs","chain.rs","context.rs","ensure.rs","error.rs","fmt.rs","kind.rs","lib.rs","macros.rs","ptr.rs","wrapper.rs"]],\
+"fixedbitset":["",[],["lib.rs","range.rs"]],\
+"graph":["",[],["lib.rs"]],\
+"hashbrown":["",[["external_trait_impls",[],["mod.rs"]],["raw",[],["alloc.rs","bitmask.rs","mod.rs","sse2.rs"]]],["lib.rs","macros.rs","map.rs","scopeguard.rs","set.rs"]],\
+"indexmap":["",[["map",[["core",[],["raw.rs"]]],["core.rs"]]],["arbitrary.rs","equivalent.rs","lib.rs","macros.rs","map.rs","mutable_keys.rs","set.rs","util.rs"]],\
+"num":["",[],["lib.rs"]],\
+"num_bigint":["",[["bigint",[],["addition.rs","bits.rs","convert.rs","division.rs","multiplication.rs","power.rs","shift.rs","subtraction.rs"]],["biguint",[],["addition.rs","bits.rs","convert.rs","division.rs","iter.rs","monty.rs","multiplication.rs","power.rs","shift.rs","subtraction.rs"]]],["bigint.rs","biguint.rs","lib.rs","macros.rs"]],\
+"num_complex":["",[],["cast.rs","complex_float.rs","lib.rs","pow.rs"]],\
+"num_integer":["",[],["average.rs","lib.rs","roots.rs"]],\
+"num_iter":["",[],["lib.rs"]],\
+"num_rational":["",[],["lib.rs","pow.rs"]],\
+"num_traits":["",[["ops",[],["checked.rs","euclid.rs","inv.rs","mod.rs","mul_add.rs","overflowing.rs","saturating.rs","wrapping.rs"]]],["bounds.rs","cast.rs","float.rs","identities.rs","int.rs","lib.rs","macros.rs","pow.rs","real.rs","sign.rs"]],\
+"petgraph":["",[["algo",[],["astar.rs","bellman_ford.rs","dijkstra.rs","dominators.rs","feedback_arc_set.rs","floyd_warshall.rs","isomorphism.rs","k_shortest_path.rs","matching.rs","mod.rs","simple_paths.rs","tred.rs"]],["graph_impl",[["stable_graph",[],["mod.rs"]]],["frozen.rs","mod.rs"]],["visit",[],["dfsvisit.rs","filter.rs","macros.rs","mod.rs","reversed.rs","traversal.rs"]]],["adj.rs","csr.rs","data.rs","dot.rs","graphmap.rs","iter_format.rs","iter_utils.rs","lib.rs","macros.rs","matrix_graph.rs","operator.rs","prelude.rs","scored.rs","traits_graph.rs","unionfind.rs","util.rs"]],\
+"text_io":["",[],["lib.rs"]],\
+"unicase":["",[["unicode",[],["map.rs","mod.rs"]]],["ascii.rs","lib.rs"]]\
+}');
+createSourceSidebar();
