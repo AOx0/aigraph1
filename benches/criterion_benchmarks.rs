@@ -8,21 +8,22 @@ fn test_graph() -> Graph<&'static str, (), u16> {
         with_node: (),
         with_edges: next,
         nodes: [
-            "Acapulco",        "Villa Hermosa",      "Guanajuato",     "Cancun",
-            "Chilpancingo",     "Aguaprieta",   "Alvarado",      "Valladolid",
-            "Acayucan",     "Santa Ana",     "Oaxaca",    "Chetumal",
-            "Tehuantepec",   "Aguascalientes",     "Atlacomulco",   "Campeche",
-            "Tuxtla",      "Guadalajara",      "Queretaro",       "Felipe Carrillo Puerto",
-            "Merida", "Chihuahua", "Janos", "Juarez", "Ojinaga", "Iguala", "Ciudad Altamirano",
-            "Cuernavaca", "Toluca de Lerdo", "Zihuatanejo", "Ciudad del Carmen", "Ciudad Obregon",
-            "Guaymas", "Ciudad Victoria", "Matamoros", "Soto la Marina", "Tampico", "Colima",
-            "Morelia", "Playa Azul", "Cordoba", "Veracruz", "Culiacan", "Hidalgo del Parral",
-            "Topolobampo", "Durango", "Mazatlan", "Torreon", "Ensenada", "San Quintin" , "Francisco Escarcega",
-            "Manzanillo", "Salamanca", "Hermosillo", "San Luis Potosi", "Izucar de Matamoros", "La Paz",
-            "Cabo San Lucas", "Reynosa", "Mexicalli", "San Felipe", "Tijuana", "Ciudad de Mexico", "Pachuca de Soto",
-            "Puebla", "Tlaxcala", "Monclova", "Piedras Negras", "Monterrey", "Nuevo Laredo" , "Puerto Angel",
-            "Tehuacan", "Tuxpan de Rodriguez Cano", "Pinotepa Nacional", "Zacatecas", "Santa Rosalia", "Santo Domingo", "Tepic", "Ciudad Juarez"
-
+            "Acapulco",              "Villa Hermosa",       "Guanajuato",                 "Cancun",               "Chilpancingo",
+            "Aguaprieta",            "Alvarado",            "Valladolid",                 "Acayucan",             "Santa Ana",
+            "Oaxaca",                "Chetumal",            "Tehuantepec",                "Aguascalientes",       "Atlacomulco",
+            "Campeche",              "Tuxtla",              "Guadalajara",                "Queretaro",            "Felipe Carrillo Puerto",
+            "Merida",                "Chihuahua",           "Janos",                      "Juarez",               "Ojinaga",
+            "Iguala",                "Ciudad Altamirano",   "Cuernavaca",                 "Toluca de Lerdo",      "Zihuatanejo",
+            "Ciudad del Carmen",     "Ciudad Obregon",      "Guaymas",                    "Ciudad Victoria",      "Matamoros",
+            "Soto la Marina",        "Tampico",             "Colima",                     "Morelia",              "Playa Azul",
+            "Cordoba",               "Veracruz",            "Culiacan",                   "Hidalgo del Parral",   "Topolobampo",
+            "Durango",               "Mazatlan",            "Torreon",                    "Ensenada",             "San Quintin",
+            "Francisco Escarcega",   "Manzanillo",          "Salamanca",                  "Hermosillo",           "San Luis Potosi",
+            "Izucar de Matamoros",   "La Paz",              "Cabo San Lucas",             "Reynosa",              "Mexicalli",
+            "San Felipe",            "Tijuana",             "Ciudad de Mexico",           "Pachuca de Soto",      "Puebla",
+            "Tlaxcala",              "Monclova",            "Piedras Negras",             "Monterrey",            "Nuevo Laredo",
+            "Puerto Angel",          "Tehuacan",            "Tuxpan de Rodriguez Cano",   "Pinotepa Nacional",    "Zacatecas",
+            "Santa Rosalia",         "Santo Domingo",       "Tepic",                      "Ciudad Juarez"
         ],
         connections: [
             "Cancun" => {(90) "Valladolid", (100) "Felipe Carrillo Puerto"},
@@ -295,8 +296,7 @@ fn bidirectional_test3(c: &mut Criterion) {
         (3, "Campeche"),
         (2, "Felipe Carrillo Puerto"),
         (1, "Cancun"),
-        ]
-    {
+    ] {
         group.throughput(criterion::Throughput::Elements(depth));
         group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
             b.iter(|| {
@@ -459,7 +459,7 @@ criterion_group!(
     // dijkstra_test1,
     // dijkstra_test2,
     // dijkstra_test3,
-    bidirectional_test3,
+    // bidirectional_test3,
     // construct_graph
 );
 

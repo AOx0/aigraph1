@@ -11,7 +11,7 @@ repository = "https://github.com/AOx0/aigraph1"
 
 [lib]
 name = "graph"
-path = "src/lib.rs"
+path = "lib/lib.rs"
 
 [[bin]]
 name = "aigraph1"
