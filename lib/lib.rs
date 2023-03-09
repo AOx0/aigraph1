@@ -18,6 +18,9 @@ use std::{
     rc::Rc,
 };
 
+pub mod walkers;
+use walkers::{Walker, WalkerState};
+
 /// Counts the number of nodes and edges of the graph
 ///
 /// This is a recursive macro that calls itself *n* times where *n*
@@ -59,6 +62,17 @@ macro_rules! graph {
         with_node: $node:expr,
         with_edges: $type:tt,
         nodes: [$($ident:expr),*],
+        connections: [ $($from:expr => {$(($cost:expr) $to:expr),+}),* ]
+    ) => {
+        graph!{
+            nodes: [$($ident => $node),*],
+            connections: [ $($from => {$(($type, $cost) {$to}),+}),* ]
+        }
+    };
+
+    (
+        with_edges: $type:tt,
+        nodes: [$($ident:expr => $node:expr),*],
         connections: [ $($from:expr => {$(($cost:expr) $to:expr),+}),* ]
     ) => {
         graph!{
@@ -176,280 +190,6 @@ impl<S, Ix> Steps<S, Ix> {
     }
 }
 
-#[derive(Debug)]
-pub enum WalkerState<S, Ix = DefaultIx> {
-    Done,
-    Found(Step<S, Ix>),
-    NotFound(Rc<Step<S, Ix>>),
-    Cutoff,
-}
-
-pub trait Walker<S, Ix = DefaultIx> {
-    fn step(&mut self) -> WalkerState<S, Ix>;
-}
-
-#[derive(Clone)]
-pub struct BreadthFirst<'a, I, N, E, Ty, Ix> {
-    goal: Option<NodeIndex<Ix>>,
-    graph: &'a Graph<I, N, E, Ty, Ix>,
-    border: VecDeque<Step<(), Ix>>,
-    visited: FixedBitSet,
-    pub direction: Direction,
-}
-
-#[derive(Clone)]
-pub struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
-    goal: Option<NodeIndex<Ix>>,
-    graph: &'a Graph<I, N, E, Ty, Ix>,
-    border: VecDeque<Step<K, Ix>>,
-    pub direction: Direction,
-    edge_cost: F,
-}
-
-#[derive(Clone)]
-pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
-    goal: Option<NodeIndex<Ix>>,
-    graph: &'a Graph<I, N, E, Ty, Ix>,
-    border: VecDeque<Step<D, Ix>>,
-    limit: Option<D>,
-    cutoff: bool,
-    level: D,
-    pub direction: Direction,
-}
-
-impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, E, Ty, Ix> {
-    #[allow(dead_code)]
-    pub fn new(
-        graph: &'a Graph<I, N, E, Ty, Ix>,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        limit: Option<D>,
-        direction: Direction,
-    ) -> Self {
-        Self {
-            graph,
-            goal,
-            limit,
-            border: {
-                let mut border = VecDeque::with_capacity(graph.node_count());
-                border.push_front(Step {
-                    caller: None,
-                    idx: start,
-                    rel: None,
-                    state: Zero::zero(),
-                });
-                border
-            },
-            cutoff: false,
-            level: Zero::zero(),
-            direction,
-        }
-    }
-}
-
-impl<'a, D, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<D, Ix>
-    for DepthFirst<'a, D, I, N, E, Ty, Ix>
-where
-    D: Measure + Copy + One + Zero,
-{
-    fn step(&mut self) -> WalkerState<D, Ix> {
-        if let Some(parent) = self.border.pop_front() {
-            if self
-                .limit
-                .and_then(|limit| Some(parent.state == limit))
-                .unwrap_or(false)
-            {
-                if self
-                    .graph
-                    .inner
-                    .neighbors_directed(parent.idx.into(), self.direction)
-                    .count()
-                    != 0
-                {
-                    self.cutoff = true;
-                }
-                return WalkerState::NotFound(Rc::new(parent));
-            }
-            if self
-                .goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
-                return WalkerState::Found(parent.clone());
-            }
-
-            let parent = Rc::new(parent);
-            self.level = parent.state + One::one();
-            for child in self
-                .graph
-                .inner
-                .neighbors_directed(parent.idx.into(), self.direction)
-            {
-                self.border.push_front(Step {
-                    caller: Some(parent.clone()),
-                    idx: child,
-                    rel: None,
-                    state: self.level,
-                })
-            }
-            WalkerState::NotFound(parent)
-        } else {
-            WalkerState::Done
-        }
-    }
-}
-
-impl<'a, F: FnMut(&E) -> K, K: Zero, I, N, E, Ty: EdgeType, Ix: IndexType>
-    Dijkstra<'a, F, K, I, N, E, Ty, Ix>
-{
-    #[allow(dead_code)]
-    pub fn new(
-        graph: &'a Graph<I, N, E, Ty, Ix>,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        direction: Direction,
-        edge_cost: F,
-    ) -> Self {
-        Self {
-            goal,
-            graph,
-            border: {
-                let mut border = VecDeque::with_capacity(graph.node_count());
-                border.push_front(Step {
-                    caller: None,
-                    idx: start,
-                    rel: None,
-                    state: Zero::zero(),
-                });
-                border
-            },
-            direction,
-            edge_cost,
-        }
-    }
-}
-
-impl<'a, F, K, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<K, Ix>
-    for Dijkstra<'a, F, K, I, N, E, Ty, Ix>
-where
-    K: Measure + Copy + Ord,
-    F: FnMut(&E) -> K,
-    EdgeIndex: From<EdgeIndex<Ix>>,
-{
-    fn step(&mut self) -> WalkerState<K, Ix> {
-        if let Some(parent) = {
-            let i = self
-                .border
-                .iter()
-                .enumerate()
-                .min_by(|(_, s1), (_, s2)| s1.state.cmp(&s2.state))
-                .map(|(x, _)| x);
-            i.map(|i| self.border.remove(i).unwrap())
-        } {
-            let parent = Rc::new(parent);
-            for child_idx in self
-                .graph
-                .inner
-                .neighbors_directed(parent.idx.into(), self.direction)
-            {
-                let es_goal = self
-                    .goal
-                    .and_then(|goal| Some(goal == child_idx))
-                    .unwrap_or(false);
-                let tiene_hijos = self
-                    .graph
-                    .inner
-                    .neighbors_directed(child_idx, self.direction)
-                    .count()
-                    != 0;
-                if es_goal || tiene_hijos {
-                    let edge = self
-                        .graph
-                        .inner
-                        .find_edge_undirected(parent.idx, child_idx)
-                        .unwrap();
-                    let step = Step {
-                        caller: Some(parent.clone()),
-                        idx: child_idx.into(),
-                        rel: Some(edge.0.into()),
-                        state: parent.state + (self.edge_cost)(&self.graph.inner[edge.0]),
-                    };
-
-                    if es_goal {
-                        return WalkerState::Found(step);
-                    }
-                    self.border.push_front(step)
-                }
-            }
-            WalkerState::NotFound(parent)
-        } else {
-            WalkerState::Done
-        }
-    }
-}
-
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> BreadthFirst<'a, I, N, E, Ty, Ix> {
-    #[allow(dead_code)]
-    pub fn new(
-        graph: &'a Graph<I, N, E, Ty, Ix>,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        direction: Direction,
-    ) -> Self {
-        Self {
-            goal,
-            graph,
-            border: {
-                let mut border = VecDeque::with_capacity(graph.node_count());
-                border.push_front(Step {
-                    caller: None,
-                    idx: start,
-                    rel: None,
-                    state: (),
-                });
-                border
-            },
-            visited: graph.visit_map(),
-            direction,
-        }
-    }
-}
-
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
-    for BreadthFirst<'a, I, N, E, Ty, Ix>
-{
-    fn step(&mut self) -> WalkerState<(), Ix> {
-        if let Some(parent) = self.border.pop_front() {
-            if self
-                .goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
-                return WalkerState::Found(parent);
-            }
-
-            let parent = Rc::new(parent);
-            self.graph
-                .inner
-                .neighbors_directed(parent.idx.into(), self.direction)
-                .for_each(|child_idx| {
-                    (!self.visited.is_visited(&child_idx)).then(|| {
-                        self.visited.visit(child_idx);
-                        self.border.push_back(Step {
-                            caller: Some(parent.clone()),
-                            idx: child_idx.into(),
-                            rel: None,
-                            state: (),
-                        });
-                    });
-                });
-            WalkerState::NotFound(parent)
-        } else {
-            WalkerState::Done
-        }
-    }
-}
-
 /// The library's principal Graph structure.
 ///
 /// The struct is an abstract layer built on top of the
@@ -471,6 +211,27 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     inner: PGraph<N, E, Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
     pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
+}
+
+pub trait Coords {
+    fn get_x(&self) -> f64;
+    fn get_y(&self) -> f64;
+    fn get_z(&self) -> Option<f64>;
+}
+
+impl<I, N: Coords, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
+    pub fn get_distances(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
+        let w_original = self.inner.node_weight(to).unwrap();
+        let (x1, y1) = (<N as Coords>::get_x(w_original), <N as Coords>::get_y(w_original));
+        self.inner.node_indices().into_iter().map(|idx| {
+            let node = self.inner.node_weight(idx).unwrap();
+            let distance = (
+                    (<N as Coords>::get_x(&node) - x1).powi(2)
+                    + (<N as Coords>::get_y(&node) - y1).powi(2)
+            ).sqrt();
+            (idx, distance)
+        }).collect::<HashMap<_, _>>()
+    }
 }
 
 impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
@@ -572,11 +333,11 @@ where
     }
 
     pub fn iterative_depth_first<D>(
-        &self,
-        start: I,
-        goal: Option<I>,
-        limit: Option<D>,
-    ) -> Result<Step<D, Ix>, ()>
+                &self,
+                start: I,
+                goal: Option<I>,
+                limit: Option<D>,
+                    ) -> Result<Step<D, Ix>, ()>
     where
         D: Measure + Copy + One + Zero,
     {
@@ -593,20 +354,20 @@ where
                                 return Err(());
                             }
                             match self.depth_first_impl::<D>(fidx, Some(tidx), Some(cur_limit)) {
-                            Ok(res) => {
-                                return Ok(res);
-                            }
-                            Err(err) => match err {
-                                WalkerState::Done => {
-                                    return Err(());
+                                    Ok(res) => {
+                                        return Ok(res);
+                                    }
+                                    Err(err) => match err {
+                                        WalkerState::Done => {
+                                            return Err(());
+                                        }
+                                        WalkerState::Cutoff => {
+                                            cur_limit = cur_limit + One::one();
+                                            continue;
+                                        },
+                                        _ => unreachable!("Only WalkerState::Done and WalkerState::Cutoff are returned")
+                                    },
                                 }
-                                WalkerState::Cutoff => {
-                                    cur_limit = cur_limit + One::one();
-                                    continue;
-                                },
-                                _ => unreachable!("Only WalkerState::Done and WalkerState::Cutoff are returned")
-                            },
-                        }
                         }
                     }
                     (None, None) => Err(()),
@@ -622,11 +383,11 @@ where
     }
 
     pub fn depth_first<D>(
-        &self,
-        start: I,
-        goal: Option<I>,
-        limit: Option<D>,
-    ) -> Result<Step<D, Ix>, ()>
+                &self,
+                start: I,
+                goal: Option<I>,
+                limit: Option<D>,
+                    ) -> Result<Step<D, Ix>, ()>
     where
         D: Measure + Copy + One + Zero,
     {
@@ -647,11 +408,11 @@ where
     }
 
     pub fn depth_first_impl<D>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        limit: Option<D>,
-    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
+                &self,
+                start: NodeIndex<Ix>,
+                goal: Option<NodeIndex<Ix>>,
+                limit: Option<D>,
+                    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
     where
         D: Measure + Copy + One + Zero + Debug,
     {
@@ -674,7 +435,7 @@ where
                     .inner
                     .neighbors_directed(parent.idx.into(), Direction::Outgoing)
                     .count()
-                    != 0
+                   != 0
                 {
                     cutoff = true;
                 }
@@ -724,11 +485,11 @@ where
     }
 
     pub fn dijkstra<K, F>(
-        &self,
-        start: I,
-        goal: Option<I>,
-        edge_cost: F,
-    ) -> Result<Steps<K, Ix>, ()>
+                &self,
+                start: I,
+                goal: Option<I>,
+                edge_cost: F,
+                    ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
         F: FnMut(&E) -> K,
@@ -748,11 +509,11 @@ where
     }
 
     pub fn dijkstra_impl<'a, K, F>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        mut edge_cost: F,
-    ) -> Result<Steps<K, Ix>, ()>
+                &self,
+                start: NodeIndex<Ix>,
+                goal: Option<NodeIndex<Ix>>,
+                mut edge_cost: F,
+                    ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
         F: FnMut(&E) -> K,
@@ -792,7 +553,7 @@ where
                     .inner
                     .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
                     .count()
-                    != 0;
+                                                != 0;
                 if es_goal || tiene_hijos {
                     let edge = self.inner.find_edge(parent.idx, child_idx).unwrap();
                     let step = Step {
@@ -812,10 +573,74 @@ where
         Err(())
     }
 
-    pub fn breadth_first_impl(
-        &self,
+    pub fn greedy_best_first_impl<K, F> (
+            &self,
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
+        edge_cost: F,
+    ) -> Result<Steps<K, Ix>, ()>
+        where
+        F: Fn(&NodeIndex<Ix>) -> K,
+            K: Measure + Copy + Default + PartialOrd
+    {
+        let mut border = VecDeque::with_capacity(self.inner.node_count());
+        border.push_front(Step {
+            caller: None,
+            idx: start,
+            rel: None,
+            state: K::default(),
+        });
+
+        while let Some(parent) = {
+            let i = border
+                .iter()
+                .enumerate()
+                .min_by(|(_, s1), (_, s2)| s1.state.partial_cmp(&s2.state).unwrap())
+                .map(|(x, _)| x);
+            i.map(|i| border.remove(i).unwrap())
+        } {
+            if goal
+                .and_then(|goal| Some(goal == parent.idx))
+                .unwrap_or(false)
+            {
+                return Ok(parent.into_iter());
+            }
+
+            let parent = Rc::new(parent);
+            for child_idx in self
+                .inner
+                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
+            {
+                let es_goal = goal
+                    .and_then(|goal| Some(goal == child_idx))
+                    .unwrap_or(false);
+                let tiene_hijos = self
+                    .inner
+                    .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
+                    .count() != 0;
+                if es_goal || tiene_hijos {
+                    let edge = self.inner.find_edge(parent.idx, child_idx).unwrap();
+                    let step = Step {
+                        caller: Some(parent.clone()),
+                        idx: child_idx.into(),
+                        rel: Some(edge.into()),
+                        state: edge_cost(&child_idx),
+                    };
+
+                    if es_goal {
+                        return Ok(step.into_iter());
+                    }
+                    border.push_front(step)
+                }
+            }
+        }
+        Err(())
+    }
+
+    pub fn breadth_first_impl(
+            &self,
+            start: NodeIndex<Ix>,
+            goal: Option<NodeIndex<Ix>>,
     ) -> Result<Steps<(), Ix>, ()> {
         let mut border = VecDeque::with_capacity(self.inner.node_count());
         let mut visited = self.inner.visit_map();
@@ -838,7 +663,7 @@ where
                 .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
                 .count()
-                != 0
+               != 0
             {
                 let parent = Rc::new(parent);
                 self.inner
@@ -858,6 +683,7 @@ where
         }
         Err(())
     }
+
 
     pub fn bidirectional<S: Debug, D: Debug>(
         &self,
@@ -967,15 +793,75 @@ where
     }
 }
 
+impl Coords for (f64, f64) {
+    fn get_x(&self) -> f64 {
+        self.0
+    }
+    fn get_y(&self) -> f64 {
+        self.1
+    }
+    fn get_z(&self) -> Option<f64> {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::walkers::*;
+
+    fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
+        graph! {
+            with_edges: next,
+            nodes: [
+                "Arad" => (-8., 3.),
+                "Zerind" => (-7.5,4.8),
+                "Oradea" => (-6.5, 6.2),
+                "Sibiu" => (-3.5, 1.8),
+                "Fagaras" => (0.3, 1.5),
+                "Timisoara" => (-8., 0.),
+                "Lugoj" => (-5.2, -1.2),
+                "Mehadia"=> (-5.1, -3.),
+                "Drobeta"=> (-5.4, -4.4),
+                "Craiova" =>(-2., -5.),
+                "Pitesti"=>(1., 2.),
+                "Rimnieu Vilcea"=> (-2.5, 0.),
+                "Bucharest"=> (4., -3.),
+                "Giurgiu" =>(3., -5.5),
+                "Urziceni" => (6., -2.3),
+                "Hirsova"=> (9., -2.2),
+                "Eforie"=> (10., -4.4),
+                "Vasiui"=> (8.2, 1.3),
+                "Iasi" => (6.9, 3.9) ,
+                "Neamt" => (4.1, 5.)
+            ],
+            connections: [
+                "Arad" => {(140) "Sibiu", (75) "Zerind", (118) "Timisoara"},
+                "Zerind" => {(71) "Oradea"},
+                "Oradea" => {(151) "Sibiu"},
+                "Sibiu" => {(99) "Fagaras", (80) "Rimnieu Vilcea"},
+                "Timisoara" => {(111) "Lugoj"},
+                "Lugoj" => {(70) "Mehadia"},
+                "Mehadia" => {(75) "Drobeta"},
+                "Drobeta" => {(120) "Craiova"},
+                "Craiova" => {(138) "Pitesti"},
+                "Pitesti" => {(101) "Bucharest"},
+                "Rimnieu Vilcea" => {(97) "Pitesti", (146) "Craiova"},
+                "Fagaras" => {(211) "Bucharest"},
+                "Bucharest" => {(90) "Giurgiu", (85) "Urziceni"},
+                "Urziceni" => {(98) "Hirsova", (142) "Vasiui"},
+                "Vasiui" => {(92) "Iasi"},
+                "Iasi" => {(87) "Neamt"},
+                "Hirsova" => {(86) "Eforie"}
+            ]
+        }
+    }
 
     #[test]
     fn test_depth() {
-        let graph = final_grap();
+        let graph = test_graph();
         let a = graph
-            .depth_first::<u32>("Cancun", Some("Cabo San Lucas"), None)
+            .depth_first::<u32>("Arad", Some("Neamt"), None)
             .unwrap();
 
         for node in a {
@@ -985,9 +871,9 @@ mod tests {
 
     #[test]
     fn test_breadth() {
-        let graph = final_grap();
+        let graph = test_graph();
         let a = graph
-            .breadth_first("Cancun", Some("Cabo San Lucas"))
+            .breadth_first("Arad", Some("Neamt"))
             .unwrap();
 
         for node in a {
@@ -997,11 +883,11 @@ mod tests {
 
     #[test]
     fn test_breadth_walker() {
-        let graph = final_grap();
+        let graph = test_graph();
         let mut a = BreadthFirst::new(
-            &graph,
-            graph.name_index("Cabo San Lucas").unwrap(),
-            Some(graph.name_index("Cancun").unwrap()),
+                &graph,
+            graph.name_index("Neamt").unwrap(),
+            Some(graph.name_index("Arad").unwrap()),
             Direction::Incoming,
         );
 
@@ -1026,10 +912,34 @@ mod tests {
     }
 
     #[test]
+    fn test_distances() {
+        let graph = test_graph();
+        for (k, v) in graph.get_distances(graph.name_index("Bucharest").unwrap()).into_iter() {
+            println!("{}: {}", graph.index_name(k).unwrap(), v);
+        }
+    }
+
+    #[test]
     fn test_dijkstra() {
-        let graph = final_grap();
+        let graph = test_graph();
         let a = graph
-            .dijkstra("Cancun", Some("Felipe Carrillo Puerto"), |state| *state)
+            .dijkstra("Arad", Some("Neamt"), |state| *state)
+            .unwrap();
+
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_greedy_best_first() {
+        let graph = test_graph();
+        let start = graph.name_index("Arad").unwrap();
+        let goal = graph.name_index("Bucharest").unwrap();
+        let graph = test_graph();
+        let distances = graph.get_distances(goal);
+        let a = graph
+            .greedy_best_first_impl(start, Some(goal), |index| *distances.get(index).unwrap() )
             .unwrap();
 
         for node in a {
@@ -1039,11 +949,11 @@ mod tests {
 
     #[test]
     fn test_dijkstra_walker() {
-        let graph = final_grap();
+        let graph = test_graph();
         let mut a = Dijkstra::new(
-            &graph,
-            graph.name_index("Felipe Carrillo Puerto").unwrap(),
-            Some(graph.name_index("Cancun").unwrap()),
+                &graph,
+            graph.name_index("Neamt").unwrap(),
+            Some(graph.name_index("Arad").unwrap()),
             Direction::Incoming,
             |state| *state,
         );
@@ -1073,18 +983,18 @@ mod tests {
 
     #[test]
     fn test_bidirectional() {
-        let graph = final_grap();
+        let graph = test_graph();
 
         let a = BreadthFirst::new(
-            &graph,
-            graph.name_index("Cancun").unwrap(),
-            Some(graph.name_index("Cabo San Lucas").unwrap()),
+                &graph,
+            graph.name_index("Arad").unwrap(),
+            Some(graph.name_index("Neamt").unwrap()),
             Direction::Outgoing,
         );
         let b = DepthFirst::new(
-            &graph,
-            graph.name_index("Cancun").unwrap(),
-            Some(graph.name_index("Cabo San Lucas").unwrap()),
+                &graph,
+            graph.name_index("Arad").unwrap(),
+            Some(graph.name_index("Neamt").unwrap()),
             None::<usize>,
             Direction::Incoming,
         );
@@ -1093,99 +1003,5 @@ mod tests {
         for node in res {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
-    }
-
-    fn final_grap() -> Graph<&'static str, (), u16> {
-        let graph: Graph<&'static str, (), u16> = graph! {
-            with_node: (),
-            with_edges: next,
-            nodes: [
-                "Acapulco",        "Villa Hermosa",      "Guanajuato",     "Cancun",
-                "Chilpancingo",     "Aguaprieta",   "Alvarado",      "Valladolid",
-                "Acayucan",     "Santa Ana",     "Oaxaca",    "Chetumal",
-                "Tehuantepec",   "Aguascalientes",     "Atlacomulco",   "Campeche",
-                "Tuxtla",      "Guadalajara",      "Queretaro",       "Felipe Carrillo Puerto",
-                "Merida", "Chihuahua", "Janos", "Juarez", "Ojinaga", "Iguala", "Ciudad Altamirano",
-                "Cuernavaca", "Toluca de Lerdo", "Zihuatanejo", "Ciudad del Carmen", "Ciudad Obregon",
-                "Guaymas", "Ciudad Victoria", "Matamoros", "Soto la Marina", "Tampico", "Colima",
-                "Morelia", "Playa Azul", "Cordoba", "Veracruz", "Culiacan", "Hidalgo del Parral",
-                "Topolobampo", "Durango", "Mazatlan", "Torreon", "Ensenada", "San Quintin" , "Francisco Escarcega",
-                "Manzanillo", "Salamanca", "Hermosillo", "San Luis Potosi", "Izucar de Matamoros", "La Paz",
-                "Cabo San Lucas", "Reynosa", "Mexicalli", "San Felipe", "Tijuana", "Ciudad de Mexico", "Pachuca de Soto",
-                "Puebla", "Tlaxcala", "Monclova", "Piedras Negras", "Monterrey", "Nuevo Laredo" , "Puerto Angel",
-                "Tehuacan", "Tuxpan de Rodriguez Cano", "Pinotepa Nacional", "Zacatecas", "Santa Rosalia", "Santo Domingo", "Tepic", "Ciudad Juarez"
-
-            ],
-            connections: [
-                "Cancun" => {(90) "Valladolid", (100) "Felipe Carrillo Puerto"},
-                "Valladolid" => {(90) "Felipe Carrillo Puerto"},
-                "Felipe Carrillo Puerto" => {(60) "Campeche"},
-                "Campeche" => {(90) "Merida", (100) "Chetumal", (90) "Ciudad del Carmen"},
-                "Chetumal" => {(111) "Francisco Escarcega"},
-                "Ciudad del Carmen" => {(90) "Villa Hermosa", (90) "Tuxtla"},
-                "Villa Hermosa" => {(90) "Acayucan"},
-                "Tuxtla" => {(90) "Acayucan"},
-                "Acayucan" => {(80) "Tehuantepec", (110) "Alvarado"},
-                "Alvarado" => {(100) "Oaxaca"},
-                "Oaxaca" => {(80) "Tehuacan", (90) "Puerto Angel", (90) "Izucar de Matamoros"},
-                "Puerto Angel" => {(100) "Pinotepa Nacional" },
-                "Izucar de Matamoros" => {(90) "Puebla", (100) "Cuernavaca"},
-                "Pinotepa Nacional" => {(100) "Acapulco"},
-                "Cuernavaca" => {(100) "Ciudad de Mexico", (100) "Ciudad Altamirano"},
-                "Puebla" => {(90) "Ciudad de Mexico", (80) "Cordoba"},
-                "Acapulco" => {(140) "Chilpancingo"},
-                "Ciudad de Mexico" => {(100) "Tlaxcala", (110) "Toluca de Lerdo", (90) "Queretaro", (100) "Pachuca de Soto"},
-                "Ciudad Altamirano" => {(90) "Zihuatanejo"},
-                "Cordoba" => {(90) "Veracruz"},
-                "Chilpancingo" => {(90) "Iguala"},
-                "Toluca de Lerdo" => {(100) "Ciudad Altamirano"},
-                "Queretaro" => {(90) "Atlacomulco", (90) "Salamanca", (90) "San Luis Potosi"},
-                "Pachuca de Soto" => {(110) "Tuxpan de Rodriguez Cano"},
-                "Zihuatanejo" => {(90) "Playa Azul"},
-                "Iguala" => {(100) "Cuernavaca", (110) "Ciudad Altamirano"},
-                "Salamanca" => {(90) "Guanajuato", (90) "Guadalajara"},
-                "San Luis Potosi" => {(90) "Zacatecas", (70) "Durango", (100) "Aguascalientes" },
-                "Tuxpan de Rodriguez Cano" => {(100) "Tampico"},
-                "Playa Azul" => {(100) "Morelia", (100) "Colima", (100) "Manzanillo"},
-                "Guanajuato" => {(80) "Aguascalientes"},
-                "Guadalajara" => {(110) "Tepic"},
-                "Aguascalientes" =>{(70) "Guadalajara"},
-                "Durango" => {(90) "Hidalgo del Parral", (90) "Mazatlan"},
-                "Tampico" => {(80) "Ciudad Victoria"},
-                "Morelia" => {(90) "Salamanca"},
-                "Manzanillo" => {(50) "Colima", (80) "Guadalajara"},
-                "Colima" => {(90) "Morelia", (50) "Guadalajara"},
-                "Tepic" =>{(50) "Mazatlan"},
-                "Hidalgo del Parral" => {(130) "Chihuahua", (110) "Topolobampo", (80) "Culiacan"},
-                "Mazatlan" => {(90) "Culiacan"},
-                "Ciudad Victoria" => {(80) "Soto la Marina", (80) "Matamoros", (80) "Monterrey", (80) "Durango"},
-                "Chihuahua" => {(90) "Ciudad Juarez", (90) "Janos"},
-                "Topolobampo" => {(90) "Ciudad Obregon"},
-                "Culiacan" => {(110) "Topolobampo"},
-                "Matamoros" => {(90) "Reynosa"},
-                "Monterrey" => {(110) "Nuevo Laredo",(70) "Monclova"},
-                "Janos" => {(110) "Aguaprieta"},
-                "Ciudad Obregon" => {(80) "Guaymas"},
-                "Reynosa" => {(100) "Nuevo Laredo"},
-                "Nuevo Laredo" => {(100) "Piedras Negras"},
-                "Monclova" => {(100) "Torreon", (90) "Ojinaga"},
-                "Aguaprieta" => {(90) "Santa Ana"},
-                "Guaymas" => {(90) "Hermosillo"},
-                "Piedras Negras" => {(90) "Monclova"},
-                "Torreon" => {(90) "Durango"},
-                "Ojinaga" => {(90) "Chihuahua"},
-                "Santa Ana" => {(159) "Mexicalli"},
-                "Hermosillo" => {(100) "Santa Ana"},
-                "Mexicalli" => {(50) "Tijuana", (70) "San Felipe"},
-                "Tijuana" => {(30) "Ensenada"},
-                "San Felipe" => {(50) "Ensenada"},
-                "Ensenada" => {(90) "San Quintin"},
-                "San Quintin" => {(140) "Santa Rosalia"},
-                "Santa Rosalia" => {(100) "Santo Domingo"},
-                "Santo Domingo" => {(100) "La Paz"},
-                "La Paz" => {(40) "Cabo San Lucas"}
-            ]
-        };
-        graph
     }
 }

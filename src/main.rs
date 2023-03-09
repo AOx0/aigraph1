@@ -404,6 +404,7 @@ fn main() {
             }
         }
         5 => {
+            use graph::walkers::*;
             let mut dijkstra_walker = Dijkstra::new(
                 &graph,
                 graph.name_index(&city_start.as_ref()).unwrap(),
