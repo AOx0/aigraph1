@@ -107,16 +107,7 @@ pub struct Step<S, Ix> {
 ///
 /// We then construct a copy of the call-chain removing the state from each step,
 /// the final result is two `StepUnit<Ix>` that we can work with.
-#[derive(Debug)]
-pub struct StepUnit<Ix> {
-    /// The parent State that invoked this instance.
-    /// If the option is None then it means we arrived to the root state.
-    pub caller: Option<Rc<StepUnit<Ix>>>,
-    /// The current node index the step is at within the graph.
-    pub idx: NodeIndex<Ix>,
-    /// The index of the edge that binds caller -> self
-    pub rel: Option<EdgeIndex>,
-}
+pub type StepUnit<Ix> = Step<(), Ix>;
 
 impl<Ix: IndexType> StepUnit<Ix> {
     pub fn from_step<S>(step: Rc<Step<S, Ix>>) -> Rc<Self> {
@@ -127,6 +118,7 @@ impl<Ix: IndexType> StepUnit<Ix> {
                 .and_then(|step| Some(Self::from_step(step.clone()))),
             idx: step.idx,
             rel: step.rel,
+            state: (),
         })
     }
     pub fn make_void<S>(step: Rc<Step<S, Ix>>) -> Step<(), Ix> {
