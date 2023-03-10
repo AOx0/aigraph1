@@ -514,15 +514,15 @@ where
         }
     }
 
-    pub fn dijkstra_impl<'a, K, F>(
+    pub fn best_first_impl<'a, K, F>(
         &self,
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
-        mut edge_cost: F,
+        mut h: F,
     ) -> Result<Steps<K, Ix>, ()>
     where
-        K: Measure + Copy + Eq + Default + Ord + PartialOrd,
-        F: FnMut(&E) -> K,
+        K: Default + Measure + Copy + PartialEq + PartialOrd,
+        F: FnMut(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K,
     {
         let mut border = VecDeque::with_capacity(self.inner.node_count());
         border.push_front(Step {
@@ -536,7 +536,7 @@ where
             let i = border
                 .iter()
                 .enumerate()
-                .min_by(|(_, s1), (_, s2)| s1.state.cmp(&s2.state))
+                .min_by(|(_, s1), (_, s2)| s1.state.partial_cmp(&s2.state).unwrap())
                 .map(|(x, _)| x);
             i.map(|i| border.remove(i).unwrap())
         } {
@@ -566,7 +566,7 @@ where
                         caller: Some(parent.clone()),
                         idx: child_idx.into(),
                         rel: Some(edge.into()),
-                        state: parent.state + edge_cost(&self.inner[edge]),
+                        state: h(child_idx, edge, parent.state, parent.idx),
                     };
 
                     if es_goal {
@@ -577,6 +577,21 @@ where
             }
         }
         Err(())
+    }
+
+    pub fn dijkstra_impl<'a, K, F>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        mut edge_cost: F,
+    ) -> Result<Steps<K, Ix>, ()>
+    where
+        K: Measure + Copy + Eq + Default + Ord + PartialOrd,
+        F: FnMut(&E) -> K,
+    {
+        self.best_first_impl(start, goal, |_, edge, past, _| {
+            past + edge_cost(&self.inner[edge])
+        })
     }
 
     pub fn greedy_best_first_impl<K, F>(
