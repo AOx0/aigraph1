@@ -15,6 +15,7 @@ use std::{
     collections::{HashMap, VecDeque},
     fmt::Debug,
     hash::Hash,
+    ops::Mul,
     rc::Rc,
 };
 
@@ -498,7 +499,7 @@ where
     ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
-        F: FnMut(&E) -> K,
+        F: Fn(&E) -> K,
     {
         match goal {
             Some(goal) => match (self.name_index(start), self.name_index(goal)) {
@@ -518,11 +519,11 @@ where
         &self,
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
-        mut h: F,
+        h: F,
     ) -> Result<Steps<K, Ix>, ()>
     where
         K: Default + Measure + Copy + PartialEq + PartialOrd,
-        F: FnMut(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K,
+        F: Fn(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K,
     {
         let mut border = VecDeque::with_capacity(self.inner.node_count());
         border.push_front(Step {
@@ -579,15 +580,15 @@ where
         Err(())
     }
 
-    pub fn dijkstra_impl<'a, K, F>(
+    pub fn dijkstra_impl<K, F>(
         &self,
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
-        mut edge_cost: F,
+        edge_cost: F,
     ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
-        F: FnMut(&E) -> K,
+        F: Fn(&E) -> K,
     {
         self.best_first_impl(start, goal, |_, edge, past, _| {
             past + edge_cost(&self.inner[edge])
@@ -598,65 +599,48 @@ where
         &self,
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
-        edge_cost: F,
+        h: F,
     ) -> Result<Steps<K, Ix>, ()>
     where
+        K: Measure + Copy + Default + PartialOrd,
         F: Fn(&NodeIndex<Ix>) -> K,
+    {
+        self.best_first_impl(start, goal, |node, _, _, _| h(&node))
+    }
+
+    pub fn a_star_impl<K, F, G>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        h: G,
+        w: F,
+    ) -> Result<Steps<K, Ix>, ()>
+    where
+        G: Fn(&NodeIndex<Ix>) -> K,
+        F: Fn(&E) -> K,
         K: Measure + Copy + Default + PartialOrd,
     {
-        let mut border = VecDeque::with_capacity(self.inner.node_count());
-        border.push_front(Step {
-            caller: None,
-            idx: start,
-            rel: None,
-            state: K::default(),
-        });
+        self.best_first_impl(start, goal, |node, edge, _, _| {
+            h(&node) + w(&self.inner[edge])
+        })
+    }
 
-        while let Some(parent) = {
-            let i = border
-                .iter()
-                .enumerate()
-                .min_by(|(_, s1), (_, s2)| s1.state.partial_cmp(&s2.state).unwrap())
-                .map(|(x, _)| x);
-            i.map(|i| border.remove(i).unwrap())
-        } {
-            if goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
-                return Ok(parent.into_iter());
-            }
-
-            let parent = Rc::new(parent);
-            for child_idx in self
-                .inner
-                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
-            {
-                let es_goal = goal
-                    .and_then(|goal| Some(goal == child_idx))
-                    .unwrap_or(false);
-                let tiene_hijos = self
-                    .inner
-                    .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
-                    .count()
-                    != 0;
-                if es_goal || tiene_hijos {
-                    let edge = self.inner.find_edge(parent.idx, child_idx).unwrap();
-                    let step = Step {
-                        caller: Some(parent.clone()),
-                        idx: child_idx.into(),
-                        rel: Some(edge.into()),
-                        state: edge_cost(&child_idx),
-                    };
-
-                    if es_goal {
-                        return Ok(step.into_iter());
-                    }
-                    border.push_front(step)
-                }
-            }
-        }
-        Err(())
+    pub fn weighted_a_star_impl<K, F, G>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        h: G,
+        w: F,
+        k: K,
+    ) -> Result<Steps<K, Ix>, ()>
+    where
+        G: Fn(&NodeIndex<Ix>) -> K,
+        F: Fn(&E) -> K,
+        K: Measure + Copy + Default + PartialOrd + Mul<Output = K>,
+    {
+        self.best_first_impl(start, goal, |node, edge, _, _| {
+            h(&node) + k * w(&self.inner[edge])
+        })
     }
 
     pub fn breadth_first_impl(
@@ -1023,6 +1007,49 @@ mod tests {
 
         let res = graph.bidirectional(a, b).unwrap();
         for node in res {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_a_star_impl() {
+        let graph = test_graph();
+        let start = graph.name_index("Arad").unwrap();
+        let goal = graph.name_index("Bucharest").unwrap();
+        let graph = test_graph();
+        let distances = graph.get_distances(goal);
+        let a = graph
+            .a_star_impl(
+                start,
+                Some(goal),
+                |index| *distances.get(index).unwrap(),
+                |state| *state as f64,
+            )
+            .unwrap();
+
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_a_star_weight_impl() {
+        let graph = test_graph();
+        let start = graph.name_index("Arad").unwrap();
+        let goal = graph.name_index("Bucharest").unwrap();
+        let graph = test_graph();
+        let distances = graph.get_distances(goal);
+        let a = graph
+            .weighted_a_star_impl(
+                start,
+                Some(goal),
+                |index| *distances.get(index).unwrap(),
+                |state| *state as f64,
+                1.5,
+            )
+            .unwrap();
+
+        for node in a {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
