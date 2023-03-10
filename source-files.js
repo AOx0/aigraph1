@@ -2,7 +2,7 @@ var sourcesIndex = JSON.parse('{\
 "aigraph1":["",[],["main.rs"]],\
 "anyhow":["",[],["backtrace.rs","chain.rs","context.rs","ensure.rs","error.rs","fmt.rs","kind.rs","lib.rs","macros.rs","ptr.rs","wrapper.rs"]],\
 "fixedbitset":["",[],["lib.rs","range.rs"]],\
-"graph":["",[],["lib.rs"]],\
+"graph":["",[["walkers",[],["breadth.rs","depth.rs","dijkstra.rs","mod.rs"]]],["lib.rs"]],\
 "hashbrown":["",[["external_trait_impls",[],["mod.rs"]],["raw",[],["alloc.rs","bitmask.rs","mod.rs","sse2.rs"]]],["lib.rs","macros.rs","map.rs","scopeguard.rs","set.rs"]],\
 "indexmap":["",[["map",[["core",[],["raw.rs"]]],["core.rs"]]],["arbitrary.rs","equivalent.rs","lib.rs","macros.rs","map.rs","mutable_keys.rs","set.rs","util.rs"]],\
 "num":["",[],["lib.rs"]],\

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Direction","WalkerState"],"macro":["count","graph"],"struct":["BreadthFirst","DepthFirst","Dijkstra","Graph","Step","StepUnit","Steps"],"trait":["Walker"]};
+window.SIDEBAR_ITEMS = {"enum":["Direction"],"macro":["count","graph"],"mod":["walkers"],"struct":["Graph","Step","Steps"],"trait":["Coords"],"type":["StepUnit"]};

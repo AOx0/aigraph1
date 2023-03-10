@@ -526,6 +526,8 @@
 <a href="#526" id="526">526</a>
 <a href="#527" id="527">527</a>
 <a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
 </pre><pre class="rust"><code><span class="attr">#![allow(unused_mut)]
 
 </span><span class="kw">use </span>graph::<span class="kw-2">*</span>;
@@ -547,21 +549,22 @@
         with_node: (),
         with_edges: next,
         nodes: [
-            <span class="string">&quot;Acapulco&quot;</span>,        <span class="string">&quot;Villa Hermosa&quot;</span>,      <span class="string">&quot;Guanajuato&quot;</span>,     <span class="string">&quot;Cancun&quot;</span>,
-            <span class="string">&quot;Chilpancingo&quot;</span>,     <span class="string">&quot;Aguaprieta&quot;</span>,   <span class="string">&quot;Alvarado&quot;</span>,      <span class="string">&quot;Valladolid&quot;</span>,
-            <span class="string">&quot;Acayucan&quot;</span>,     <span class="string">&quot;Santa Ana&quot;</span>,     <span class="string">&quot;Oaxaca&quot;</span>,    <span class="string">&quot;Chetumal&quot;</span>,
-            <span class="string">&quot;Tehuantepec&quot;</span>,   <span class="string">&quot;Aguascalientes&quot;</span>,     <span class="string">&quot;Atlacomulco&quot;</span>,   <span class="string">&quot;Campeche&quot;</span>,
-            <span class="string">&quot;Tuxtla&quot;</span>,      <span class="string">&quot;Guadalajara&quot;</span>,      <span class="string">&quot;Queretaro&quot;</span>,       <span class="string">&quot;Felipe Carrillo Puerto&quot;</span>,
-            <span class="string">&quot;Merida&quot;</span>, <span class="string">&quot;Chihuahua&quot;</span>, <span class="string">&quot;Janos&quot;</span>, <span class="string">&quot;Juarez&quot;</span>, <span class="string">&quot;Ojinaga&quot;</span>, <span class="string">&quot;Iguala&quot;</span>, <span class="string">&quot;Ciudad Altamirano&quot;</span>,
-            <span class="string">&quot;Cuernavaca&quot;</span>, <span class="string">&quot;Toluca de Lerdo&quot;</span>, <span class="string">&quot;Zihuatanejo&quot;</span>, <span class="string">&quot;Ciudad del Carmen&quot;</span>, <span class="string">&quot;Ciudad Obregon&quot;</span>,
-            <span class="string">&quot;Guaymas&quot;</span>, <span class="string">&quot;Ciudad Victoria&quot;</span>, <span class="string">&quot;Matamoros&quot;</span>, <span class="string">&quot;Soto la Marina&quot;</span>, <span class="string">&quot;Tampico&quot;</span>, <span class="string">&quot;Colima&quot;</span>,
-            <span class="string">&quot;Morelia&quot;</span>, <span class="string">&quot;Playa Azul&quot;</span>, <span class="string">&quot;Cordoba&quot;</span>, <span class="string">&quot;Veracruz&quot;</span>, <span class="string">&quot;Culiacan&quot;</span>, <span class="string">&quot;Hidalgo del Parral&quot;</span>,
-            <span class="string">&quot;Topolobampo&quot;</span>, <span class="string">&quot;Durango&quot;</span>, <span class="string">&quot;Mazatlan&quot;</span>, <span class="string">&quot;Torreon&quot;</span>, <span class="string">&quot;Ensenada&quot;</span>, <span class="string">&quot;San Quintin&quot; </span>, <span class="string">&quot;Francisco Escarcega&quot;</span>,
-            <span class="string">&quot;Manzanillo&quot;</span>, <span class="string">&quot;Salamanca&quot;</span>, <span class="string">&quot;Hermosillo&quot;</span>, <span class="string">&quot;San Luis Potosi&quot;</span>, <span class="string">&quot;Izucar de Matamoros&quot;</span>, <span class="string">&quot;La Paz&quot;</span>,
-            <span class="string">&quot;Cabo San Lucas&quot;</span>, <span class="string">&quot;Reynosa&quot;</span>, <span class="string">&quot;Mexicalli&quot;</span>, <span class="string">&quot;San Felipe&quot;</span>, <span class="string">&quot;Tijuana&quot;</span>, <span class="string">&quot;Ciudad de Mexico&quot;</span>, <span class="string">&quot;Pachuca de Soto&quot;</span>,
-            <span class="string">&quot;Puebla&quot;</span>, <span class="string">&quot;Tlaxcala&quot;</span>, <span class="string">&quot;Monclova&quot;</span>, <span class="string">&quot;Piedras Negras&quot;</span>, <span class="string">&quot;Monterrey&quot;</span>, <span class="string">&quot;Nuevo Laredo&quot; </span>, <span class="string">&quot;Puerto Angel&quot;</span>,
-            <span class="string">&quot;Tehuacan&quot;</span>, <span class="string">&quot;Tuxpan de Rodriguez Cano&quot;</span>, <span class="string">&quot;Pinotepa Nacional&quot;</span>, <span class="string">&quot;Zacatecas&quot;</span>, <span class="string">&quot;Santa Rosalia&quot;</span>, <span class="string">&quot;Santo Domingo&quot;</span>, <span class="string">&quot;Tepic&quot;</span>, <span class="string">&quot;Ciudad Juarez&quot;
-
+            <span class="string">&quot;Acapulco&quot;</span>,              <span class="string">&quot;Villa Hermosa&quot;</span>,       <span class="string">&quot;Guanajuato&quot;</span>,                 <span class="string">&quot;Cancun&quot;</span>,               <span class="string">&quot;Chilpancingo&quot;</span>,
+            <span class="string">&quot;Aguaprieta&quot;</span>,            <span class="string">&quot;Alvarado&quot;</span>,            <span class="string">&quot;Valladolid&quot;</span>,                 <span class="string">&quot;Acayucan&quot;</span>,             <span class="string">&quot;Santa Ana&quot;</span>,
+            <span class="string">&quot;Oaxaca&quot;</span>,                <span class="string">&quot;Chetumal&quot;</span>,            <span class="string">&quot;Tehuantepec&quot;</span>,                <span class="string">&quot;Aguascalientes&quot;</span>,       <span class="string">&quot;Atlacomulco&quot;</span>,
+            <span class="string">&quot;Campeche&quot;</span>,              <span class="string">&quot;Tuxtla&quot;</span>,              <span class="string">&quot;Guadalajara&quot;</span>,                <span class="string">&quot;Queretaro&quot;</span>,            <span class="string">&quot;Felipe Carrillo Puerto&quot;</span>,
+            <span class="string">&quot;Merida&quot;</span>,                <span class="string">&quot;Chihuahua&quot;</span>,           <span class="string">&quot;Janos&quot;</span>,                      <span class="string">&quot;Juarez&quot;</span>,               <span class="string">&quot;Ojinaga&quot;</span>,
+            <span class="string">&quot;Iguala&quot;</span>,                <span class="string">&quot;Ciudad Altamirano&quot;</span>,   <span class="string">&quot;Cuernavaca&quot;</span>,                 <span class="string">&quot;Toluca de Lerdo&quot;</span>,      <span class="string">&quot;Zihuatanejo&quot;</span>,
+            <span class="string">&quot;Ciudad del Carmen&quot;</span>,     <span class="string">&quot;Ciudad Obregon&quot;</span>,      <span class="string">&quot;Guaymas&quot;</span>,                    <span class="string">&quot;Ciudad Victoria&quot;</span>,      <span class="string">&quot;Matamoros&quot;</span>,
+            <span class="string">&quot;Soto la Marina&quot;</span>,        <span class="string">&quot;Tampico&quot;</span>,             <span class="string">&quot;Colima&quot;</span>,                     <span class="string">&quot;Morelia&quot;</span>,              <span class="string">&quot;Playa Azul&quot;</span>,
+            <span class="string">&quot;Cordoba&quot;</span>,               <span class="string">&quot;Veracruz&quot;</span>,            <span class="string">&quot;Culiacan&quot;</span>,                   <span class="string">&quot;Hidalgo del Parral&quot;</span>,   <span class="string">&quot;Topolobampo&quot;</span>,
+            <span class="string">&quot;Durango&quot;</span>,               <span class="string">&quot;Mazatlan&quot;</span>,            <span class="string">&quot;Torreon&quot;</span>,                    <span class="string">&quot;Ensenada&quot;</span>,             <span class="string">&quot;San Quintin&quot;</span>,
+            <span class="string">&quot;Francisco Escarcega&quot;</span>,   <span class="string">&quot;Manzanillo&quot;</span>,          <span class="string">&quot;Salamanca&quot;</span>,                  <span class="string">&quot;Hermosillo&quot;</span>,           <span class="string">&quot;San Luis Potosi&quot;</span>,
+            <span class="string">&quot;Izucar de Matamoros&quot;</span>,   <span class="string">&quot;La Paz&quot;</span>,              <span class="string">&quot;Cabo San Lucas&quot;</span>,             <span class="string">&quot;Reynosa&quot;</span>,              <span class="string">&quot;Mexicalli&quot;</span>,
+            <span class="string">&quot;San Felipe&quot;</span>,            <span class="string">&quot;Tijuana&quot;</span>,             <span class="string">&quot;Ciudad de Mexico&quot;</span>,           <span class="string">&quot;Pachuca de Soto&quot;</span>,      <span class="string">&quot;Puebla&quot;</span>,
+            <span class="string">&quot;Tlaxcala&quot;</span>,              <span class="string">&quot;Monclova&quot;</span>,            <span class="string">&quot;Piedras Negras&quot;</span>,             <span class="string">&quot;Monterrey&quot;</span>,            <span class="string">&quot;Nuevo Laredo&quot;</span>,
+            <span class="string">&quot;Puerto Angel&quot;</span>,          <span class="string">&quot;Tehuacan&quot;</span>,            <span class="string">&quot;Tuxpan de Rodriguez Cano&quot;</span>,   <span class="string">&quot;Pinotepa Nacional&quot;</span>,    <span class="string">&quot;Zacatecas&quot;</span>,
+            <span class="string">&quot;Santa Rosalia&quot;</span>,         <span class="string">&quot;Santo Domingo&quot;</span>,       <span class="string">&quot;Tepic&quot;</span>,                      <span class="string">&quot;Ciudad Juarez&quot;
         </span>],
         connections: [
             <span class="string">&quot;Cancun&quot; </span>=&gt; {(<span class="number">90</span>) <span class="string">&quot;Valladolid&quot;</span>, (<span class="number">100</span>) <span class="string">&quot;Felipe Carrillo Puerto&quot;</span>},
@@ -931,6 +934,7 @@
             }
         }
         <span class="number">5 </span>=&gt; {
+            <span class="kw">use </span>graph::walkers::<span class="kw-2">*</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>dijkstra_walker = Dijkstra::new(
                 <span class="kw-2">&amp;</span>graph,
                 graph.name_index(<span class="kw-2">&amp;</span>city_start.as_ref()).unwrap(),
@@ -1055,4 +1059,4 @@
     }
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="aigraph1" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (f63ccaf25 2023-03-06)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="aigraph1" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (39f2657d1 2023-03-09)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

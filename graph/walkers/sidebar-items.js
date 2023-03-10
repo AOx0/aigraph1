@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["WalkerState"],"mod":["breadth","depth","dijkstra"],"trait":["Walker"]};
