@@ -11,16 +11,15 @@ pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
     pub direction: Direction,
 }
 
-
 impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, E, Ty, Ix> {
     #[allow(dead_code)]
     pub fn new(
-            graph: &'a Graph<I, N, E, Ty, Ix>,
-            start: NodeIndex<Ix>,
-            goal: Option<NodeIndex<Ix>>,
-            limit: Option<D>,
-            direction: Direction,
-            ) -> Self {
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        limit: Option<D>,
+        direction: Direction,
+    ) -> Self {
         Self {
             graph,
             goal,
@@ -59,7 +58,7 @@ where
                     .inner
                     .neighbors_directed(parent.idx.into(), self.direction)
                     .count()
-                   != 0
+                    != 0
                 {
                     self.cutoff = true;
                 }

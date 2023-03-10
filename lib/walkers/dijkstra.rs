@@ -9,18 +9,17 @@ pub struct Dijkstra<'a, F, K, I, N, E, Ty, Ix> {
     edge_cost: F,
 }
 
-
 impl<'a, F: FnMut(&E) -> K, K: Zero, I, N, E, Ty: EdgeType, Ix: IndexType>
     Dijkstra<'a, F, K, I, N, E, Ty, Ix>
 {
     #[allow(dead_code)]
     pub fn new(
-            graph: &'a Graph<I, N, E, Ty, Ix>,
-            start: NodeIndex<Ix>,
-            goal: Option<NodeIndex<Ix>>,
-            direction: Direction,
-            edge_cost: F,
-            ) -> Self {
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        direction: Direction,
+        edge_cost: F,
+    ) -> Self {
         Self {
             goal,
             graph,
@@ -72,7 +71,7 @@ where
                     .inner
                     .neighbors_directed(child_idx, self.direction)
                     .count()
-                                  != 0;
+                    != 0;
                 if es_goal || tiene_hijos {
                     let edge = self
                         .graph

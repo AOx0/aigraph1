@@ -222,15 +222,21 @@ pub trait Coords {
 impl<I, N: Coords, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
     pub fn get_distances(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
         let w_original = self.inner.node_weight(to).unwrap();
-        let (x1, y1) = (<N as Coords>::get_x(w_original), <N as Coords>::get_y(w_original));
-        self.inner.node_indices().into_iter().map(|idx| {
-            let node = self.inner.node_weight(idx).unwrap();
-            let distance = (
-                    (<N as Coords>::get_x(&node) - x1).powi(2)
-                    + (<N as Coords>::get_y(&node) - y1).powi(2)
-            ).sqrt();
-            (idx, distance)
-        }).collect::<HashMap<_, _>>()
+        let (x1, y1) = (
+            <N as Coords>::get_x(w_original),
+            <N as Coords>::get_y(w_original),
+        );
+        self.inner
+            .node_indices()
+            .into_iter()
+            .map(|idx| {
+                let node = self.inner.node_weight(idx).unwrap();
+                let distance = ((<N as Coords>::get_x(&node) - x1).powi(2)
+                    + (<N as Coords>::get_y(&node) - y1).powi(2))
+                .sqrt();
+                (idx, distance)
+            })
+            .collect::<HashMap<_, _>>()
     }
 }
 
@@ -333,11 +339,11 @@ where
     }
 
     pub fn iterative_depth_first<D>(
-                &self,
-                start: I,
-                goal: Option<I>,
-                limit: Option<D>,
-                    ) -> Result<Step<D, Ix>, ()>
+        &self,
+        start: I,
+        goal: Option<I>,
+        limit: Option<D>,
+    ) -> Result<Step<D, Ix>, ()>
     where
         D: Measure + Copy + One + Zero,
     {
@@ -383,11 +389,11 @@ where
     }
 
     pub fn depth_first<D>(
-                &self,
-                start: I,
-                goal: Option<I>,
-                limit: Option<D>,
-                    ) -> Result<Step<D, Ix>, ()>
+        &self,
+        start: I,
+        goal: Option<I>,
+        limit: Option<D>,
+    ) -> Result<Step<D, Ix>, ()>
     where
         D: Measure + Copy + One + Zero,
     {
@@ -408,11 +414,11 @@ where
     }
 
     pub fn depth_first_impl<D>(
-                &self,
-                start: NodeIndex<Ix>,
-                goal: Option<NodeIndex<Ix>>,
-                limit: Option<D>,
-                    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        limit: Option<D>,
+    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
     where
         D: Measure + Copy + One + Zero + Debug,
     {
@@ -435,7 +441,7 @@ where
                     .inner
                     .neighbors_directed(parent.idx.into(), Direction::Outgoing)
                     .count()
-                   != 0
+                    != 0
                 {
                     cutoff = true;
                 }
@@ -485,11 +491,11 @@ where
     }
 
     pub fn dijkstra<K, F>(
-                &self,
-                start: I,
-                goal: Option<I>,
-                edge_cost: F,
-                    ) -> Result<Steps<K, Ix>, ()>
+        &self,
+        start: I,
+        goal: Option<I>,
+        edge_cost: F,
+    ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
         F: FnMut(&E) -> K,
@@ -509,11 +515,11 @@ where
     }
 
     pub fn dijkstra_impl<'a, K, F>(
-                &self,
-                start: NodeIndex<Ix>,
-                goal: Option<NodeIndex<Ix>>,
-                mut edge_cost: F,
-                    ) -> Result<Steps<K, Ix>, ()>
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        mut edge_cost: F,
+    ) -> Result<Steps<K, Ix>, ()>
     where
         K: Measure + Copy + Eq + Default + Ord + PartialOrd,
         F: FnMut(&E) -> K,
@@ -553,7 +559,7 @@ where
                     .inner
                     .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
                     .count()
-                                                != 0;
+                    != 0;
                 if es_goal || tiene_hijos {
                     let edge = self.inner.find_edge(parent.idx, child_idx).unwrap();
                     let step = Step {
@@ -573,15 +579,15 @@ where
         Err(())
     }
 
-    pub fn greedy_best_first_impl<K, F> (
-            &self,
+    pub fn greedy_best_first_impl<K, F>(
+        &self,
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
         edge_cost: F,
     ) -> Result<Steps<K, Ix>, ()>
-        where
+    where
         F: Fn(&NodeIndex<Ix>) -> K,
-            K: Measure + Copy + Default + PartialOrd
+        K: Measure + Copy + Default + PartialOrd,
     {
         let mut border = VecDeque::with_capacity(self.inner.node_count());
         border.push_front(Step {
@@ -617,7 +623,8 @@ where
                 let tiene_hijos = self
                     .inner
                     .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
-                    .count() != 0;
+                    .count()
+                    != 0;
                 if es_goal || tiene_hijos {
                     let edge = self.inner.find_edge(parent.idx, child_idx).unwrap();
                     let step = Step {
@@ -638,9 +645,9 @@ where
     }
 
     pub fn breadth_first_impl(
-            &self,
-            start: NodeIndex<Ix>,
-            goal: Option<NodeIndex<Ix>>,
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
     ) -> Result<Steps<(), Ix>, ()> {
         let mut border = VecDeque::with_capacity(self.inner.node_count());
         let mut visited = self.inner.visit_map();
@@ -663,7 +670,7 @@ where
                 .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
                 .count()
-               != 0
+                != 0
             {
                 let parent = Rc::new(parent);
                 self.inner
@@ -683,7 +690,6 @@ where
         }
         Err(())
     }
-
 
     pub fn bidirectional<S: Debug, D: Debug>(
         &self,
@@ -807,8 +813,8 @@ impl Coords for (f64, f64) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::walkers::*;
+    use super::*;
 
     fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
         graph! {
@@ -872,9 +878,7 @@ mod tests {
     #[test]
     fn test_breadth() {
         let graph = test_graph();
-        let a = graph
-            .breadth_first("Arad", Some("Neamt"))
-            .unwrap();
+        let a = graph.breadth_first("Arad", Some("Neamt")).unwrap();
 
         for node in a {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
@@ -885,7 +889,7 @@ mod tests {
     fn test_breadth_walker() {
         let graph = test_graph();
         let mut a = BreadthFirst::new(
-                &graph,
+            &graph,
             graph.name_index("Neamt").unwrap(),
             Some(graph.name_index("Arad").unwrap()),
             Direction::Incoming,
@@ -914,7 +918,10 @@ mod tests {
     #[test]
     fn test_distances() {
         let graph = test_graph();
-        for (k, v) in graph.get_distances(graph.name_index("Bucharest").unwrap()).into_iter() {
+        for (k, v) in graph
+            .get_distances(graph.name_index("Bucharest").unwrap())
+            .into_iter()
+        {
             println!("{}: {}", graph.index_name(k).unwrap(), v);
         }
     }
@@ -939,7 +946,7 @@ mod tests {
         let graph = test_graph();
         let distances = graph.get_distances(goal);
         let a = graph
-            .greedy_best_first_impl(start, Some(goal), |index| *distances.get(index).unwrap() )
+            .greedy_best_first_impl(start, Some(goal), |index| *distances.get(index).unwrap())
             .unwrap();
 
         for node in a {
@@ -951,7 +958,7 @@ mod tests {
     fn test_dijkstra_walker() {
         let graph = test_graph();
         let mut a = Dijkstra::new(
-                &graph,
+            &graph,
             graph.name_index("Neamt").unwrap(),
             Some(graph.name_index("Arad").unwrap()),
             Direction::Incoming,
@@ -986,13 +993,13 @@ mod tests {
         let graph = test_graph();
 
         let a = BreadthFirst::new(
-                &graph,
+            &graph,
             graph.name_index("Arad").unwrap(),
             Some(graph.name_index("Neamt").unwrap()),
             Direction::Outgoing,
         );
         let b = DepthFirst::new(
-                &graph,
+            &graph,
             graph.name_index("Arad").unwrap(),
             Some(graph.name_index("Neamt").unwrap()),
             None::<usize>,

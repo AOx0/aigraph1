@@ -9,16 +9,14 @@ pub struct BreadthFirst<'a, I, N, E, Ty, Ix> {
     pub direction: Direction,
 }
 
-
-
 impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> BreadthFirst<'a, I, N, E, Ty, Ix> {
     #[allow(dead_code)]
     pub fn new(
-            graph: &'a Graph<I, N, E, Ty, Ix>,
-            start: NodeIndex<Ix>,
-            goal: Option<NodeIndex<Ix>>,
-            direction: Direction,
-            ) -> Self {
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        direction: Direction,
+    ) -> Self {
         Self {
             goal,
             graph,
