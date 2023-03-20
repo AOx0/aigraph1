@@ -102,7 +102,7 @@ macro_rules! graph {
 ///
 /// Steps can store a type `S` which can be used to hold any information like
 /// total weight or any other primitive or structure.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Step<S, Ix> {
     /// The parent State that invoked this instance.
     /// If the option is None then it means we arrived to the root state.
@@ -160,6 +160,20 @@ impl<Ix: IndexType> StepUnit<Ix> {
     }
 }
 
+impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
+    fn clone(&self) -> Self {
+        Self {
+            caller: self
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Rc::new(Self::clone(step)))),
+            idx: self.idx.clone(),
+            rel: self.rel,
+            state: self.state.clone(),
+        }
+    }
+}
+
 /// A Step iterator
 #[derive(Debug)]
 pub struct Steps<S, Ix = DefaultIx> {
@@ -188,6 +202,14 @@ impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
 impl<S, Ix> Steps<S, Ix> {
     pub fn from_step(step: Rc<Step<S, Ix>>) -> Self {
         Self { start: Some(step) }
+    }
+}
+
+impl<S: Clone, Ix: Clone> Clone for Steps<S, Ix> {
+    fn clone(&self) -> Self {
+        Self {
+            start: self.start.clone(),
+        }
     }
 }
 
@@ -810,57 +832,58 @@ impl Coords for (f64, f64) {
     }
 }
 
+#[allow(dead_code)]
+pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
+    graph! {
+        with_edges: next,
+        nodes: [
+            "Arad" => (-8., 3.),
+            "Zerind" => (-7.5,4.8),
+            "Oradea" => (-6.5, 6.2),
+            "Sibiu" => (-3.5, 1.8),
+            "Fagaras" => (0.3, 1.5),
+            "Timisoara" => (-8., 0.),
+            "Lugoj" => (-5.2, -1.2),
+            "Mehadia"=> (-5.1, -3.),
+            "Drobeta"=> (-5.4, -4.4),
+            "Craiova" =>(-2., -5.),
+            "Pitesti"=>(1., 2.),
+            "Rimnieu Vilcea"=> (-2.5, 0.),
+            "Bucharest"=> (4., -3.),
+            "Giurgiu" =>(3., -5.5),
+            "Urziceni" => (6., -2.3),
+            "Hirsova"=> (9., -2.2),
+            "Eforie"=> (10., -4.4),
+            "Vasiui"=> (8.2, 1.3),
+            "Iasi" => (6.9, 3.9) ,
+            "Neamt" => (4.1, 5.)
+        ],
+        connections: [
+            "Arad" => {(140) "Sibiu", (75) "Zerind", (118) "Timisoara"},
+            "Zerind" => {(71) "Oradea"},
+            "Oradea" => {(151) "Sibiu"},
+            "Sibiu" => {(99) "Fagaras", (80) "Rimnieu Vilcea"},
+            "Timisoara" => {(111) "Lugoj"},
+            "Lugoj" => {(70) "Mehadia"},
+            "Mehadia" => {(75) "Drobeta"},
+            "Drobeta" => {(120) "Craiova"},
+            "Craiova" => {(138) "Pitesti"},
+            "Pitesti" => {(101) "Bucharest"},
+            "Rimnieu Vilcea" => {(97) "Pitesti", (146) "Craiova"},
+            "Fagaras" => {(211) "Bucharest"},
+            "Bucharest" => {(90) "Giurgiu", (85) "Urziceni"},
+            "Urziceni" => {(98) "Hirsova", (142) "Vasiui"},
+            "Vasiui" => {(92) "Iasi"},
+            "Iasi" => {(87) "Neamt"},
+            "Hirsova" => {(86) "Eforie"}
+        ]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::walkers::*;
     use super::*;
-
-    fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
-        graph! {
-            with_edges: next,
-            nodes: [
-                "Arad" => (-8., 3.),
-                "Zerind" => (-7.5,4.8),
-                "Oradea" => (-6.5, 6.2),
-                "Sibiu" => (-3.5, 1.8),
-                "Fagaras" => (0.3, 1.5),
-                "Timisoara" => (-8., 0.),
-                "Lugoj" => (-5.2, -1.2),
-                "Mehadia"=> (-5.1, -3.),
-                "Drobeta"=> (-5.4, -4.4),
-                "Craiova" =>(-2., -5.),
-                "Pitesti"=>(1., 2.),
-                "Rimnieu Vilcea"=> (-2.5, 0.),
-                "Bucharest"=> (4., -3.),
-                "Giurgiu" =>(3., -5.5),
-                "Urziceni" => (6., -2.3),
-                "Hirsova"=> (9., -2.2),
-                "Eforie"=> (10., -4.4),
-                "Vasiui"=> (8.2, 1.3),
-                "Iasi" => (6.9, 3.9) ,
-                "Neamt" => (4.1, 5.)
-            ],
-            connections: [
-                "Arad" => {(140) "Sibiu", (75) "Zerind", (118) "Timisoara"},
-                "Zerind" => {(71) "Oradea"},
-                "Oradea" => {(151) "Sibiu"},
-                "Sibiu" => {(99) "Fagaras", (80) "Rimnieu Vilcea"},
-                "Timisoara" => {(111) "Lugoj"},
-                "Lugoj" => {(70) "Mehadia"},
-                "Mehadia" => {(75) "Drobeta"},
-                "Drobeta" => {(120) "Craiova"},
-                "Craiova" => {(138) "Pitesti"},
-                "Pitesti" => {(101) "Bucharest"},
-                "Rimnieu Vilcea" => {(97) "Pitesti", (146) "Craiova"},
-                "Fagaras" => {(211) "Bucharest"},
-                "Bucharest" => {(90) "Giurgiu", (85) "Urziceni"},
-                "Urziceni" => {(98) "Hirsova", (142) "Vasiui"},
-                "Vasiui" => {(92) "Iasi"},
-                "Iasi" => {(87) "Neamt"},
-                "Hirsova" => {(86) "Eforie"}
-            ]
-        }
-    }
 
     #[test]
     fn test_depth() {

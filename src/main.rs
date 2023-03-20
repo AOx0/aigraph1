@@ -124,7 +124,6 @@ fn SunIcon(cx: Scope) -> Element {
 
 fn App(cx: Scope) -> Element {
     let text = use_state(cx, || String::with_capacity(350));
-    let output = use_state(cx, String::new);    
     let messages = use_state(cx, || VecDeque::from_iter([
         r#"The available operations are:
     1-Breadth first search
@@ -148,6 +147,10 @@ if(html.classList.contains('dark')) {
 }            
     "#;
 
+    let graph = test_graph();
+    let entrada = "Arad";
+    let salida = "Neamt";
+
     cx.render(rsx! {
         div { 
             id: "my-scrollable-div", class: "flex-1 overflow-y-auto",
@@ -170,7 +173,6 @@ if(html.classList.contains('dark')) {
                     "onclick": "{SCRIPT}",
                     div {
                         class: "flex items-center space-x-3 text-white",
-                        p { "Theme" }
                         div {
                             div { class: "dark:hidden block",
                                 SunIcon {}
@@ -197,6 +199,16 @@ if(html.classList.contains('dark')) {
                             messages.with_mut(|v| { v.push_back(text.get().clone()) } );
                             text.with_mut(|v| v.clear());
                         }
+                        let v = graph.dijkstra(entrada, Some(salida), |e| *e);
+                        let mut result = Vec::new(); 
+                        if let Ok(steps) = v {
+                            for step in steps {
+                                result.push(graph.index_name(step.idx).unwrap());
+                            }
+                        }
+                        
+                        messages.with_mut(|v| { v.push_back(result.join(" <- ")) } );
+                        log::info!("Started to run function");
                     },
                     "Send"
                 }
