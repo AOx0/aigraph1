@@ -4,7 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link data-trunk href="./static/styles.css" rel="css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <meta name="theme-color" id="tcolor" content="">
+    <script>
+        const html = document.getElementsByTagName('html')[0];
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.getElementById("tcolor").content = "rgb(31 41 55 / var(--tw-bg-opacity))"
+            html.classList.add('dark');
+            localStorage.theme = 'dark'
+        } else {
+            document.getElementById("tcolor").content = "black"
+            html.classList.remove('dark');
+            localStorage.theme = 'light'
+        }
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body id="main" class="flex flex-col h-screen max-h-screen bg-white dark:bg-gray-700">
 </body>
