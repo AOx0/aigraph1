@@ -49,7 +49,7 @@ fn Input<'a>(cx: Scope, placeholder: &'a str, value: UseState<String>) -> Elemen
     cx.render(rsx!{
         div {
             class: "w-full flex",
-            input { class: "flex-1 grow mx-4 !outline-none focus:outline-0 rounded-md p-2 bg-[#f6f8fa] dark:bg-[#010409] border-2 dark:border-[#282d34]",
+            input { class: "flex-1 grow mx-4 !outline-none focus:outline-0 rounded-md p-2 bg-[#f6f8fa] dark:bg-[#010409] border dark:border-[#282d34]",
                 spellcheck:"false",
                 placeholder: "{placeholder}",
                 value: "{value}",
@@ -69,7 +69,7 @@ fn TextArea<'a>(cx: Scope, placeholder: &'a str, value: UseState<String>) -> Ele
             textarea { 
                 style: "font-size: 12px;",
                 spellcheck:"false",
-                class: "flex-1 grow !outline-none font-mono resize-none focus:outline-0 ml-4 md:ml-0 mb-4 mr-4 rounded-md p-2 bg-[#f6f8fa] dark:bg-[#010409] border-2 dark:border-[#282d34]",
+                class: "flex-1 grow !outline-none font-mono resize-none focus:outline-0 ml-4 md:ml-0 mb-4 mr-4 rounded-md p-2 bg-[#f6f8fa] dark:bg-[#010409] border dark:border-[#282d34]",
                 placeholder: "{placeholder}",
                 value: "{value}",
                 oninput: move |evt| {
