@@ -1,49 +1,12 @@
 #![allow(non_snake_case)]
-use std::collections::VecDeque;
 
-// import the prelude to get access to the `rsx!` macro and the `Scope` and `Element` types
 use dioxus::prelude::*;
 use graph::*;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
-    // launch the web app
     dioxus_web::launch(App);
 }
-
-
-#[inline_props]
-fn Message<'a>(cx: Scope, i: usize, value: &'a str, ) -> Element {
-    let SCRIPT = "\
-const myScrollableDiv = document.getElementById('my-scrollable-div');\
-myScrollableDiv.scrollTop = myScrollableDiv.scrollHeight;";
-
-    cx.render(
-        if i % 2 == 0 {
-            rsx! {
-                div {
-                    "x-init": "{SCRIPT}", 
-                    class: "mt-auto bg-blue-500 dark:bg-blue-800 rounded-lg py-2 px-4 w-full",
-                    p { class: "text-sm text-white whitespace-pre-wrap",
-                        "{value}"
-                    }
-                }
-            }
-        } else {
-            rsx! {
-                div {
-                    "x-init": "{SCRIPT}", 
-                    class: "mt-auto bg-gray-200 dark:bg-gray-800 rounded-lg py-2 px-4 w-full",
-                    p { class: "text-sm text-black dark:text-white whitespace-pre-wrap",
-                        "{value}"
-                    }
-                }
-            }
-        }
-    )
-
-}
-
 
 #[inline_props]
 fn MoonIcon(cx: Scope) -> Element {
@@ -65,57 +28,52 @@ fn MoonIcon(cx: Scope) -> Element {
 fn SunIcon(cx: Scope) -> Element {
     cx.render(rsx! {
         svg {
-            width: "1em",
-            view_box: "0 0 24 24",
-            height: "1em",
-            fill: "none",
+            width: "1em", view_box: "0 0 24 24",
+            height: "1em", fill: "none",
             xmlns: "http://www.w3.org/2000/svg",
-            circle {
-                r: "5.75375",
-                fill: "currentColor",
-                cx: "11.9998",
-                cy: "11.9998",
-            }
+            circle { r: "5.75375", fill: "currentColor", cx: "11.9998", cy: "11.9998" }
             g {
-                circle {
-                    transform: "rotate(-60 3.08982 6.85502)",
-                    fill: "currentColor",
-                    cx: "3.08982",
-                    cy: "6.85502",
-                    r: "1.71143",
+                circle { transform: "rotate(-60 3.08982 6.85502)", fill: "currentColor", cx: "3.08982", cy: "6.85502", r: "1.71143" }
+                circle { r: "1.71143", cx: "3.0903", cy: "17.1436", transform: "rotate(-120 3.0903 17.1436)", fill: "currentColor" }
+                circle { r: "1.71143", cx: "12", cy: "22.2881", fill: "currentColor" }
+                circle { transform: "rotate(-60 20.9101 17.1436)", cy: "17.1436", cx: "20.9101", r: "1.71143", fill: "currentColor" }
+                circle { cy: "6.8555", r: "1.71143", fill: "currentColor", cx: "20.9101", transform: "rotate(-120 20.9101 6.8555)" }
+                circle { fill: "currentColor", cy: "1.71143", r: "1.71143", cx: "12" }
+            }
+        }
+    })
+}
+
+#[inline_props]
+fn Input<'a>(cx: Scope, placeholder: &'a str, value: UseState<String>) -> Element {
+    cx.render(rsx!{
+        div {
+            class: "w-full flex",
+            input { class: "flex-1 grow mx-4 !outline-none focus:outline-0 rounded-md p-2 bg-[#f6f8fa] dark:bg-[#010409] border-2 dark:border-[#282d34]",
+                spellcheck:"false",
+                placeholder: "{placeholder}",
+                value: "{value}",
+                oninput: move |evt| {
+                    value.set(evt.value.clone());
                 }
-                circle {
-                    r: "1.71143",
-                    cx: "3.0903",
-                    cy: "17.1436",
-                    transform: "rotate(-120 3.0903 17.1436)",
-                    fill: "currentColor",
-                }
-                circle {
-                    r: "1.71143",
-                    cx: "12",
-                    cy: "22.2881",
-                    fill: "currentColor",
-                }
-                circle {
-                    transform: "rotate(-60 20.9101 17.1436)",
-                    cy: "17.1436",
-                    cx: "20.9101",
-                    r: "1.71143",
-                    fill: "currentColor",
-                }
-                circle {
-                    cy: "6.8555",
-                    r: "1.71143",
-                    fill: "currentColor",
-                    cx: "20.9101",
-                    transform: "rotate(-120 20.9101 6.8555)",
-                }
-                circle {
-                    fill: "currentColor",
-                    cy: "1.71143",
-                    r: "1.71143",
-                    cx: "12",
+            }
+        }
+    })
+}
+
+#[inline_props]
+fn TextArea<'a>(cx: Scope, placeholder: &'a str, value: UseState<String>) -> Element {
+    cx.render(rsx!{
+        div {
+            class: "w-full h-full flex",
+            textarea { 
+                style: "font-size: 12px;",
+                spellcheck:"false",
+                class: "flex-1 grow !outline-none font-mono resize-none focus:outline-0 ml-4 md:ml-0 mb-4 mr-4 rounded-md p-2 bg-[#f6f8fa] dark:bg-[#010409] border-2 dark:border-[#282d34]",
+                placeholder: "{placeholder}",
+                value: "{value}",
+                oninput: move |evt| {
+                    value.set(evt.value.clone());
                 }
             }
         }
@@ -123,19 +81,8 @@ fn SunIcon(cx: Scope) -> Element {
 }
 
 fn App(cx: Scope) -> Element {
-    let text = use_state(cx, || String::with_capacity(350));
-    let messages = use_state(cx, || VecDeque::from_iter([
-        r#"The available operations are:
-    1-Breadth first search
-    2-Dijkstra search
-    3-Depth first search (optional limit)
-    4-Iterative depth first search (optional limit)
-    5-Bidirectional
-    6-Exit"#.to_owned()
-    ].into_iter()));
-
-    let SCRIPT = r#"
-const html = document.getElementsByTagName('html')[0];
+    let SCRIPT = 
+r#"const html = document.getElementsByTagName('html')[0];
 if(html.classList.contains('dark')) {
     document.getElementById('tcolor').content = 'black'
     html.classList.remove('dark');
@@ -144,77 +91,70 @@ if(html.classList.contains('dark')) {
     document.getElementById('tcolor').content = 'rgb(31 41 55 / var(--tw-bg-opacity))'
     html.classList.add('dark');
     localStorage.theme = 'dark'
-}            
-    "#;
+}"#;
 
-    let graph = test_graph();
-    let entrada = "Arad";
-    let salida = "Neamt";
+    let graph: Option<Graph<&str, (f64, f64), u64>> = None;
+    let graph_description = use_state(cx, || {
+        r##"{ "nodes": [
+    { "name":"Arad",
+      "goestTo": [
+          { "name": "Sibiu", "weight": 5 },
+          { "name": "Sibiu", "weight": 5 },
+          { "name": "Sibiu", "weight": 5 },
+          { "name": "Sibiu", "weight": 5 }
+      ]
+    },
+    { "name":"Arad",
+      "goestTo": [
+          { "name": "Sibiu", "weight": 5 },
+          { "name": "Sibiu", "weight": 5 },
+          { "name": "Sibiu", "weight": 5 },
+          { "name": "Sibiu", "weight": 5 }
+      ]
+    }
+]}"##
+            .to_owned()
+    });
+    let entrada = use_state(cx, || String::new());
+    let salida = use_state(cx, || String::new());
+    let metodo = use_state(cx, || String::new());
 
     cx.render(rsx! {
-        div { 
-            id: "my-scrollable-div", class: "flex-1 overflow-y-auto",
-            /* Chat messages */
-            div { 
-                class: "flex flex-col items-end justify-end space-y-2 py-4 px-8",
-                for (i, value) in messages.get().iter().enumerate() { 
-                    rsx! {
-                        Message { i: i, value: value }
+        div {
+            class: "py-5 flex justify-between mx-5 items-center",
+            h1 {
+                class: "text-lg md:text-2xl font-bold",
+                "aigraph1/"
+            }
+            button {
+                class: "bg-[#f6f8fa] dark:bg-gray-900 rounded py-2 px-4",
+                "onclick": "{SCRIPT}",
+                div {
+                    class: "flex items-center space-x-3 text-black dark:text-white",
+                    p { "Theme" }
+                    div {
+                        div { class: "dark:hidden block",
+                            SunIcon {}
+                        }
+                        div { class: "hidden dark:block",
+                            MoonIcon {}
+                        }
                     }
                 }
             }
         }
-        /* Input field */
-        div { 
-            class: "bg-gray-200 dark:bg-gray-800",
-            div { class: "max-w-screen-lg mx-auto p-4 flex items-center space-x-5",
-                button {
-                    class: "bg-blue-500 dark:bg-gray-900 rounded py-2 px-4",
-                    "onclick": "{SCRIPT}",
-                    div {
-                        class: "flex items-center space-x-3 text-white",
-                        div {
-                            div { class: "dark:hidden block",
-                                SunIcon {}
-                            }
-                            div { class: "hidden dark:block",
-                                MoonIcon {}
-                            }
-                        }
-                    }
-                }
-                input { class: "text-black dark:text-white bg-white dark:bg-gray-900 flex-1 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-                    id: "userInput",
-                    name: "userInput",
-                    r#type: "text",
-                    value: "{text}",
-                    placeholder: "Type something...",
-                    oninput: move |evt: FormEvent| {
-                        text.set(evt.value.to_owned())
-                    }
-                }
-                button { class: "dark:bg-gray-900 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded",
-                    onclick: move |_| {
-                        if !text.get().trim().is_empty() {
-                            messages.with_mut(|v| { v.push_back(text.get().clone()) } );
-                            text.with_mut(|v| v.clear());
-                        }
-                        let v = graph.dijkstra(entrada, Some(salida), |e| *e);
-                        let mut result = Vec::new(); 
-                        if let Ok(steps) = v {
-                            for step in steps {
-                                result.push(graph.index_name(step.idx).unwrap());
-                            }
-                        }
-                        
-                        messages.with_mut(|v| { v.push_back(result.join(" <- ")) } );
-                        log::info!("Started to run function");
-                    },
-                    "Send"
-                }
+        div {
+            class: "flex flex-col md:flex-row sm:flex-col w-full h-full space-y-5 sm:space-y-5 md:space-y-0 placeholder:text-[#c9d1d9] text-[#24292f] dark:text-[#c9d1d9]",
+            div {
+                class: "flex flex-col text-sm items-center justify-start w-full md:w-1/3 sm:w-full space-y-5",
+                Input { placeholder: "Starting edge...", value: entrada.clone() }
+                Input { placeholder: "Ending edge...", value: salida.clone() }
+                Input { placeholder: "Search method...", value: metodo.clone() }
             }
-        }   
+            div {
+                class: "w-full h-full md:w-2/3 sm:w-full",
+                TextArea { placeholder: "Graph description...", value: graph_description.clone() }
+            }
+        }
     })
 }
-
-
