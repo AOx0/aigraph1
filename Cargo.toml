@@ -28,7 +28,6 @@ petgraph = "0.6.3"
 text_io = "0.1.12"
 unicase = "2.6.0"
 wasm-logger = "0.2.0"
-yew = "0.20.0"
 
 [dev-dependencies]
 iai = { git = "https://github.com/AlexMikhalev/iai", branch = "memory_usage" }
