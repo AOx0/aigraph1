@@ -125,6 +125,7 @@ if(html.classList.contains('dark')) {
     let activ2 = use_state(cx, || "bg-[#f6f8fa] dark:bg-gray-900");
     let activ = use_state(cx, || "bg-[#c1c2c4] dark:bg-gray-700");
     let textarea_description = use_state(cx, || "Graph description...".to_owned());
+    let textarea_text = use_state(cx, || graph_description.get().clone());
     
     cx.render(rsx! {
         div {
@@ -160,7 +161,7 @@ if(html.classList.contains('dark')) {
                     onclick: move |_| {
                         if *active.get() != 1 {
                             activ.with_mut(|v| activ2.with_mut(|v2| std::mem::swap(v, v2) ));
-                            output.with_mut(|v| graph_description.with_mut(|v2| std::mem::swap(v, v2) ));
+                            textarea_text.set(graph_description.get().clone());
                             textarea_description.set("Graph description...".to_owned());
                             active.set(1);
                         }
@@ -175,7 +176,7 @@ if(html.classList.contains('dark')) {
                     onclick: move |_| {
                         if *active.get() != 2 {
                             activ.with_mut(|v| activ2.with_mut(|v2| std::mem::swap(v, v2) ));
-                            output.with_mut(|v| graph_description.with_mut(|v2| std::mem::swap(v, v2) ));
+                            textarea_text.set(output.get().clone());
                             textarea_description.set("Console output...".to_owned());
                             active.set(2);
                         }
@@ -197,7 +198,7 @@ if(html.classList.contains('dark')) {
             }
             div {
                 class: "w-full h-full md:w-2/3 sm:w-full",
-                TextArea { placeholder: "{textarea_description}", value: graph_description.clone() }
+                TextArea { placeholder: "{textarea_description}", value: textarea_text.clone() }
             }
         }
     })
