@@ -115,10 +115,17 @@ if(html.classList.contains('dark')) {
 ]}"##
             .to_owned()
     });
+    let output = use_state(cx, || String::new());
+    
     let entrada = use_state(cx, || String::new());
     let salida = use_state(cx, || String::new());
     let metodo = use_state(cx, || String::new());
 
+    let active =  use_state(cx, || 1);
+    let activ2 = use_state(cx, || "bg-[#f6f8fa] dark:bg-gray-900");
+    let activ = use_state(cx, || "bg-[#c1c2c4] dark:bg-gray-700");
+    let textarea_description = use_state(cx, || "Graph description...".to_owned());
+    
     cx.render(rsx! {
         div {
             class: "py-5 flex justify-between mx-5 items-center",
@@ -144,6 +151,43 @@ if(html.classList.contains('dark')) {
             }
         }
         div {
+            class: "pb-2 flex justify-between mx-5 items-center",
+            div {}
+            div {
+                class: "bg-[#f6f8fa] dark:bg-gray-900 rounded py",
+                button {
+                    class: "{activ} rounded py px-4",
+                    onclick: move |_| {
+                        if *active.get() != 1 {
+                            activ.with_mut(|v| activ2.with_mut(|v2| std::mem::swap(v, v2) ));
+                            output.with_mut(|v| graph_description.with_mut(|v2| std::mem::swap(v, v2) ));
+                            textarea_description.set("Graph description...".to_owned());
+                            active.set(1);
+                        }
+                    },
+                    div {
+                        class: "flex items-center space-x-3 text-black dark:text-white",
+                        p { "Graph" }
+                    }
+                }
+                button {
+                    class: "{activ2} rounded py px-4",
+                    onclick: move |_| {
+                        if *active.get() != 2 {
+                            activ.with_mut(|v| activ2.with_mut(|v2| std::mem::swap(v, v2) ));
+                            output.with_mut(|v| graph_description.with_mut(|v2| std::mem::swap(v, v2) ));
+                            textarea_description.set("Console output...".to_owned());
+                            active.set(2);
+                        }
+                    },
+                    div {
+                        class: "flex items-center space-x-3 text-black dark:text-white",
+                        p { "Console" }
+                    }
+                }
+            }
+        }
+        div {
             class: "flex flex-col md:flex-row sm:flex-col w-full h-full space-y-5 sm:space-y-5 md:space-y-0 placeholder:text-[#c9d1d9] text-[#24292f] dark:text-[#c9d1d9]",
             div {
                 class: "flex flex-col text-sm items-center justify-start w-full md:w-1/3 sm:w-full space-y-5",
@@ -153,7 +197,7 @@ if(html.classList.contains('dark')) {
             }
             div {
                 class: "w-full h-full md:w-2/3 sm:w-full",
-                TextArea { placeholder: "Graph description...", value: graph_description.clone() }
+                TextArea { placeholder: "{textarea_description}", value: graph_description.clone() }
             }
         }
     })

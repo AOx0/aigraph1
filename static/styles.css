@@ -629,6 +629,11 @@ video {
   background-color: rgb(246 248 250 / var(--tw-bg-opacity));
 }
 
+.bg-\[\#c1c2c4\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(193 194 196 / var(--tw-bg-opacity));
+}
+
 .p-2 {
   padding: 0.5rem;
 }
@@ -646,6 +651,10 @@ video {
 .px-4 {
   padding-left: 1rem;
   padding-right: 1rem;
+}
+
+.pb-2 {
+  padding-bottom: 0.5rem;
 }
 
 .font-mono {
@@ -721,6 +730,11 @@ video {
 .dark .dark\:bg-gray-900 {
   --tw-bg-opacity: 1;
   background-color: rgb(17 24 39 / var(--tw-bg-opacity));
+}
+
+.dark .dark\:bg-gray-700 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(55 65 81 / var(--tw-bg-opacity));
 }
 
 .dark .dark\:text-\[\#c9d1d9\] {
