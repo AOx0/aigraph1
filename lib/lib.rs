@@ -239,24 +239,54 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
 pub trait Coords {
     fn get_x(&self) -> f64;
     fn get_y(&self) -> f64;
-    fn get_z(&self) -> Option<f64>;
 }
 
-impl<I, N: Coords, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
+/// Implementation block for distance methods for Graphs where its type N has the Coords trait.
+/// The trait Coords is necessary to extract the node coordinates from any given generic N type.
+impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
+where
+    N: Coords,
+{
     pub fn get_distances(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
         let w_original = self.inner.node_weight(to).unwrap();
+        let (x1, y1) = (w_original.get_x(), w_original.get_y());
+        self.inner
+            .node_indices()
+            .into_iter()
+            .map(|idx| {
+                let node = self.inner.node_weight(idx).unwrap();
+                let distance = ((&node.get_x() - x1).powi(2) + (&node.get_y() - y1).powi(2)).sqrt();
+                (idx, distance)
+            })
+            .collect::<HashMap<_, _>>()
+    }
+
+    pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
+        self.get_haversine(to, 6371.)
+    }
+
+    pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f64) -> HashMap<NodeIndex<Ix>, f64> {
+        use std::f64::consts::PI;
+
+        let w_original = self.inner.node_weight(to).unwrap();
         let (x1, y1) = (
-            <N as Coords>::get_x(w_original),
-            <N as Coords>::get_y(w_original),
+            w_original.get_x() * PI / 180.,
+            w_original.get_y() * PI / 180.,
         );
         self.inner
             .node_indices()
             .into_iter()
             .map(|idx| {
                 let node = self.inner.node_weight(idx).unwrap();
-                let distance = ((<N as Coords>::get_x(&node) - x1).powi(2)
-                    + (<N as Coords>::get_y(&node) - y1).powi(2))
-                .sqrt();
+                let (x2, y2) = (&node.get_x() * PI / 180., &node.get_y() * PI / 180.);
+                let distance = 2. * r * {
+                    {
+                        ((x2 - x1) / 2.).sin().powi(2)
+                            + x1.cos() * x2.cos() * ((y2 - y1) / 2.).sin().powi(2)
+                    }
+                    .sqrt()
+                }
+                .asin();
                 (idx, distance)
             })
             .collect::<HashMap<_, _>>()
@@ -827,9 +857,6 @@ impl Coords for (f64, f64) {
     fn get_y(&self) -> f64 {
         self.1
     }
-    fn get_z(&self) -> Option<f64> {
-        None
-    }
 }
 
 #[allow(dead_code)]
@@ -837,7 +864,7 @@ pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
     graph! {
         with_edges: next,
         nodes: [
-            "Arad" => (-8., 3.),
+            "Arad" => (40.6892, 74.0445),
             "Zerind" => (-7.5,4.8),
             "Oradea" => (-6.5, 6.2),
             "Sibiu" => (-3.5, 1.8),
@@ -849,7 +876,7 @@ pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
             "Craiova" =>(-2., -5.),
             "Pitesti"=>(1., 2.),
             "Rimnieu Vilcea"=> (-2.5, 0.),
-            "Bucharest"=> (4., -3.),
+            "Bucharest"=> (51.5007, 0.1246),
             "Giurgiu" =>(3., -5.5),
             "Urziceni" => (6., -2.3),
             "Hirsova"=> (9., -2.2),
@@ -941,7 +968,7 @@ mod tests {
     fn test_distances() {
         let graph = test_graph();
         for (k, v) in graph
-            .get_distances(graph.name_index("Bucharest").unwrap())
+            .get_haversine_6371(graph.name_index("Bucharest").unwrap())
             .into_iter()
         {
             println!("{}: {}", graph.index_name(k).unwrap(), v);
@@ -966,7 +993,7 @@ mod tests {
         let start = graph.name_index("Arad").unwrap();
         let goal = graph.name_index("Bucharest").unwrap();
         let graph = test_graph();
-        let distances = graph.get_distances(goal);
+        let distances = graph.get_haversine_6371(goal);
         let a = graph
             .greedy_best_first_impl(start, Some(goal), |index| *distances.get(index).unwrap())
             .unwrap();
@@ -1040,7 +1067,7 @@ mod tests {
         let start = graph.name_index("Arad").unwrap();
         let goal = graph.name_index("Bucharest").unwrap();
         let graph = test_graph();
-        let distances = graph.get_distances(goal);
+        let distances = graph.get_haversine_6371(goal);
         let a = graph
             .a_star_impl(
                 start,
@@ -1061,7 +1088,7 @@ mod tests {
         let start = graph.name_index("Arad").unwrap();
         let goal = graph.name_index("Bucharest").unwrap();
         let graph = test_graph();
-        let distances = graph.get_distances(goal);
+        let distances = graph.get_haversine_6371(goal);
         let a = graph
             .weighted_a_star_impl(
                 start,
