@@ -19,6 +19,9 @@ use std::{
     rc::Rc,
 };
 
+pub mod walkers;
+use walkers::{Walker, WalkerState};
+
 /// Counts the number of nodes and edges of the graph
 ///
 /// This is a recursive macro that calls itself *n* times where *n*
@@ -99,30 +102,115 @@ macro_rules! graph {
 ///
 /// Steps can store a type `S` which can be used to hold any information like
 /// total weight or any other primitive or structure.
-struct Steps<S, Ix = DefaultIx> {
-    states: VecDeque<Rc<S>>,
-    indexes: VecDeque<NodeIndex<Ix>>,
+#[derive(Debug)]
+pub struct Step<S, Ix> {
+    /// The parent State that invoked this instance.
+    /// If the option is None then it means we arrived to the root state.
+    pub caller: Option<Rc<Step<S, Ix>>>,
+    /// The current node index the step is at within the graph.
+    pub idx: NodeIndex<Ix>,
+    /// The index of the edge that binds caller -> self
+    pub rel: Option<EdgeIndex>,
+    /// State of the walking progress
+    pub state: S,
+}
+
+/// A stateless step.
+///
+/// The structure comes in handy when working with two `Step` intances bound to
+/// diferent data types for storing state e.g. `Step<S, Ix>` and `Step<Y, Ix>`
+///
+/// We then construct a copy of the call-chain removing the state from each step,
+/// the final result is two `StepUnit<Ix>` that we can work with.
+pub type StepUnit<Ix> = Step<(), Ix>;
+
+impl<Ix: IndexType> StepUnit<Ix> {
+    pub fn from_step<S>(step: Rc<Step<S, Ix>>) -> Rc<Self> {
+        Rc::new(Self {
+            caller: step
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Self::from_step(step.clone()))),
+            idx: step.idx,
+            rel: step.rel,
+            state: (),
+        })
+    }
+    pub fn make_void<S>(step: Rc<Step<S, Ix>>) -> Step<(), Ix> {
+        Step {
+            caller: step
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Rc::new(Self::make_void(step.clone())))),
+            idx: step.idx,
+            rel: step.rel,
+            state: (),
+        }
+    }
+    pub fn into_step(step: Rc<StepUnit<Ix>>) -> Step<(), Ix> {
+        Step {
+            caller: step
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Rc::new(Self::into_step(step.clone())))),
+            idx: step.idx,
+            rel: step.rel,
+            state: (),
+        }
+    }
+}
+
+impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
+    fn clone(&self) -> Self {
+        Self {
+            caller: self
+                .caller
+                .as_ref()
+                .and_then(|step| Some(Rc::new(Self::clone(step)))),
+            idx: self.idx.clone(),
+            rel: self.rel,
+            state: self.state.clone(),
+        }
+    }
+}
+
+/// A Step iterator
+#[derive(Debug)]
+pub struct Steps<S, Ix = DefaultIx> {
+    start: Option<Rc<Step<S, Ix>>>,
+}
+
+impl<S: Debug, Ix: Debug> IntoIterator for Step<S, Ix> {
+    type IntoIter = Steps<S, Ix>;
+    type Item = Rc<Step<S, Ix>>;
+    fn into_iter(self) -> Self::IntoIter {
+        Steps {
+            start: Some(Rc::new(self)),
+        }
+    }
+}
+
+impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
+    type Item = Rc<Step<S, Ix>>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let head = self.start.clone();
+        self.start = head.as_ref().and_then(|head| head.caller.clone());
+        head.and_then(|head| Some(head))
+    }
 }
 
 impl<S, Ix> Steps<S, Ix> {
-    pub fn new() -> Self {
-        Self {
-            states: VecDeque::new(),
-            indexes: VecDeque::new(),
-        }
+    pub fn from_step(step: Rc<Step<S, Ix>>) -> Self {
+        Self { start: Some(step) }
     }
-
-    pub fn chain(&mut self, index: NodeIndex<Ix>, state: S) {}
 }
 
-// pub mod walkers;
-// use walkers::{Walker, WalkerState};
-#[derive(Debug)]
-pub enum WalkerState<S, E = (), Ty = Directed, Ix = DefaultIx> {
-    Done,
-    Found(Steps<S>),
-    NotFound(Steps<S>),
-    Cutoff,
+impl<S: Clone, Ix: Clone> Clone for Steps<S, Ix> {
+    fn clone(&self) -> Self {
+        Self {
+            start: self.start.clone(),
+        }
+    }
 }
 
 /// The library's principal Graph structure.
@@ -159,7 +247,7 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
 where
     N: Coords,
 {
-    pub fn get_euclidean(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
+    pub fn get_distances(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
         let w_original = self.inner.node_weight(to).unwrap();
         let (x1, y1) = (w_original.get_x(), w_original.get_y());
         self.inner
@@ -308,7 +396,7 @@ where
         start: I,
         goal: Option<I>,
         limit: Option<D>,
-    ) -> Result<Steps<D, (), Directed, Ix>, ()>
+    ) -> Result<Step<D, Ix>, ()>
     where
         D: Measure + Copy + One + Zero,
     {
@@ -358,7 +446,7 @@ where
         start: I,
         goal: Option<I>,
         limit: Option<D>,
-    ) -> Result<Steps<D, Ix>, ()>
+    ) -> Result<Step<D, Ix>, ()>
     where
         D: Measure + Copy + One + Zero,
     {
@@ -383,13 +471,16 @@ where
         start: NodeIndex<Ix>,
         goal: Option<NodeIndex<Ix>>,
         limit: Option<D>,
-    ) -> Result<Steps<D, Ix>, WalkerState<D, Ix>>
+    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
     where
         D: Measure + Copy + One + Zero + Debug,
     {
         let mut border = VecDeque::with_capacity(self.node_count());
-        border.push_front({
-            let steps = Steps::new();
+        border.push_front(Step {
+            caller: None,
+            idx: start,
+            rel: None,
+            state: Zero::zero(),
         });
         let mut cutoff = false;
         let mut nivel;
@@ -818,8 +909,7 @@ pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
 
 #[cfg(test)]
 mod tests {
-    // use super::walkers::*;
-    use super::*;
+    use super::walkers::*;
 
     #[test]
     fn test_depth() {
