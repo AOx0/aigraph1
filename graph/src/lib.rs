@@ -12,8 +12,9 @@ use petgraph::{
 use unicase::Ascii;
 
 use std::{
+    cmp::Ordering,
     collections::{HashMap, VecDeque},
-    fmt::Debug,
+    fmt::{Debug, Display},
     hash::Hash,
     ops::Mul,
     rc::Rc,
@@ -327,7 +328,7 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
 
 impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
 where
-    I: Copy + Hash + Eq,
+    I: Copy + Hash + Eq + Debug + Display,
     Ascii<I>: Copy + Hash + Eq,
     NodeIndex: From<NodeIndex<Ix>>,
     EdgeIndex: From<EdgeIndex<Ix>>,
@@ -660,6 +661,69 @@ where
         self.best_first_impl(start, goal, |node, _, _, _| h(&node))
     }
 
+    pub fn beam_search<F>(
+        &self,
+        start: NodeIndex<Ix>,
+        goal: Option<NodeIndex<Ix>>,
+        successors: usize,
+        mut compare: F,
+    ) -> Result<Steps<(), Ix>, ()>
+    where
+        F: FnMut(&NodeIndex<Ix>, &NodeIndex<Ix>) -> Ordering,
+    {
+        let mut border = VecDeque::with_capacity(self.inner.node_count());
+        border.push_front(Step {
+            caller: None,
+            idx: start,
+            rel: None,
+            state: (),
+        });
+
+        let mut neighbors = Vec::with_capacity(self.inner.edge_count());
+
+        while let Some(parent) = border.pop_front() {
+            println!("{}", self.index_name(parent.idx).unwrap());
+            if goal
+                .and_then(|goal| Some(goal == parent.idx))
+                .unwrap_or(false)
+            {
+                return Ok(parent.into_iter());
+            }
+
+            if self
+                .inner
+                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
+                .count()
+                != 0
+            {
+                let parent = Rc::new(parent);
+
+                neighbors.clear();
+                neighbors.extend(
+                    self.inner
+                        .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing),
+                );
+
+                neighbors.sort_by(&mut compare);
+
+                neighbors
+                    .iter()
+                    .copied()
+                    .enumerate()
+                    .take_while(|(i, _)| i < &successors)
+                    .for_each(|(_, child_idx)| {
+                        border.push_back(Step {
+                            caller: Some(parent.clone()),
+                            idx: child_idx.into(),
+                            rel: None,
+                            state: (),
+                        });
+                    });
+            }
+        }
+        Err(())
+    }
+
     pub fn a_star_impl<K, F, G>(
         &self,
         start: NodeIndex<Ix>,
@@ -864,7 +928,7 @@ pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
     graph! {
         with_edges: next,
         nodes: [
-            "Arad" => (40.6892, 74.0445),
+            "Arad" => (-8., 3.),
             "Zerind" => (-7.5,4.8),
             "Oradea" => (-6.5, 6.2),
             "Sibiu" => (-3.5, 1.8),
@@ -876,7 +940,7 @@ pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
             "Craiova" =>(-2., -5.),
             "Pitesti"=>(1., 2.),
             "Rimnieu Vilcea"=> (-2.5, 0.),
-            "Bucharest"=> (51.5007, 0.1246),
+            "Bucharest"=> (4., -3.),
             "Giurgiu" =>(3., -5.5),
             "Urziceni" => (6., -2.3),
             "Hirsova"=> (9., -2.2),
@@ -995,6 +1059,26 @@ mod tests {
         let distances = graph.get_haversine_6371(goal);
         let a = graph
             .greedy_best_first_impl(start, Some(goal), |index| *distances.get(index).unwrap())
+            .unwrap();
+
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_beam_impl() {
+        let graph = test_graph();
+        let start = graph.name_index("Arad").unwrap();
+        let goal = graph.name_index("Bucharest").unwrap();
+        let graph = test_graph();
+        let distances = graph.get_haversine_6371(goal);
+        let a = graph
+            .beam_search(start, Some(goal), 2, |i1, i2| {
+                (distances.get(i1).unwrap())
+                    .partial_cmp(distances.get(i2).unwrap())
+                    .unwrap()
+            })
             .unwrap();
 
         for node in a {
