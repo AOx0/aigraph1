@@ -248,24 +248,13 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
 where
     N: Coords,
 {
-    pub fn get_distances(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
-        let w_original = self.inner.node_weight(to).unwrap();
-        let (x1, y1) = (w_original.get_x(), w_original.get_y());
-        self.inner
-            .node_indices()
-            .into_iter()
-            .map(|idx| {
-                let node = self.inner.node_weight(idx).unwrap();
-                let distance = ((&node.get_x() - x1).powi(2) + (&node.get_y() - y1).powi(2)).sqrt();
-                (idx, distance)
-            })
-            .collect::<HashMap<_, _>>()
-    }
-
+    /// Haversine with a constant r of 6317
     pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
         self.get_haversine(to, 6371.)
     }
 
+    /// Haversine distance with a given radius `r`
+    /// Formula from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
     pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f64) -> HashMap<NodeIndex<Ix>, f64> {
         use std::f64::consts::PI;
 
@@ -568,6 +557,21 @@ where
         }
     }
 
+    /// Best first implementation.
+    ///
+    /// This is a key function that is later used to implement variants, this is possible due to the
+    /// pattern all variants repeat, where only the heuristics function changes but te procedure is the same.
+    ///
+    /// The following searching methods are implemented using this function:
+    ///     - Dijkstra
+    ///     - A*
+    ///     - A* Weighted
+    ///     - Greedy best first
+    ///
+    /// The function takes a function `h` of type `F` for computing the heuristic value for each node.
+    /// This function `F` has access to the node index on the graph, the edge index of the connection
+    /// to its parent, the current state of the search instance and the index of its parent.
+    /// With all these values, any heuristic can be calculated, I presume.
     pub fn best_first_impl<'a, K, F>(
         &self,
         start: NodeIndex<Ix>,
@@ -648,6 +652,9 @@ where
         })
     }
 
+    /// The implementation of Greedy best first
+    ///
+    /// This is a variant of best first
     pub fn greedy_best_first_impl<K, F>(
         &self,
         start: NodeIndex<Ix>,
@@ -661,6 +668,11 @@ where
         self.best_first_impl(start, goal, |node, _, _, _| h(&node))
     }
 
+    /// The implementation of Beam Search
+    ///
+    /// The function takes two principal values, the number of successor to take
+    /// from the pool of best successors and a function `F` that can compare between
+    /// successors for the function to sort by a score each successor node.
     pub fn beam_search<F>(
         &self,
         start: NodeIndex<Ix>,
@@ -724,6 +736,9 @@ where
         Err(())
     }
 
+    /// The implementation of A*
+    ///
+    /// This is a variant of best first
     pub fn a_star_impl<K, F, G>(
         &self,
         start: NodeIndex<Ix>,
@@ -741,6 +756,9 @@ where
         })
     }
 
+    /// The implementation of Weighted A*
+    ///
+    /// This is a variant of best first
     pub fn weighted_a_star_impl<K, F, G>(
         &self,
         start: NodeIndex<Ix>,
@@ -914,6 +932,10 @@ where
     }
 }
 
+/// Implement the Coords trait for all tuples (f64, f64).
+///
+/// When a Graph has the generic N type bound to (f64, f64) we can call
+/// the various distance methods on the nodes.
 impl Coords for (f64, f64) {
     fn get_x(&self) -> f64 {
         self.0
