@@ -2,6 +2,7 @@
 members = [
   "graph/",
 ]
+exclude = []
 
 [package]
 name = "aigraph1"
@@ -24,4 +25,8 @@ anyhow = "1.0.69"
 log = "0.4.17"
 wasm-logger = "0.2.0"
 leptos = { version = "0.2.4", features = ["stable"] }
+fdg-img.workspace = true
 
+[workspace.dependencies]
+fdg-img = { path = "fdg/fdg-img/" }
+fdg-sim = { path = "fdg/fdg-sim/" }
