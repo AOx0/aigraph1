@@ -5,10 +5,6 @@ use graph::{test_graph, test_graph2};
 use leptos::*;
 
 fn main() {
-    // let img = gen_image(test_graph2().repr, None).unwrap();
-
-    // println!("{}", img);
-
     mount_to_body(|cx| view! { cx,  <SimpleCounter initial_value=3 /> })
 }
 
@@ -53,7 +49,7 @@ impl Default for Settings {
             node_color: RGBAColor(0, 0, 0, 1.0),
             edge_size: 2,
             edge_color: RGBAColor(255, 0, 0, 1.0),
-            background_color: RGBAColor(255, 255, 255, 1.0),
+            background_color: RGBAColor(255, 255, 255, 0.0),
             print_progress: false,
             text_style: None,
         }
@@ -207,7 +203,7 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
     let decrement = move |_| set_value.update(|value| *value -= 1);
     let increment = move |_| set_value.update(|value| *value += 1);
 
-    let elem_ref = NodeRef::new(cx);
+    let elem_ref = create_node_ref(cx);
 
     create_effect(cx, move |_| {
         if let Some(elem) = elem_ref.get() {
