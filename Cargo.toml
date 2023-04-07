@@ -2,6 +2,7 @@
 members = [
   "graph/",
 ]
+exclude = []
 
 [package]
 name = "aigraph1"
@@ -21,7 +22,16 @@ path = "src/main.rs"
 [dependencies]
 graph = { path = "graph/" }
 anyhow = "1.0.69"
-log = "0.4.17"
-wasm-logger = "0.2.0"
-leptos = { version = "0.2.4", features = ["stable"] }
+plotters = "0.3.4"
+fdg-sim.workspace = true
+leptos.workspace = true
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+web-sys.workspace = true
 
+[workspace.dependencies]
+fdg-sim = { git = "https://github.com/grantshandy/fdg" }
+leptos = { version = "0.2.4", features = ["stable"] }
+wasm-bindgen = "0.2.84"
+js-sys = "0.3.61"
+web-sys = { version = "0.3.61", features = ["HtmlDocument", "Storage", "Window", "HtmlCollection", "DomTokenList", "Element"] }

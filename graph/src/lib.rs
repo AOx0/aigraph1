@@ -1,3 +1,4 @@
+use fdg_sim::{ForceGraph, Node};
 use fixedbitset::FixedBitSet;
 use num::{One, Zero};
 pub use petgraph;
@@ -5,12 +6,11 @@ pub use petgraph::Direction;
 use petgraph::{
     algo::Measure,
     graph::{EdgeIndex, NodeIndex},
+    stable_graph::StableGraph as PGraph,
     stable_graph::{DefaultIx, IndexType},
     visit::{VisitMap, Visitable},
-    Directed, EdgeType, Graph as PGraph,
+    Directed, EdgeType,
 };
-use unicase::Ascii;
-
 use std::{
     cmp::Ordering,
     collections::{HashMap, VecDeque},
@@ -19,6 +19,7 @@ use std::{
     ops::Mul,
     rc::Rc,
 };
+use unicase::Ascii;
 
 pub mod walkers;
 use walkers::{Walker, WalkerState};
@@ -92,6 +93,7 @@ macro_rules! graph {
         $(
             $($(g.$type($from, $to,$cost).unwrap());+);+
         );*;
+        g.done_register();
         g
     }};
 }
@@ -235,11 +237,13 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     inner: PGraph<N, E, Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
     pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
+    repr_nodes: HashMap<Ascii<I>, NodeIndex>,
+    pub repr: ForceGraph<(), (), Ty>,
 }
 
 pub trait Coords {
-    fn get_x(&self) -> f64;
-    fn get_y(&self) -> f64;
+    fn get_x(&self) -> f32;
+    fn get_y(&self) -> f32;
 }
 
 /// Implementation block for distance methods for Graphs where its type N has the Coords trait.
@@ -249,14 +253,14 @@ where
     N: Coords,
 {
     /// Haversine with a constant r of 6317
-    pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
+    pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f32> {
         self.get_haversine(to, 6371.)
     }
 
     /// Haversine distance with a given radius `r`
     /// Formula from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
-    pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f64) -> HashMap<NodeIndex<Ix>, f64> {
-        use std::f64::consts::PI;
+    pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f32) -> HashMap<NodeIndex<Ix>, f32> {
+        use std::f32::consts::PI;
 
         let w_original = self.inner.node_weight(to).unwrap();
         let (x1, y1) = (
@@ -289,6 +293,8 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
         Self {
             inner: PGraph::<N, E, Ty, Ix>::default(),
             nodes: HashMap::new(),
+            repr_nodes: HashMap::new(),
+            repr: ForceGraph::<(), (), Ty>::default(),
         }
     }
 
@@ -299,6 +305,8 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
         Self {
             inner: PGraph::with_capacity(nodes, edges),
             nodes: HashMap::with_capacity(nodes),
+            repr_nodes: HashMap::with_capacity(nodes),
+            repr: ForceGraph::with_capacity(nodes, edges),
         }
     }
 
@@ -352,6 +360,11 @@ where
         match (self.name_index(from), self.name_index(to)) {
             (Some(fidx), Some(tidx)) => {
                 self.inner.add_edge(fidx.into(), tidx.into(), edge);
+                self.repr.add_edge(
+                    *self.repr_nodes.get(&Ascii::new(from)).unwrap(),
+                    *self.repr_nodes.get(&Ascii::new(to)).unwrap(),
+                    (),
+                );
                 Ok(())
             }
             (None, None) => panic!("Los nodos {:?} y {:?} no existen", from, to),
@@ -370,14 +383,54 @@ where
     pub fn register(&mut self, ident: I, node: N) -> Result<(), ()>
     where
         I: Debug,
+        N: Coords,
     {
         let ascii = Ascii::new(ident);
         if self.nodes.contains_key(&ascii) {
             panic!("El nodo {:?} ya existe", ident);
         } else {
             let ix = self.inner.add_node(node);
+            let ix_repr = self.repr.add_node(Node::new(format!("{ident}"), ()));
             self.nodes.insert(ascii, ix);
+            self.repr_nodes.insert(ascii, ix_repr);
             Ok(())
+        }
+    }
+
+    pub fn done_register(&mut self)
+    where
+        N: Coords,
+    {
+        let mut lons = self
+            .inner
+            .node_weights()
+            .map(|node| node.get_x())
+            .collect::<Vec<_>>();
+        let mut lats = self
+            .inner
+            .node_weights()
+            .map(|node| node.get_y())
+            .collect::<Vec<_>>();
+
+        let avg_lat = lats.iter().copied().sum::<f32>() / lats.len() as f32;
+        let avg_lon = lons.iter().copied().sum::<f32>() / lons.len() as f32;
+
+        lats.iter_mut().for_each(|val| *val -= avg_lat);
+        lons.iter_mut().for_each(|val| *val -= avg_lon);
+
+        let min_lat = lats.iter().copied().reduce(f32::min);
+        let min_lon = lons.iter().copied().reduce(f32::min);
+
+        if let (Some(min_lat), Some(min_lon)) = (min_lat, min_lon) {
+            let min_lat = min_lat.abs();
+            let min_lon = min_lon.abs();
+
+            lats.iter_mut().for_each(|val| *val += min_lat);
+            lons.iter_mut().for_each(|val| *val += min_lon);
+        }
+
+        for (i, node) in self.repr.node_weights_mut().enumerate() {
+            node.location = [lons[i], lats[i], 0.].into();
         }
     }
 
@@ -932,21 +985,30 @@ where
     }
 }
 
-/// Implement the Coords trait for all tuples (f64, f64).
+/// Implement the Coords trait for all tuples (f32, f32).
 ///
-/// When a Graph has the generic N type bound to (f64, f64) we can call
+/// When a Graph has the generic N type bound to (f32, f32) we can call
 /// the various distance methods on the nodes.
-impl Coords for (f64, f64) {
-    fn get_x(&self) -> f64 {
+impl Coords for (f32, f32) {
+    fn get_x(&self) -> f32 {
         self.0
     }
-    fn get_y(&self) -> f64 {
+    fn get_y(&self) -> f32 {
         self.1
     }
 }
 
+impl Coords for () {
+    fn get_x(&self) -> f32 {
+        0.
+    }
+    fn get_y(&self) -> f32 {
+        0.
+    }
+}
+
 #[allow(dead_code)]
-pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
+pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
     graph! {
         with_edges: next,
         nodes: [
@@ -993,6 +1055,161 @@ pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
     }
 }
 
+pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16> {
+    let graph: Graph<&'static str, (f32, f32), u16> = graph! {
+        with_edges: next,
+        nodes: [
+            "Acapulco" => ( -99.82365329900568, 16.85310859874989 ),
+            "Chilpancingo" => ( -99.50063219718855, 17.5515346019228 ),
+            "Acayucan" => ( -94.91473748198624, 17.94923695984836 ),
+            "Tehuantepec" => ( -95.24232999999997, 16.3226994 ),
+            "Tuxtla" => ( -93.10312145056437, 16.75157557931809 ),
+            "Villa Hermosa" => ( -92.94752610256997, 17.98944564153284 ),
+            "Agua Prieta" => ( -109.5489603638477, 31.32777318316638 ),
+            "Santa Ana" => ( -111.1196215, 30.53983329999999 ),
+            "Aguascalientes" => ( -102.2915677, 21.88525620000001 ),
+            "Guadalajara" => ( -103.3496092, 20.65969879999995 ),
+            "Guanajuato" => ( -101.2573586, 21.0190145 ),
+            "Alvarado" => ( -95.75894900000004, 18.7696195 ),
+            "Oaxaca" => ( -96.72658889999992, 17.0731842 ),
+            "Atlacomulco" => ( -99.87668250000002, 19.7975581 ),
+            "Queretaro" => ( -100.3898881, 20.5887932 ),
+            "Cancun" => ( -86.85153608730901, 21.16190750852745 ),
+            "Valladolid" => ( -88.20224879999994, 20.68964 ),
+            "Chetumal" => ( -88.29614599999994, 18.5001889 ),
+            "Campeche" => ( -90.5349087, 19.8301251 ),
+            "Felipe Carrillo Puerto" => ( -88.04409570000003, 19.58033420000001 ),
+            "Merida" => ( -89.59258569999994, 20.9673702 ),
+            "Chihuahua" => ( -106.0691004, 28.63299570000001 ),
+            "Janos" => ( -108.1924158886408, 30.88893268807164 ),
+            "Juarez" => ( -106.4245478, 31.6903638 ),
+            "Ojinaga" => ( -104.4082915783784, 29.54588456755576 ),
+            "Iguala" => ( -99.53973439999994, 18.3448477 ),
+            "Ciudad Altamirano" => ( -100.6686260911074, 18.35781544847858 ),
+            "Cuernavaca" => ( -99.2215659, 18.9242095 ),
+            "Toluca de Lerdo" => ( -99.65566529999998, 19.2826098 ),
+            "Zihuatanejo" => ( -101.5516954999999, 17.64166930000001 ),
+            "Ciudad del Carmen" => ( -91.8074586, 18.6504879 ),
+            "Ciudad Obregon" => ( -109.9303660117927, 27.4827723941238 ),
+            "Guaymas" => ( -110.9089378, 27.91786510000001 ),
+            "Ciudad Victoria" => ( -99.14111539999999, 23.73691640000001 ),
+            "Matamoros" => ( -97.50273759999996, 25.86902940000001 ),
+            "Soto la Marina" => ( -98.20762819999996, 23.76801930000001 ),
+            "Tampico" => ( -97.86109899999995, 22.2331041 ),
+            "Colima" => ( -103.7240866970209, 19.24523428494255 ),
+            "Morelia" => ( -101.1949825, 19.70595040000001 ),
+            "Playa Azul" => ( -102.350469, 17.98202150000001 ),
+            "Cordoba" => ( -96.9237751, 18.8838909 ),
+            "Veracruz" => ( -96.13422410000001, 19.173773 ),
+            "Culiacan" => ( -107.3940117, 24.80906490000001 ),
+            "Hidalgo del Parral" => ( -105.6666166, 26.9317835 ),
+            "Topolobampo" => ( -109.0503685, 25.60069250000001 ),
+            "Durango" => ( -104.6531759, 24.0277202 ),
+            "Mazatlan" => ( -106.4111425, 23.2494148 ),
+            "Torreon" => ( -103.4067860999999, 25.5428443 ),
+            "Ensenada" => ( -116.5963708985866, 31.86674248460107 ),
+            "San Quintin" => ( -115.9379302, 30.5608767 ),
+            "Francisco Escarcega" => ( -90.73902439049336, 18.61018341806402 ),
+            "Manzanillo" => ( -104.3384616, 19.1138094 ),
+            "Salamanca" => ( -101.1957172, 20.5739314 ),
+            "Tepic" => ( -104.8946664723632, 21.50414299987411 ),
+            "Hermosillo" => ( -110.9559192, 29.0729673 ),
+            "San Luis Potosi" => ( -100.9855409, 22.15646989999995 ),
+            "Izucar de Matamoros" => ( -98.46778509999996, 18.5991249 ),
+            "La Paz" => ( -110.3127531, 24.1426408 ),
+            "Cabo San Lucas" => ( -109.9167371, 22.8905327 ),
+            "Reynosa" => ( -98.29789509999996, 26.05084060000001 ),
+            "Mexicalli" => ( -115.4522620271724, 32.62453873266227 ),
+            "San Felipe" => ( -114.8407776, 31.02507090000001 ),
+            "Tijuana" => ( -117.0382434591223, 32.51494624262627 ),
+            "Ciudad de Mexico" => ( -99.13320799999998, 19.4326077 ),
+            "Pachuca de Soto" => ( -98.75913109999998, 20.10106080000001 ),
+            "Puebla" => ( -98.20627269999999, 19.0414398 ),
+            "Tlaxcala" => ( -98.23757882356725, 19.3181620778507 ),
+            "Monclova" => ( -101.4215189298722, 26.9080248820723 ),
+            "Piedras Negras" => ( -100.5408622, 28.6916182 ),
+            "Monterrey" => ( -100.3161126, 25.68661420000001 ),
+            "Nuevo Laredo" => ( -99.54957116219069, 27.47791757328244 ),
+            "Puerto Angel" => ( -96.49131370809657, 15.66800763147724 ),
+            "Tehuacan" => ( -97.4003716535704, 18.46649712573129 ),
+            "Tuxpan de Rodriguez Cano" => ( -97.40633509999998, 20.95611490000001 ),
+            "Pinotepa Nacional" => ( -98.05368699999998, 16.3411824 ),
+            "Zacatecas" => ( -102.5832525341495, 22.77092401669794 ),
+            "Santa Rosalia" => ( -112.2701464859334, 27.33619390443964 ),
+            "Santo Domingo" => ( -111.9888369288694, 25.34873125527853 )
+        ],
+        connections: [
+            "Cancun" => {(90) "Valladolid", (100) "Felipe Carrillo Puerto"},
+            "Valladolid" => {(90) "Felipe Carrillo Puerto"},
+            "Felipe Carrillo Puerto" => {(60) "Campeche"},
+            "Campeche" => {(90) "Merida", (100) "Chetumal", (90) "Ciudad del Carmen"},
+            "Chetumal" => {(111) "Francisco Escarcega"},
+            "Ciudad del Carmen" => {(90) "Villa Hermosa", (90) "Tuxtla"},
+            "Villa Hermosa" => {(90) "Acayucan"},
+            "Tuxtla" => {(90) "Acayucan"},
+            "Acayucan" => {(80) "Tehuantepec", (110) "Alvarado"},
+            "Alvarado" => {(100) "Oaxaca"},
+            "Oaxaca" => {(80) "Tehuacan", (90) "Puerto Angel", (90) "Izucar de Matamoros"},
+            "Puerto Angel" => {(100) "Pinotepa Nacional" },
+            "Izucar de Matamoros" => {(90) "Puebla", (100) "Cuernavaca"},
+            "Pinotepa Nacional" => {(100) "Acapulco"},
+            "Cuernavaca" => {(100) "Ciudad de Mexico", (100) "Ciudad Altamirano"},
+            "Puebla" => {(90) "Ciudad de Mexico", (80) "Cordoba"},
+            "Acapulco" => {(140) "Chilpancingo"},
+            "Ciudad de Mexico" => {(100) "Tlaxcala", (110) "Toluca de Lerdo", (90) "Queretaro", (100) "Pachuca de Soto"},
+            "Ciudad Altamirano" => {(90) "Zihuatanejo"},
+            "Cordoba" => {(90) "Veracruz"},
+            "Chilpancingo" => {(90) "Iguala"},
+            "Toluca de Lerdo" => {(100) "Ciudad Altamirano"},
+            "Queretaro" => {(90) "Atlacomulco", (90) "Salamanca", (90) "San Luis Potosi"},
+            "Pachuca de Soto" => {(110) "Tuxpan de Rodriguez Cano"},
+            "Zihuatanejo" => {(90) "Playa Azul"},
+            "Iguala" => {(100) "Cuernavaca", (110) "Ciudad Altamirano"},
+            "Salamanca" => {(90) "Guanajuato", (90) "Guadalajara"},
+            "San Luis Potosi" => {(90) "Zacatecas", (70) "Durango", (100) "Aguascalientes" },
+            "Tuxpan de Rodriguez Cano" => {(100) "Tampico"},
+            "Playa Azul" => {(100) "Morelia", (100) "Colima", (100) "Manzanillo"},
+            "Guanajuato" => {(80) "Aguascalientes"},
+            "Guadalajara" => {(110) "Tepic"},
+            "Aguascalientes" =>{(70) "Guadalajara"},
+            "Durango" => {(90) "Hidalgo del Parral", (90) "Mazatlan"},
+            "Tampico" => {(80) "Ciudad Victoria"},
+            "Morelia" => {(90) "Salamanca"},
+            "Manzanillo" => {(50) "Colima", (80) "Guadalajara"},
+            "Colima" => {(90) "Morelia", (50) "Guadalajara"},
+            "Tepic" =>{(50) "Mazatlan"},
+            "Hidalgo del Parral" => {(130) "Chihuahua", (110) "Topolobampo", (80) "Culiacan"},
+            "Mazatlan" => {(90) "Culiacan"},
+            "Ciudad Victoria" => {(80) "Soto la Marina", (80) "Matamoros", (80) "Monterrey", (80) "Durango"},
+            "Chihuahua" => {(90) "Juarez", (90) "Janos"},
+            "Topolobampo" => {(90) "Ciudad Obregon"},
+            "Culiacan" => {(110) "Topolobampo"},
+            "Matamoros" => {(90) "Reynosa"},
+            "Monterrey" => {(110) "Nuevo Laredo",(70) "Monclova"},
+            "Janos" => {(110) "Agua Prieta"},
+            "Ciudad Obregon" => {(80) "Guaymas"},
+            "Reynosa" => {(100) "Nuevo Laredo"},
+            "Nuevo Laredo" => {(100) "Piedras Negras"},
+            "Monclova" => {(100) "Torreon", (90) "Ojinaga"},
+            "Agua Prieta" => {(90) "Santa Ana"},
+            "Guaymas" => {(90) "Hermosillo"},
+            "Piedras Negras" => {(90) "Monclova"},
+            "Torreon" => {(90) "Durango"},
+            "Ojinaga" => {(90) "Chihuahua"},
+            "Santa Ana" => {(159) "Mexicalli"},
+            "Hermosillo" => {(100) "Santa Ana"},
+            "Mexicalli" => {(50) "Tijuana", (70) "San Felipe"},
+            "Tijuana" => {(30) "Ensenada"},
+            "San Felipe" => {(50) "Ensenada"},
+            "Ensenada" => {(90) "San Quintin"},
+            "San Quintin" => {(140) "Santa Rosalia"},
+            "Santa Rosalia" => {(100) "Santo Domingo"},
+            "Santo Domingo" => {(100) "La Paz"},
+            "La Paz" => {(40) "Cabo San Lucas"}
+        ]
+    };
+    graph
+}
 #[cfg(test)]
 mod tests {
     use super::walkers::*;
@@ -1178,7 +1395,7 @@ mod tests {
                 start,
                 Some(goal),
                 |index| *distances.get(index).unwrap(),
-                |state| *state as f64,
+                |state| *state as f32,
             )
             .unwrap();
 
@@ -1199,7 +1416,7 @@ mod tests {
                 start,
                 Some(goal),
                 |index| *distances.get(index).unwrap(),
-                |state| *state as f64,
+                |state| *state as f32,
                 1.5,
             )
             .unwrap();

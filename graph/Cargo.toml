@@ -10,7 +10,11 @@ petgraph = "0.6.3"
 unicase = "2.6.0"
 fixedbitset = "0.4.2"
 num = "0.4.0"
-
+fdg-sim.workspace = true
+leptos.workspace = true
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+web-sys.workspace = true
 
 [dev-dependencies]
 iai = { git = "https://github.com/AlexMikhalev/iai", branch = "memory_usage" }
