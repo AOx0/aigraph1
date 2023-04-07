@@ -1,3 +1,4 @@
+use fdg_sim::{ForceGraph, Node};
 use fixedbitset::FixedBitSet;
 use num::{One, Zero};
 pub use petgraph;
@@ -5,12 +6,11 @@ pub use petgraph::Direction;
 use petgraph::{
     algo::Measure,
     graph::{EdgeIndex, NodeIndex},
+    stable_graph::StableGraph as PGraph,
     stable_graph::{DefaultIx, IndexType},
     visit::{VisitMap, Visitable},
-    Directed, EdgeType, Graph as PGraph,
+    Directed, EdgeType,
 };
-use unicase::Ascii;
-
 use std::{
     cmp::Ordering,
     collections::{HashMap, VecDeque},
@@ -19,6 +19,7 @@ use std::{
     ops::Mul,
     rc::Rc,
 };
+use unicase::Ascii;
 
 pub mod walkers;
 use walkers::{Walker, WalkerState};
@@ -235,11 +236,13 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     inner: PGraph<N, E, Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
     pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
+    repr_nodes: HashMap<Ascii<I>, NodeIndex>,
+    pub repr: ForceGraph<(), (), Ty>,
 }
 
 pub trait Coords {
-    fn get_x(&self) -> f64;
-    fn get_y(&self) -> f64;
+    fn get_x(&self) -> f32;
+    fn get_y(&self) -> f32;
 }
 
 /// Implementation block for distance methods for Graphs where its type N has the Coords trait.
@@ -249,14 +252,14 @@ where
     N: Coords,
 {
     /// Haversine with a constant r of 6317
-    pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f64> {
+    pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f32> {
         self.get_haversine(to, 6371.)
     }
 
     /// Haversine distance with a given radius `r`
     /// Formula from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
-    pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f64) -> HashMap<NodeIndex<Ix>, f64> {
-        use std::f64::consts::PI;
+    pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f32) -> HashMap<NodeIndex<Ix>, f32> {
+        use std::f32::consts::PI;
 
         let w_original = self.inner.node_weight(to).unwrap();
         let (x1, y1) = (
@@ -289,6 +292,8 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
         Self {
             inner: PGraph::<N, E, Ty, Ix>::default(),
             nodes: HashMap::new(),
+            repr_nodes: HashMap::new(),
+            repr: ForceGraph::<(), (), Ty>::default(),
         }
     }
 
@@ -299,6 +304,8 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
         Self {
             inner: PGraph::with_capacity(nodes, edges),
             nodes: HashMap::with_capacity(nodes),
+            repr_nodes: HashMap::with_capacity(nodes),
+            repr: ForceGraph::with_capacity(nodes, edges),
         }
     }
 
@@ -352,6 +359,11 @@ where
         match (self.name_index(from), self.name_index(to)) {
             (Some(fidx), Some(tidx)) => {
                 self.inner.add_edge(fidx.into(), tidx.into(), edge);
+                self.repr.add_edge(
+                    *self.repr_nodes.get(&Ascii::new(from)).unwrap(),
+                    *self.repr_nodes.get(&Ascii::new(to)).unwrap(),
+                    (),
+                );
                 Ok(())
             }
             (None, None) => panic!("Los nodos {:?} y {:?} no existen", from, to),
@@ -370,13 +382,23 @@ where
     pub fn register(&mut self, ident: I, node: N) -> Result<(), ()>
     where
         I: Debug,
+        N: Coords,
     {
         let ascii = Ascii::new(ident);
         if self.nodes.contains_key(&ascii) {
             panic!("El nodo {:?} ya existe", ident);
         } else {
+            let (x, y) = (node.get_x(), node.get_y());
+            leptos::log!("{}:{}", x, y);
             let ix = self.inner.add_node(node);
+            let node = {
+                let mut n = Node::new(format!("{ident}"), ());
+                n.location = [y, x, 0.].into();
+                n
+            };
+            let ix_repr = self.repr.add_node(node);
             self.nodes.insert(ascii, ix);
+            self.repr_nodes.insert(ascii, ix_repr);
             Ok(())
         }
     }
@@ -932,21 +954,21 @@ where
     }
 }
 
-/// Implement the Coords trait for all tuples (f64, f64).
+/// Implement the Coords trait for all tuples (f32, f32).
 ///
-/// When a Graph has the generic N type bound to (f64, f64) we can call
+/// When a Graph has the generic N type bound to (f32, f32) we can call
 /// the various distance methods on the nodes.
-impl Coords for (f64, f64) {
-    fn get_x(&self) -> f64 {
+impl Coords for (f32, f32) {
+    fn get_x(&self) -> f32 {
         self.0
     }
-    fn get_y(&self) -> f64 {
+    fn get_y(&self) -> f32 {
         self.1
     }
 }
 
 #[allow(dead_code)]
-pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
+pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
     graph! {
         with_edges: next,
         nodes: [
@@ -993,6 +1015,161 @@ pub fn test_graph() -> Graph<&'static str, (f64, f64), u16> {
     }
 }
 
+pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16> {
+    let graph: Graph<&'static str, (f32, f32), u16> = graph! {
+        with_edges: next,
+        nodes: [
+            "Acapulco" => (16.85310859874989, -99.82365329900568),
+            "Chilpancingo" => (17.5515346019228, -99.50063219718855),
+            "Acayucan" => (17.94923695984836, -94.91473748198624),
+            "Tehuantepec" => (16.3226994, -95.24232999999997),
+            "Tuxtla" => (16.75157557931809, -93.10312145056437),
+            "Villa Hermosa" => (17.98944564153284, -92.94752610256997),
+            "Agua Prieta" => (31.32777318316638, -109.5489603638477),
+            "Santa Ana" => (30.53983329999999, -111.1196215),
+            "Aguascalientes" => (21.88525620000001, -102.2915677),
+            "Guadalajara" => (20.65969879999995, -103.3496092),
+            "Guanajuato" => (21.0190145, -101.2573586),
+            "Alvarado" => (18.7696195, -95.75894900000004),
+            "Oaxaca" => (17.0731842, -96.72658889999992),
+            "Atlacomulco" => (19.7975581, -99.87668250000002),
+            "Queretaro" => (20.5887932, -100.3898881),
+            "Cancun" => (21.16190750852745, -86.85153608730901),
+            "Valladolid" => (20.68964, -88.20224879999994),
+            "Chetumal" => (18.5001889, -88.29614599999994),
+            "Campeche" => (19.8301251, -90.5349087),
+            "Felipe Carrillo Puerto" => (19.58033420000001, -88.04409570000003),
+            "Merida" => (20.9673702, -89.59258569999994),
+            "Chihuahua" => (28.63299570000001, -106.0691004),
+            "Janos" => (30.88893268807164, -108.1924158886408),
+            "Juarez" => (31.6903638, -106.4245478),
+            "Ojinaga" => (29.54588456755576, -104.4082915783784),
+            "Iguala" => (18.3448477, -99.53973439999994),
+            "Ciudad Altamirano" => (18.35781544847858, -100.6686260911074),
+            "Cuernavaca" => (18.9242095, -99.2215659),
+            "Toluca de Lerdo" => (19.2826098, -99.65566529999998),
+            "Zihuatanejo" => (17.64166930000001, -101.5516954999999),
+            "Ciudad del Carmen" => (18.6504879, -91.8074586),
+            "Ciudad Obregon" => (27.4827723941238, -109.9303660117927),
+            "Guaymas" => (27.91786510000001, -110.9089378),
+            "Ciudad Victoria" => (23.73691640000001, -99.14111539999999),
+            "Matamoros" => (25.86902940000001, -97.50273759999996),
+            "Soto la Marina" => (23.76801930000001, -98.20762819999996),
+            "Tampico" => (22.2331041, -97.86109899999995),
+            "Colima" => (19.24523428494255, -103.7240866970209),
+            "Morelia" => (19.70595040000001, -101.1949825),
+            "Playa Azul" => (17.98202150000001, -102.350469),
+            "Cordoba" => (18.8838909, -96.9237751),
+            "Veracruz" => (19.173773, -96.13422410000001),
+            "Culiacan" => (24.80906490000001, -107.3940117),
+            "Hidalgo del Parral" => (26.9317835, -105.6666166),
+            "Topolobampo" => (25.60069250000001, -109.0503685),
+            "Durango" => (24.0277202, -104.6531759),
+            "Mazatlan" => (23.2494148, -106.4111425),
+            "Torreon" => (25.5428443, -103.4067860999999),
+            "Ensenada" => (31.86674248460107, -116.5963708985866),
+            "San Quintin" => (30.5608767, -115.9379302),
+            "Francisco Escarcega" => (18.61018341806402, -90.73902439049336),
+            "Manzanillo" => (19.1138094, -104.3384616),
+            "Salamanca" => (20.5739314, -101.1957172),
+            "Tepic" => (21.50414299987411, -104.8946664723632),
+            "Hermosillo" => (29.0729673, -110.9559192),
+            "San Luis Potosi" => (22.15646989999995, -100.9855409),
+            "Izucar de Matamoros" => (18.5991249, -98.46778509999996),
+            "La Paz" => (24.1426408, -110.3127531),
+            "Cabo San Lucas" => (22.8905327, -109.9167371),
+            "Reynosa" => (26.05084060000001, -98.29789509999996),
+            "Mexicalli" => (32.62453873266227, -115.4522620271724),
+            "San Felipe" => (31.02507090000001, -114.8407776),
+            "Tijuana" => (32.51494624262627, -117.0382434591223),
+            "Ciudad de Mexico" => (19.4326077, -99.13320799999998),
+            "Pachuca de Soto" => (20.10106080000001, -98.75913109999998),
+            "Puebla" => (19.0414398, -98.20627269999999),
+            "Tlaxcala" => (19.3181620778507, -98.23757882356725),
+            "Monclova" => (26.9080248820723, -101.4215189298722),
+            "Piedras Negras" => (28.6916182, -100.5408622),
+            "Monterrey" => (25.68661420000001, -100.3161126),
+            "Nuevo Laredo" => (27.47791757328244, -99.54957116219069),
+            "Puerto Angel" => (15.66800763147724, -96.49131370809657),
+            "Tehuacan" => (18.46649712573129, -97.4003716535704),
+            "Tuxpan de Rodriguez Cano" => (20.95611490000001, -97.40633509999998),
+            "Pinotepa Nacional" => (16.3411824, -98.05368699999998),
+            "Zacatecas" => (22.77092401669794, -102.5832525341495),
+            "Santa Rosalia" => (27.33619390443964, -112.2701464859334),
+            "Santo Domingo" => (25.34873125527853, -111.9888369288694)
+        ],
+        connections: [
+            "Cancun" => {(90) "Valladolid", (100) "Felipe Carrillo Puerto"},
+            "Valladolid" => {(90) "Felipe Carrillo Puerto"},
+            "Felipe Carrillo Puerto" => {(60) "Campeche"},
+            "Campeche" => {(90) "Merida", (100) "Chetumal", (90) "Ciudad del Carmen"},
+            "Chetumal" => {(111) "Francisco Escarcega"},
+            "Ciudad del Carmen" => {(90) "Villa Hermosa", (90) "Tuxtla"},
+            "Villa Hermosa" => {(90) "Acayucan"},
+            "Tuxtla" => {(90) "Acayucan"},
+            "Acayucan" => {(80) "Tehuantepec", (110) "Alvarado"},
+            "Alvarado" => {(100) "Oaxaca"},
+            "Oaxaca" => {(80) "Tehuacan", (90) "Puerto Angel", (90) "Izucar de Matamoros"},
+            "Puerto Angel" => {(100) "Pinotepa Nacional" },
+            "Izucar de Matamoros" => {(90) "Puebla", (100) "Cuernavaca"},
+            "Pinotepa Nacional" => {(100) "Acapulco"},
+            "Cuernavaca" => {(100) "Ciudad de Mexico", (100) "Ciudad Altamirano"},
+            "Puebla" => {(90) "Ciudad de Mexico", (80) "Cordoba"},
+            "Acapulco" => {(140) "Chilpancingo"},
+            "Ciudad de Mexico" => {(100) "Tlaxcala", (110) "Toluca de Lerdo", (90) "Queretaro", (100) "Pachuca de Soto"},
+            "Ciudad Altamirano" => {(90) "Zihuatanejo"},
+            "Cordoba" => {(90) "Veracruz"},
+            "Chilpancingo" => {(90) "Iguala"},
+            "Toluca de Lerdo" => {(100) "Ciudad Altamirano"},
+            "Queretaro" => {(90) "Atlacomulco", (90) "Salamanca", (90) "San Luis Potosi"},
+            "Pachuca de Soto" => {(110) "Tuxpan de Rodriguez Cano"},
+            "Zihuatanejo" => {(90) "Playa Azul"},
+            "Iguala" => {(100) "Cuernavaca", (110) "Ciudad Altamirano"},
+            "Salamanca" => {(90) "Guanajuato", (90) "Guadalajara"},
+            "San Luis Potosi" => {(90) "Zacatecas", (70) "Durango", (100) "Aguascalientes" },
+            "Tuxpan de Rodriguez Cano" => {(100) "Tampico"},
+            "Playa Azul" => {(100) "Morelia", (100) "Colima", (100) "Manzanillo"},
+            "Guanajuato" => {(80) "Aguascalientes"},
+            "Guadalajara" => {(110) "Tepic"},
+            "Aguascalientes" =>{(70) "Guadalajara"},
+            "Durango" => {(90) "Hidalgo del Parral", (90) "Mazatlan"},
+            "Tampico" => {(80) "Ciudad Victoria"},
+            "Morelia" => {(90) "Salamanca"},
+            "Manzanillo" => {(50) "Colima", (80) "Guadalajara"},
+            "Colima" => {(90) "Morelia", (50) "Guadalajara"},
+            "Tepic" =>{(50) "Mazatlan"},
+            "Hidalgo del Parral" => {(130) "Chihuahua", (110) "Topolobampo", (80) "Culiacan"},
+            "Mazatlan" => {(90) "Culiacan"},
+            "Ciudad Victoria" => {(80) "Soto la Marina", (80) "Matamoros", (80) "Monterrey", (80) "Durango"},
+            "Chihuahua" => {(90) "Juarez", (90) "Janos"},
+            "Topolobampo" => {(90) "Ciudad Obregon"},
+            "Culiacan" => {(110) "Topolobampo"},
+            "Matamoros" => {(90) "Reynosa"},
+            "Monterrey" => {(110) "Nuevo Laredo",(70) "Monclova"},
+            "Janos" => {(110) "Agua Prieta"},
+            "Ciudad Obregon" => {(80) "Guaymas"},
+            "Reynosa" => {(100) "Nuevo Laredo"},
+            "Nuevo Laredo" => {(100) "Piedras Negras"},
+            "Monclova" => {(100) "Torreon", (90) "Ojinaga"},
+            "Agua Prieta" => {(90) "Santa Ana"},
+            "Guaymas" => {(90) "Hermosillo"},
+            "Piedras Negras" => {(90) "Monclova"},
+            "Torreon" => {(90) "Durango"},
+            "Ojinaga" => {(90) "Chihuahua"},
+            "Santa Ana" => {(159) "Mexicalli"},
+            "Hermosillo" => {(100) "Santa Ana"},
+            "Mexicalli" => {(50) "Tijuana", (70) "San Felipe"},
+            "Tijuana" => {(30) "Ensenada"},
+            "San Felipe" => {(50) "Ensenada"},
+            "Ensenada" => {(90) "San Quintin"},
+            "San Quintin" => {(140) "Santa Rosalia"},
+            "Santa Rosalia" => {(100) "Santo Domingo"},
+            "Santo Domingo" => {(100) "La Paz"},
+            "La Paz" => {(40) "Cabo San Lucas"}
+        ]
+    };
+    graph
+}
 #[cfg(test)]
 mod tests {
     use super::walkers::*;
@@ -1178,7 +1355,7 @@ mod tests {
                 start,
                 Some(goal),
                 |index| *distances.get(index).unwrap(),
-                |state| *state as f64,
+                |state| *state as f32,
             )
             .unwrap();
 
@@ -1199,7 +1376,7 @@ mod tests {
                 start,
                 Some(goal),
                 |index| *distances.get(index).unwrap(),
-                |state| *state as f64,
+                |state| *state as f32,
                 1.5,
             )
             .unwrap();
