@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+
+#[allow(unused_imports)]
 use graph::{test_graph, test_graph2};
 use leptos::*;
 

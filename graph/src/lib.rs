@@ -998,6 +998,15 @@ impl Coords for (f32, f32) {
     }
 }
 
+impl Coords for () {
+    fn get_x(&self) -> f32 {
+        0.
+    }
+    fn get_y(&self) -> f32 {
+        0.
+    }
+}
+
 #[allow(dead_code)]
 pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
     graph! {
