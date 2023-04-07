@@ -89,7 +89,7 @@ pub fn gen_image<N, E, Ty: EdgeType, Backend: DrawingBackend>(
     };
     let (avg_x, avg_y) = (0.5 * (left + right), 0.5 * (bottom + top));
 
-    let image_scale = 1.5;
+    let image_scale = 1.1;
     let (scale_x, scale_y) = (
         (size.0 as f32) / (diff_x * image_scale),
         (size.1 as f32) / (diff_y * image_scale),
