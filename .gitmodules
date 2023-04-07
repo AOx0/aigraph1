@@ -1,4 +1,0 @@
-[submodule "fdg"]
-	path = fdg
-	url = https://github.com/AOx0/fdg
-	branch = aigraph1
