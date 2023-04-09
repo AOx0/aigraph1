@@ -851,13 +851,31 @@ where
             state: (),
         });
 
+        let mut i = 1.0;
         while let Some(parent) = border.pop_front() {
+            #[cfg(feature = "wasm")]
+            {
+                // std::thread::sleep(std::time::Duration::from_secs_f32(0.1));
+                use leptos::*;
+
+                leptos::spawn_local(async move {
+                    async_std::task::sleep(std::time::Duration::from_secs_f32(i)).await;
+                    let polyline_list = document().get_elements_by_tag_name("polyline");
+                    let child = polyline_list
+                        .get_with_index(parent.idx.index() as u32)
+                        .unwrap();
+                    child.set_attribute("stroke", "#FFFFFF");
+                });
+            }
+
             if goal
                 .and_then(|goal| Some(goal == parent.idx))
                 .unwrap_or(false)
             {
                 return Ok(parent.into_iter());
             }
+
+            let idx = parent.idx.index();
 
             if self
                 .inner
@@ -880,6 +898,14 @@ where
                         });
                     });
             }
+            i += 0.2;
+            // #[cfg(feature = "wasm")]
+            // {
+            //     use leptos::*;
+            //     let polyline_list = document().get_elements_by_tag_name("polyline");
+            //     let child = polyline_list.get_with_index(idx as u32).unwrap();
+            //     child.set_attribute("stroke", "#FF0000");
+            // }
         }
         Err(())
     }

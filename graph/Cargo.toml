@@ -11,10 +11,15 @@ unicase = "2.6.0"
 fixedbitset = "0.4.2"
 num = "0.4.0"
 glam.workspace = true
-leptos.workspace = true
-wasm-bindgen.workspace = true
-js-sys.workspace = true
-web-sys.workspace = true
+leptos = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true }
+js-sys = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true }
+wasm-bindgen-futures = "0.4.34"
+async-std = "1.12.0"
+
+[features]
+wasm = ["leptos", "wasm-bindgen", "js-sys", "web-sys"]
 
 [dev-dependencies]
 iai = { git = "https://github.com/AlexMikhalev/iai", branch = "memory_usage" }

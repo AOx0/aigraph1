@@ -170,7 +170,6 @@ impl SvgPlot {
         let size = backend.get_size();
         let root = backend.into_drawing_area();
         // let text_style = Some(("sans-serif", 20.).into_text_style(&root));
-        root.fill(&WHITE)?;
 
         // generate svg text for your graph
         let settings = Some(Settings {
@@ -194,16 +193,18 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
     create_effect(cx, move |_| {
         if let Some(elem) = elem_ref.get() {
             request_animation_frame(move || {
-                let doc = document().get_element_by_id("svg-container").unwrap();
-                let child = doc.children().get_with_index(0).unwrap();
+                let svg_container = document().get_element_by_id("svg-container").unwrap();
+                let child = svg_container.children().get_with_index(0).unwrap();
                 child.set_attribute("height", "100%");
                 child.set_attribute("width", "100%");
-                // child.set_attribute("preserveAspectRatio", "none");
-                let rect = child.children().get_with_index(0).unwrap();
-                rect.set_attribute("fill", "none");
             });
         }
     });
+    let graph = test_graph2();
+
+    let search = move |_| {
+        graph.breadth_first("Cancun", Some("Cabo San Lucas"));
+    };
 
     let img = SvgPlot {
         size: (500, 500),
@@ -213,8 +214,14 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
     // create user interfaces with the declarative `view!` macro
     view! {
         cx,
-        <div class="flex space-y-5 items-center h-full w-full">
-            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-full h-full"/>
+        <div class="flex items-center h-full w-full">
+            <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-1/3">
+                <p class="text-xl md:text-2xl" >"aigraph1/"</p>
+                <div class="h-full w-full">
+                    <button on:click=search>"Start search"</button>
+                </div>
+            </div>
+            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-2/3 h-full"/>
         </div>
     }
 }
