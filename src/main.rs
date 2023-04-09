@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
-#[allow(unused_imports)]
-use graph::{test_graph, test_graph2};
+use graph::petgraph::visit::{EdgeRef, IntoEdgeReferences};
+use graph::{test_graph, test_graph2, DefaultIx, Directed, EdgeType, IndexType, Node, PGraph};
 use leptos::*;
 
 fn main() {
@@ -9,14 +9,6 @@ fn main() {
 }
 
 use plotters::{coord::Shift, prelude::*};
-
-use fdg_sim::{
-    petgraph::{
-        visit::{EdgeRef, IntoEdgeReferences},
-        Directed, EdgeType,
-    },
-    ForceGraph,
-};
 
 // Note: the following replaces the same-named struct & method from fdg_img
 //  but allows a custom backend
@@ -56,9 +48,12 @@ impl Default for Settings {
     }
 }
 
+/// Based on
+///     - https://github.com/grantshandy/fdg/blob/main/fdg-img/src/lib.rs
+///     - https://github.com/wolfjagger/trope-correlate/blob/master/trope-web/src/plot/fdg_img_custom.rs
 /// Generate an image from a graph and a force.
-pub fn gen_image<N, E, Ty: EdgeType, Backend: DrawingBackend>(
-    mut graph: ForceGraph<N, E, Ty>,
+pub fn gen_image<E, Ty: EdgeType, Ix: IndexType, Backend: DrawingBackend>(
+    mut graph: PGraph<Node, E, Ty, Ix>,
     drawing_area: &DrawingArea<Backend, Shift>,
     settings: Option<Settings>,
 ) -> Result<(), DrawingAreaErrorKind<Backend::ErrorType>> {
@@ -108,7 +103,7 @@ pub fn gen_image<N, E, Ty: EdgeType, Backend: DrawingBackend>(
         let target = &graph[edge.target()].location;
 
         drawing_area.draw(&PathElement::new(
-            vec![
+            [
                 (source.x as i32, source.y as i32),
                 (target.x as i32, target.y as i32),
             ],
@@ -149,7 +144,7 @@ pub fn gen_image<N, E, Ty: EdgeType, Backend: DrawingBackend>(
 
 pub struct SvgPlot {
     pub size: (u32, u32),
-    pub plot_type: ForceGraph<(), (), Directed>,
+    pub plot_type: PGraph<Node, (), Directed, DefaultIx>,
 }
 
 impl SvgPlot {
@@ -194,15 +189,6 @@ impl SvgPlot {
 
 #[component]
 pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
-    // create a reactive signal with the initial value
-    let (value, set_value) = create_signal(cx, initial_value);
-
-    // create event handlers for our buttons
-    // note that `value` and `set_value` are `Copy`, so it's super easy to move them into closures
-    let clear = move |_| set_value.set(0);
-    let decrement = move |_| set_value.update(|value| *value -= 1);
-    let increment = move |_| set_value.update(|value| *value += 1);
-
     let elem_ref = create_node_ref(cx);
 
     create_effect(cx, move |_| {
@@ -210,8 +196,9 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
             request_animation_frame(move || {
                 let doc = document().get_element_by_id("svg-container").unwrap();
                 let child = doc.children().get_with_index(0).unwrap();
-                child.remove_attribute("height");
-                child.remove_attribute("width");
+                child.set_attribute("height", "100%");
+                child.set_attribute("width", "100%");
+                // child.set_attribute("preserveAspectRatio", "none");
                 let rect = child.children().get_with_index(0).unwrap();
                 rect.set_attribute("fill", "none");
             });
@@ -227,13 +214,7 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
     view! {
         cx,
         <div class="flex space-y-5 items-center h-full w-full">
-            <button on:click=clear>"Clear"</button>
-            <button on:click=decrement>"-1"</button>
-            <span>"Value: " {value} "!"</span>
-            <button on:click=increment>"+1"</button>
-            <div class="c-block justify-items-center flex w-full h-full">
-                <div _ref=elem_ref id="svg-container" class="grid grid-flow-col gap-4 p-5 w-full h-full"  inner_html=img />
-            </div>
+            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-auto h-auto"/>
         </div>
     }
 }

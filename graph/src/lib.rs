@@ -1,16 +1,16 @@
-use fdg_sim::{ForceGraph, Node};
 use fixedbitset::FixedBitSet;
+use glam::f32::Vec2;
 use num::{One, Zero};
 pub use petgraph;
+pub use petgraph::stable_graph::{
+    DefaultIx, EdgeIndex, IndexType, NodeIndex, StableGraph as PGraph,
+};
 pub use petgraph::Direction;
 use petgraph::{
     algo::Measure,
-    graph::{EdgeIndex, NodeIndex},
-    stable_graph::StableGraph as PGraph,
-    stable_graph::{DefaultIx, IndexType},
     visit::{VisitMap, Visitable},
-    Directed, EdgeType,
 };
+pub use petgraph::{Directed, EdgeType};
 use std::{
     cmp::Ordering,
     collections::{HashMap, VecDeque},
@@ -93,7 +93,6 @@ macro_rules! graph {
         $(
             $($(g.$type($from, $to,$cost).unwrap());+);+
         );*;
-        g.done_register();
         g
     }};
 }
@@ -216,6 +215,12 @@ impl<S: Clone, Ix: Clone> Clone for Steps<S, Ix> {
     }
 }
 
+#[derive(Clone, PartialEq)]
+pub struct Node {
+    pub name: String,
+    pub location: Vec2,
+}
+
 /// The library's principal Graph structure.
 ///
 /// The struct is an abstract layer built on top of the
@@ -235,10 +240,10 @@ impl<S: Clone, Ix: Clone> Clone for Steps<S, Ix> {
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     /// The inner [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
     inner: PGraph<N, E, Ty, Ix>,
+    pub repr: PGraph<Node, (), Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
     pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
-    repr_nodes: HashMap<Ascii<I>, NodeIndex>,
-    pub repr: ForceGraph<(), (), Ty>,
+    repr_nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
 }
 
 pub trait Coords {
@@ -294,7 +299,7 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
             inner: PGraph::<N, E, Ty, Ix>::default(),
             nodes: HashMap::new(),
             repr_nodes: HashMap::new(),
-            repr: ForceGraph::<(), (), Ty>::default(),
+            repr: PGraph::<Node, (), Ty, Ix>::default(),
         }
     }
 
@@ -306,7 +311,7 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
             inner: PGraph::with_capacity(nodes, edges),
             nodes: HashMap::with_capacity(nodes),
             repr_nodes: HashMap::with_capacity(nodes),
-            repr: ForceGraph::with_capacity(nodes, edges),
+            repr: PGraph::with_capacity(nodes, edges),
         }
     }
 
@@ -383,14 +388,16 @@ where
     pub fn register(&mut self, ident: I, node: N) -> Result<(), ()>
     where
         I: Debug,
-        N: Coords,
     {
         let ascii = Ascii::new(ident);
         if self.nodes.contains_key(&ascii) {
             panic!("El nodo {:?} ya existe", ident);
         } else {
             let ix = self.inner.add_node(node);
-            let ix_repr = self.repr.add_node(Node::new(format!("{ident}"), ()));
+            let ix_repr = self.repr.add_node(Node {
+                name: ident.to_string(),
+                location: Vec2::ZERO,
+            });
             self.nodes.insert(ascii, ix);
             self.repr_nodes.insert(ascii, ix_repr);
             Ok(())
@@ -430,7 +437,7 @@ where
         }
 
         for (i, node) in self.repr.node_weights_mut().enumerate() {
-            node.location = [lons[i], lats[i], 0.].into();
+            node.location = (lons[i], lats[i]).into();
         }
     }
 
@@ -1009,7 +1016,7 @@ impl Coords for () {
 
 #[allow(dead_code)]
 pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
-    graph! {
+    let mut g = graph! {
         with_edges: next,
         nodes: [
             "Arad" => (-8., 3.),
@@ -1052,11 +1059,13 @@ pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
             "Iasi" => {(87) "Neamt"},
             "Hirsova" => {(86) "Eforie"}
         ]
-    }
+    };
+    g.done_register();
+    g
 }
 
 pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16> {
-    let graph: Graph<&'static str, (f32, f32), u16> = graph! {
+    let mut graph: Graph<&'static str, (f32, f32), u16> = graph! {
         with_edges: next,
         nodes: [
             "Acapulco" => ( -99.82365329900568, 16.85310859874989 ),
@@ -1208,6 +1217,7 @@ pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16> {
             "La Paz" => {(40) "Cabo San Lucas"}
         ]
     };
+    graph.done_register();
     graph
 }
 #[cfg(test)]
