@@ -214,7 +214,7 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
     view! {
         cx,
         <div class="flex space-y-5 items-center h-full w-full">
-            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-auto h-auto"/>
+            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-full h-full"/>
         </div>
     }
 }
