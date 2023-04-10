@@ -8,7 +8,7 @@ fn main() {
     mount_to_body(|cx| view! { cx,  <SimpleCounter initial_value=3 /> })
 }
 
-use plotters::{coord::Shift, prelude::*};
+use plotters::prelude::*;
 
 // Note: the following replaces the same-named struct & method from fdg_img
 //  but allows a custom backend
@@ -48,109 +48,28 @@ impl Default for Settings {
     }
 }
 
-/// Based on
-///     - https://github.com/grantshandy/fdg/blob/main/fdg-img/src/lib.rs
-///     - https://github.com/wolfjagger/trope-correlate/blob/master/trope-web/src/plot/fdg_img_custom.rs
-/// Generate an image from a graph and a force.
-pub fn gen_image<E, Ty: EdgeType, Ix: IndexType, Backend: DrawingBackend>(
-    mut graph: PGraph<Node, E, Ty, Ix>,
-    drawing_area: &DrawingArea<Backend, Shift>,
-    settings: Option<Settings>,
-) -> Result<(), DrawingAreaErrorKind<Backend::ErrorType>> {
-    // set up the simulation and settings
-    let settings = settings.unwrap_or_default();
-
-    // get the size of the graph (avg of width and height to try to account for oddly shaped graphs)
-    let (top, bottom, left, right): (f32, f32, f32, f32) =
-        graph.node_weights().fold((0., 0., 0., 0.), |bounds, node| {
-            (
-                bounds.0.max(node.location.y),
-                bounds.1.min(node.location.y),
-                bounds.2.min(node.location.x),
-                bounds.3.max(node.location.x),
-            )
-        });
-
-    let size = (settings.size.0 as f32, settings.size.1 as f32);
-    let diff_x = match right - left {
-        x if x > 0.1 => x,
-        _ => size.0,
-    };
-    let diff_y = match top - bottom {
-        y if y > 0.1 => y,
-        _ => size.1,
-    };
-    let (avg_x, avg_y) = (0.5 * (left + right), 0.5 * (bottom + top));
-
-    let image_scale = 1.1;
-    let (scale_x, scale_y) = (
-        (size.0 as f32) / (diff_x * image_scale),
-        (size.1 as f32) / (diff_y * image_scale),
-    );
-
-    // translate all the points over into the image coordinate space
-    for node in graph.node_weights_mut() {
-        node.location.x = 0.5 * size.0 + scale_x * (node.location.x - avg_x);
-        node.location.y = 0.5 * size.1 + scale_y * (node.location.y - avg_y);
-    }
-
-    // fill in the background
-    drawing_area.fill(&settings.background_color).unwrap();
-
-    // draw all the edges
-    for edge in graph.edge_references() {
-        let source = &graph[edge.source()].location;
-        let target = &graph[edge.target()].location;
-
-        drawing_area.draw(&PathElement::new(
-            [
-                (source.x as i32, source.y as i32),
-                (target.x as i32, target.y as i32),
-            ],
-            ShapeStyle {
-                color: settings.edge_color,
-                filled: true,
-                stroke_width: settings.edge_size,
-            },
-        ))?;
-    }
-
-    // draw all the nodes
-    for node in graph.node_weights() {
-        drawing_area.draw(&Circle::new(
-            (node.location.x as i32, node.location.y as i32),
-            settings.node_size,
-            ShapeStyle {
-                color: settings.node_color,
-                filled: true,
-                stroke_width: 1,
-            },
-        ))?;
-    }
-
-    // draw the text by nodes
-    if let Some(text_style) = settings.text_style {
-        for node in graph.node_weights() {
-            let pos = (
-                node.location.x as i32 + (text_style.font.get_size() / 2.0) as i32,
-                node.location.y as i32,
-            );
-            drawing_area.draw_text(node.name.as_str(), &text_style, pos)?;
-        }
-    }
-
-    Ok(())
-}
-
 pub struct SvgPlot {
-    pub size: (u32, u32),
     pub plot_type: PGraph<Node, (), Directed, DefaultIx>,
+    pub settings: Settings,
 }
 
 impl SvgPlot {
+    pub fn new(
+        plot_type: PGraph<Node, (), Directed, DefaultIx>,
+        settings: Option<Settings>,
+    ) -> Self {
+        let settings = settings.unwrap_or_default();
+        let mut s = Self {
+            settings,
+            plot_type,
+        };
+        s.translate_coords();
+        s
+    }
+
     pub fn print_to_string(&self) -> String {
         let mut svg_str = String::new();
-        let backend = SVGBackend::with_string(&mut svg_str, self.size);
+        let backend = SVGBackend::with_string(&mut svg_str, self.settings.size);
 
         // Get svg backend and associate it with svg_str
         self.draw_on_backend(backend)
@@ -159,7 +78,50 @@ impl SvgPlot {
         svg_str
     }
 
-    /// Draw power function on the given backend
+    fn translate_coords(&mut self) {
+        let graph = &mut self.plot_type;
+        // set up the simulation and settings
+        let settings = &self.settings;
+
+        // get the size of the graph (avg of width and height to try to account for oddly shaped graphs)
+        let (top, bottom, left, right): (f32, f32, f32, f32) =
+            graph.node_weights().fold((0., 0., 0., 0.), |bounds, node| {
+                (
+                    bounds.0.max(node.location.y),
+                    bounds.1.min(node.location.y),
+                    bounds.2.min(node.location.x),
+                    bounds.3.max(node.location.x),
+                )
+            });
+
+        let size = (settings.size.0 as f32, settings.size.1 as f32);
+        let diff_x = match right - left {
+            x if x > 0.1 => x,
+            _ => size.0,
+        };
+        let diff_y = match top - bottom {
+            y if y > 0.1 => y,
+            _ => size.1,
+        };
+        let (avg_x, avg_y) = (0.5 * (left + right), 0.5 * (bottom + top));
+
+        let image_scale = 1.1;
+        let (scale_x, scale_y) = (
+            (size.0 as f32) / (diff_x * image_scale),
+            (size.1 as f32) / (diff_y * image_scale),
+        );
+
+        // translate all the points over into the image coordinate space
+        for node in graph.node_weights_mut() {
+            node.location.x = 0.5 * size.0 + scale_x * (node.location.x - avg_x);
+            node.location.y = 0.5 * size.1 + scale_y * (node.location.y - avg_y);
+        }
+    }
+
+    /// Based on
+    ///     - https://github.com/grantshandy/fdg/blob/main/fdg-img/src/lib.rs
+    ///     - https://github.com/wolfjagger/trope-correlate/blob/master/trope-web/src/plot/fdg_img_custom.rs
+    /// Generate an image from a graph and a force.
     fn draw_on_backend<Backend>(
         &self,
         backend: Backend,
@@ -167,20 +129,57 @@ impl SvgPlot {
     where
         Backend: plotters::prelude::DrawingBackend,
     {
-        let size = backend.get_size();
-        let root = backend.into_drawing_area();
-        // let text_style = Some(("sans-serif", 20.).into_text_style(&root));
+        let drawing_area = backend.into_drawing_area();
+        let settings = &self.settings;
+        let graph = &self.plot_type;
 
-        // generate svg text for your graph
-        let settings = Some(Settings {
-            // text_style,
-            size,
-            ..Settings::default()
-        });
-        gen_image(self.plot_type.clone(), &root, settings).unwrap();
+        // fill in the background
+        drawing_area.fill(&settings.background_color).unwrap();
+
+        // draw all the edges
+        for edge in graph.edge_references() {
+            let source = &graph[edge.source()].location;
+            let target = &graph[edge.target()].location;
+
+            drawing_area.draw(&PathElement::new(
+                [
+                    (source.x as i32, source.y as i32),
+                    (target.x as i32, target.y as i32),
+                ],
+                ShapeStyle {
+                    color: settings.edge_color,
+                    filled: true,
+                    stroke_width: settings.edge_size,
+                },
+            ))?;
+        }
+
+        // draw all the nodes
+        for node in graph.node_weights() {
+            drawing_area.draw(&Circle::new(
+                (node.location.x as i32, node.location.y as i32),
+                settings.node_size,
+                ShapeStyle {
+                    color: settings.node_color,
+                    filled: true,
+                    stroke_width: 1,
+                },
+            ))?;
+        }
+
+        // draw the text by nodes
+        if let Some(ref text_style) = settings.text_style {
+            for node in graph.node_weights() {
+                let pos = (
+                    node.location.x as i32 + (text_style.font.get_size() / 2.0) as i32,
+                    node.location.y as i32,
+                );
+                drawing_area.draw_text(node.name.as_str(), &text_style, pos)?;
+            }
+        }
 
         // Present changes to the backend
-        root.present()?;
+        drawing_area.present()?;
 
         Ok(())
     }
@@ -203,22 +202,28 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
     let graph = test_graph2();
 
     let search = move |_| {
-        graph.breadth_first("Cancun", Some("Cabo San Lucas"));
+        graph.depth_first("Cancun", Some("Cabo San Lucas"), Option::<u8>::None);
     };
 
-    let img = SvgPlot {
-        size: (500, 500),
-        plot_type: test_graph2().repr,
-    }
-    .print_to_string();
+    let restart = move |_| {
+        let polyline_list = document().get_elements_by_tag_name("polyline");
+        for child in 0..polyline_list.length() {
+            let child = polyline_list.get_with_index(child as u32).unwrap();
+            child.set_attribute("stroke", "#FF0000");
+        }
+    };
+
+    let img = SvgPlot::new(test_graph2().repr, None).print_to_string();
     // create user interfaces with the declarative `view!` macro
     view! {
         cx,
         <div class="flex items-center h-full w-full">
-            <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-1/3">
+            <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-1/3 p-5">
                 <p class="text-xl md:text-2xl" >"aigraph1/"</p>
-                <div class="h-full w-full">
-                    <button on:click=search>"Start search"</button>
+                <div class="h-full w-full flex flex-col items-center justify-center space-y-5">
+                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Method"/>
+                    <button class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
+                    <button class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>
                 </div>
             </div>
             <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-2/3 h-full"/>

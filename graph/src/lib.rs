@@ -112,7 +112,7 @@ pub struct Step<S, Ix> {
     /// The current node index the step is at within the graph.
     pub idx: NodeIndex<Ix>,
     /// The index of the edge that binds caller -> self
-    pub rel: Option<EdgeIndex>,
+    pub rel: Option<EdgeIndex<Ix>>,
     /// State of the walking progress
     pub state: S,
 }
@@ -170,7 +170,7 @@ impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
                 .as_ref()
                 .and_then(|step| Some(Rc::new(Self::clone(step)))),
             idx: self.idx.clone(),
-            rel: self.rel,
+            rel: self.rel.clone(),
             state: self.state.clone(),
         }
     }
@@ -535,7 +535,22 @@ where
         let mut cutoff = false;
         let mut nivel;
 
+        let mut i = 0.0;
         while let Some(parent) = border.pop_front() {
+            #[cfg(feature = "wasm")]
+            {
+                // std::thread::sleep(std::time::Duration::from_secs_f32(0.1));
+                use leptos::*;
+
+                leptos::spawn_local(async move {
+                    async_std::task::sleep(std::time::Duration::from_secs_f32(i)).await;
+                    let polyline_list = document().get_elements_by_tag_name("polyline");
+                    let child = polyline_list
+                        .get_with_index(parent.rel.unwrap_or_default().index() as u32)
+                        .unwrap();
+                    child.set_attribute("stroke", "#FFFFFF");
+                });
+            }
             if limit
                 .and_then(|limit| Some(parent.state == limit))
                 .unwrap_or(false)
@@ -565,10 +580,11 @@ where
                 border.push_front(Step {
                     caller: Some(Rc::new(parent.clone())),
                     idx: child,
-                    rel: None,
+                    rel: Some(self.edge_between(parent.idx, child)),
                     state: nivel,
                 })
             }
+            i += 0.2;
         }
 
         if cutoff {
@@ -837,6 +853,16 @@ where
         })
     }
 
+    pub fn edge_between(&self, source: NodeIndex<Ix>, target: NodeIndex<Ix>) -> EdgeIndex<Ix> {
+        use petgraph::visit::EdgeRef;
+        self.inner
+            .edges_connecting(source, target)
+            .next()
+            .unwrap()
+            .id()
+            .into()
+    }
+
     pub fn breadth_first_impl(
         &self,
         start: NodeIndex<Ix>,
@@ -851,7 +877,7 @@ where
             state: (),
         });
 
-        let mut i = 1.0;
+        let mut i = 0.0;
         while let Some(parent) = border.pop_front() {
             #[cfg(feature = "wasm")]
             {
@@ -862,7 +888,7 @@ where
                     async_std::task::sleep(std::time::Duration::from_secs_f32(i)).await;
                     let polyline_list = document().get_elements_by_tag_name("polyline");
                     let child = polyline_list
-                        .get_with_index(parent.idx.index() as u32)
+                        .get_with_index(parent.rel.unwrap_or_default().index() as u32)
                         .unwrap();
                     child.set_attribute("stroke", "#FFFFFF");
                 });
@@ -892,7 +918,7 @@ where
                             border.push_back(Step {
                                 caller: Some(parent.clone()),
                                 idx: child_idx.into(),
-                                rel: None,
+                                rel: Some(self.edge_between(parent.idx, child_idx)),
                                 state: (),
                             });
                         });
