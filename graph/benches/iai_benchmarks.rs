@@ -38,7 +38,7 @@ fn breadth_test1(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
-            .breadth_first_impl(
+            .breadth_first(
                 black_box(graph.name_index("Arad").unwrap()),
                 Some(10000.into()),
             )
@@ -50,7 +50,7 @@ fn breadth_test2(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
-            .breadth_first_impl(
+            .breadth_first(
                 black_box(graph.name_index("Arad").unwrap()),
                 black_box(Some(graph.name_index("Neamt").unwrap())),
             )
@@ -62,7 +62,7 @@ fn depth_test1(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
-            .depth_first_impl::<u32>(
+            .depth_first::<u32>(
                 black_box(graph.name_index("Arad").unwrap()),
                 Some(10000.into()),
                 None,
@@ -75,7 +75,7 @@ fn depth_test2(iai: &mut Iai) {
     let graph = black_box(test_graph());
     iai.run(|| {
         graph
-            .depth_first_impl::<u32>(
+            .depth_first::<u32>(
                 black_box(graph.name_index("Arad").unwrap()),
                 black_box(Some(graph.name_index("Neamt").unwrap())),
                 None,

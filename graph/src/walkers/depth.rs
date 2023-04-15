@@ -15,20 +15,19 @@ impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, 
     #[allow(dead_code)]
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
+        journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
         limit: Option<D>,
         direction: Direction,
     ) -> Self {
         Self {
             graph,
-            goal,
+            goal: journey.1,
             limit,
             border: {
                 let mut border = VecDeque::with_capacity(graph.node_count());
                 border.push_front(Step {
                     caller: None,
-                    idx: start,
+                    idx: journey.0,
                     rel: None,
                     state: Zero::zero(),
                 });
@@ -82,7 +81,7 @@ where
                 self.border.push_front(Step {
                     caller: Some(parent.clone()),
                     idx: child,
-                    rel: None,
+                    rel: Some(self.graph.edge_between(parent.idx, child)),
                     state: self.level,
                 })
             }

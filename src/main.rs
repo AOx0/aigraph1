@@ -1,13 +1,19 @@
 #![allow(non_snake_case)]
 
 use graph::petgraph::visit::{EdgeRef, IntoEdgeReferences};
-use graph::{test_graph, test_graph2, DefaultIx, Directed, EdgeType, IndexType, Node, PGraph};
+use graph::{
+    test_graph, test_graph2,
+    walkers::{Walker, WalkerState},
+    DefaultIx, Directed, EdgeType, IndexType, Node, PGraph,
+};
 use leptos::*;
 
 fn main() {
-    mount_to_body(|cx| view! { cx,  <SimpleCounter initial_value=3 /> })
+    mount_to_body(|cx| view! { cx,  <SimpleCounter /> })
 }
 
+use graph::walkers::DepthFirst;
+use graph::Direction::Outgoing;
 use plotters::prelude::*;
 
 // Note: the following replaces the same-named struct & method from fdg_img
@@ -127,7 +133,7 @@ impl SvgPlot {
         backend: Backend,
     ) -> Result<(), DrawingAreaErrorKind<Backend::ErrorType>>
     where
-        Backend: plotters::prelude::DrawingBackend,
+        Backend: DrawingBackend,
     {
         let drawing_area = backend.into_drawing_area();
         let settings = &self.settings;
@@ -186,7 +192,7 @@ impl SvgPlot {
 }
 
 #[component]
-pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
+pub fn SimpleCounter(cx: Scope) -> impl IntoView {
     let elem_ref = create_node_ref(cx);
 
     create_effect(cx, move |_| {
@@ -199,10 +205,36 @@ pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
             });
         }
     });
-    let graph = test_graph2();
 
     let search = move |_| {
-        graph.depth_first("Cancun", Some("Cabo San Lucas"), Option::<u8>::None);
+        let graph = test_graph2();
+        spawn_local(async move {
+            let mut machine = DepthFirst::new(
+                &graph,
+                graph.journey("Cancun", Some("Cabo San Lucas")).unwrap(),
+                None,
+                Outgoing,
+            );
+
+            let mut res: WalkerState<usize> = machine.step();
+
+            while !matches!(res, WalkerState::Done | WalkerState::Cutoff) {
+                if let Some(step) = res.step_peek() {
+                    async_std::task::sleep(std::time::Duration::from_secs_f32(0.2)).await;
+                    let polyline_list = document().get_elements_by_tag_name("polyline");
+                    let child = polyline_list
+                        .get_with_index(step.rel.unwrap_or_default().index() as u32)
+                        .unwrap();
+                    child.set_attribute("stroke", "#FFFFFF");
+                }
+
+                if let WalkerState::Found(_) = res {
+                    break;
+                }
+
+                res = machine.step();
+            }
+        })
     };
 
     let restart = move |_| {

@@ -17,6 +17,7 @@ js-sys = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }
 wasm-bindgen-futures = "0.4.34"
 async-std = "1.12.0"
+anyhow = "1.0.70"
 
 [features]
 wasm = ["leptos", "wasm-bindgen", "js-sys", "web-sys"]

@@ -103,7 +103,7 @@ fn breadth_test1(c: &mut Criterion) {
     c.bench_function("breadth_full", |a| {
         a.iter(|| {
             graph
-                .breadth_first_impl(
+                .breadth_first(
                     black_box(graph.name_index("Cancun").unwrap()),
                     Some(10000.into()),
                 )
@@ -117,7 +117,7 @@ fn breadth_test2(c: &mut Criterion) {
     c.bench_function("breadth_arad_neamt", |a| {
         a.iter(|| {
             graph
-                .breadth_first_impl(
+                .breadth_first(
                     black_box(graph.name_index("Cancun").unwrap()),
                     black_box(Some(graph.name_index("Cabo San Lucas").unwrap())),
                 )
@@ -162,7 +162,7 @@ fn breadth_test3(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
             b.iter(|| {
                 graph
-                    .breadth_first_impl(
+                    .breadth_first(
                         graph.name_index("Cancun").unwrap(),
                         Some(graph.name_index(name).unwrap()),
                     )
@@ -207,7 +207,7 @@ fn depht_test3(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
             b.iter(|| {
                 graph
-                    .depth_first_impl(
+                    .depth_first(
                         graph.name_index("Cancun").unwrap(),
                         Some(graph.name_index(name).unwrap()),
                         None::<usize>,
@@ -325,7 +325,7 @@ fn depth_test1(c: &mut Criterion) {
     c.bench_function("depth_full", |a| {
         a.iter(|| {
             graph
-                .depth_first_impl::<u32>(
+                .depth_first::<u32>(
                     black_box(graph.name_index("Cancun").unwrap()),
                     Some(10000.into()),
                     None,
@@ -340,7 +340,7 @@ fn depth_test2(c: &mut Criterion) {
     c.bench_function("depth_arad_neamt", |a| {
         a.iter(|| {
             graph
-                .depth_first_impl::<u32>(
+                .depth_first::<u32>(
                     black_box(graph.name_index("Cancun").unwrap()),
                     black_box(Some(graph.name_index("Cabo San Lucas").unwrap())),
                     None,
@@ -399,7 +399,7 @@ fn depth_test3(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(depth), city, |b, name| {
             b.iter(|| {
                 graph
-                    .depth_first_impl(
+                    .depth_first(
                         graph.name_index("Cancun").unwrap(),
                         Some(graph.name_index(name).unwrap()),
                         None::<u8>,

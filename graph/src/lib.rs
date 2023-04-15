@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Context, Result};
 use fixedbitset::FixedBitSet;
 use glam::f32::Vec2;
 use num::{One, Zero};
@@ -119,42 +120,60 @@ pub struct Step<S, Ix> {
 
 /// A stateless step.
 ///
-/// The structure comes in handy when working with two `Step` intances bound to
-/// diferent data types for storing state e.g. `Step<S, Ix>` and `Step<Y, Ix>`
+/// The structure comes in handy when working with two `Step` instances bound to
+/// different data types for storing state e.g. `Step<S, Ix>` and `Step<Y, Ix>`
 ///
 /// We then construct a copy of the call-chain removing the state from each step,
 /// the final result is two `StepUnit<Ix>` that we can work with.
 pub type StepUnit<Ix> = Step<(), Ix>;
 
 impl<Ix: IndexType> StepUnit<Ix> {
+    /// TODO: Document
+    /// Creates a new `StepUnit` from a `Step` instance.
+    ///
+    /// The function will recursively create a new `StepUnit` from the `caller`
+    /// field of the `Step` instance.
+    ///
+    /// The function will also remove the state from the `Step` instance.
     pub fn from_step<S>(step: Rc<Step<S, Ix>>) -> Rc<Self> {
         Rc::new(Self {
             caller: step
                 .caller
                 .as_ref()
-                .and_then(|step| Some(Self::from_step(step.clone()))),
+                .map(|step| Self::from_step(step.clone())),
             idx: step.idx,
             rel: step.rel,
             state: (),
         })
     }
+
+    /// TODO: Document
+    /// Transform a `Step` into a `Step` instance with no datatype coupled to
+    /// the state type, instead the state is set to `()`.
     pub fn make_void<S>(step: Rc<Step<S, Ix>>) -> Step<(), Ix> {
         Step {
             caller: step
                 .caller
                 .as_ref()
-                .and_then(|step| Some(Rc::new(Self::make_void(step.clone())))),
+                .map(|step| Rc::new(Self::make_void(step.clone()))),
             idx: step.idx,
             rel: step.rel,
             state: (),
         }
     }
+
+    /// TODO: Document
+    /// Transform a `StepUnit` into a `Step` instance with no coupling to the
+    /// state type, instead the state is set to `()`.
+    ///
+    /// The function will recursively create a new `Step` from the `caller`
+    /// field of the `StepUnit` instance.
     pub fn into_step(step: Rc<StepUnit<Ix>>) -> Step<(), Ix> {
         Step {
             caller: step
                 .caller
                 .as_ref()
-                .and_then(|step| Some(Rc::new(Self::into_step(step.clone())))),
+                .map(|step| Rc::new(Self::into_step(step.clone()))),
             idx: step.idx,
             rel: step.rel,
             state: (),
@@ -165,10 +184,7 @@ impl<Ix: IndexType> StepUnit<Ix> {
 impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
     fn clone(&self) -> Self {
         Self {
-            caller: self
-                .caller
-                .as_ref()
-                .and_then(|step| Some(Rc::new(Self::clone(step)))),
+            caller: self.caller.as_ref().map(|step| Rc::new(Self::clone(step))),
             idx: self.idx.clone(),
             rel: self.rel.clone(),
             state: self.state.clone(),
@@ -183,8 +199,8 @@ pub struct Steps<S, Ix = DefaultIx> {
 }
 
 impl<S: Debug, Ix: Debug> IntoIterator for Step<S, Ix> {
-    type IntoIter = Steps<S, Ix>;
     type Item = Rc<Step<S, Ix>>;
+    type IntoIter = Steps<S, Ix>;
     fn into_iter(self) -> Self::IntoIter {
         Steps {
             start: Some(Rc::new(self)),
@@ -197,7 +213,7 @@ impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
     fn next(&mut self) -> Option<Self::Item> {
         let head = self.start.clone();
         self.start = head.as_ref().and_then(|head| head.caller.clone());
-        head.and_then(|head| Some(head))
+        head
     }
 }
 
@@ -315,6 +331,16 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
         }
     }
 
+    pub fn edge_between(&self, source: NodeIndex<Ix>, target: NodeIndex<Ix>) -> EdgeIndex<Ix> {
+        use petgraph::visit::EdgeRef;
+        self.inner
+            .edges_connecting(source, target)
+            .next()
+            .unwrap()
+            .id()
+            .into()
+    }
+
     pub fn node_count(&self) -> usize {
         self.inner.node_count()
     }
@@ -384,61 +410,53 @@ where
     /// within the inner graph.
     ///
     /// Adds values to the inner graph's `Vec<Node<N, Ix>>` to represent neighbors between nodes
-    /// and the binded `N` value
+    /// and the bound `N` value
     pub fn register(&mut self, ident: I, node: N) -> Result<(), ()>
     where
         I: Debug,
     {
         let ascii = Ascii::new(ident);
-        if self.nodes.contains_key(&ascii) {
-            panic!("El nodo {:?} ya existe", ident);
-        } else {
+
+        // If the node doesn't exist, add it to the graph
+        if let std::collections::hash_map::Entry::Vacant(e) = self.nodes.entry(ascii) {
             let ix = self.inner.add_node(node);
             let ix_repr = self.repr.add_node(Node {
                 name: ident.to_string(),
                 location: Vec2::ZERO,
             });
-            self.nodes.insert(ascii, ix);
+            e.insert(ix);
             self.repr_nodes.insert(ascii, ix_repr);
             Ok(())
+        } else {
+            panic!("El nodo {:?} ya existe", ident);
         }
     }
 
+    /// Normalize coordinates of the repr graph so that they are centered
     pub fn done_register(&mut self)
     where
         N: Coords,
     {
-        let mut lons = self
+        // Collect x, y from the inner graph
+        let avg_lon = self
             .inner
             .node_weights()
             .map(|node| node.get_x())
-            .collect::<Vec<_>>();
-        let mut lats = self
+            .sum::<f32>()
+            / self.inner.node_count() as f32;
+        let avg_lat = self
             .inner
             .node_weights()
             .map(|node| node.get_y())
-            .collect::<Vec<_>>();
+            .sum::<f32>()
+            / self.inner.node_count() as f32;
 
-        let avg_lat = lats.iter().copied().sum::<f32>() / lats.len() as f32;
-        let avg_lon = lons.iter().copied().sum::<f32>() / lons.len() as f32;
-
-        lats.iter_mut().for_each(|val| *val -= avg_lat);
-        lons.iter_mut().for_each(|val| *val -= avg_lon);
-
-        let min_lat = lats.iter().copied().reduce(f32::min);
-        let min_lon = lons.iter().copied().reduce(f32::min);
-
-        if let (Some(min_lat), Some(min_lon)) = (min_lat, min_lon) {
-            let min_lat = min_lat.abs();
-            let min_lon = min_lon.abs();
-
-            lats.iter_mut().for_each(|val| *val += min_lat);
-            lons.iter_mut().for_each(|val| *val += min_lon);
-        }
-
-        for (i, node) in self.repr.node_weights_mut().enumerate() {
-            node.location = (lons[i], lats[i]).into();
-        }
+        // Shift all coordinates to the center
+        std::iter::zip(self.inner.node_weights(), self.repr.node_weights_mut()).for_each(
+            |(inner, repr)| {
+                repr.location = (inner.get_x() - avg_lon, inner.get_y() - avg_lat).into();
+            },
+        );
     }
 
     pub fn iterative_depth_first<D>(
@@ -446,167 +464,74 @@ where
         start: I,
         goal: Option<I>,
         limit: Option<D>,
-    ) -> Result<Step<D, Ix>, ()>
+    ) -> Result<Step<D, Ix>>
     where
         D: Measure + Copy + One + Zero,
     {
-        match goal {
-            Some(goal) => {
-                match (self.name_index(start), self.name_index(goal)) {
-                    (Some(fidx), Some(tidx)) => {
-                        let mut cur_limit: D = One::one();
-                        loop {
-                            if limit
-                                .and_then(|limit| Some(limit == cur_limit))
-                                .unwrap_or(false)
-                            {
-                                return Err(());
-                            }
-                            match self.depth_first_impl::<D>(fidx, Some(tidx), Some(cur_limit)) {
-                                    Ok(res) => {
-                                        return Ok(res);
-                                    }
-                                    Err(err) => match err {
-                                        WalkerState::Done => {
-                                            return Err(());
-                                        }
-                                        WalkerState::Cutoff => {
-                                            cur_limit = cur_limit + One::one();
-                                            continue;
-                                        },
-                                        _ => unreachable!("Only WalkerState::Done and WalkerState::Cutoff are returned")
-                                    },
-                                }
-                        }
-                    }
-                    (None, None) => Err(()),
-                    (None, Some(_)) => Err(()),
-                    (Some(_), None) => Err(()),
-                }
+        let mut cur_limit: D = One::one();
+        loop {
+            if limit
+                .and_then(|limit| Some(limit == cur_limit))
+                .unwrap_or(false)
+            {
+                todo!("Return a cutoff error");
             }
-            _ => match self.name_index(start) {
-                Some(fidx) => self.depth_first_impl(fidx, None, limit).map_err(|_| ()),
-                _ => Err(()),
-            },
+            let machine = walkers::DepthFirst::new(
+                self,
+                self.journey(start, goal)?,
+                limit,
+                Direction::Outgoing,
+            );
+            match self.perform_search::<D>(machine) {
+                Ok(res) => {
+                    return Ok(res);
+                }
+                Err(err) => match err {
+                    WalkerState::Done => {
+                        return Err(anyhow!("No path found"));
+                    }
+                    WalkerState::Cutoff => {
+                        cur_limit = cur_limit + One::one();
+                        continue;
+                    }
+                    _ => {
+                        unreachable!("Only WalkerState::Done and WalkerState::Cutoff are returned")
+                    }
+                },
+            }
         }
     }
 
-    pub fn depth_first<D>(
+    pub fn journey(
         &self,
         start: I,
         goal: Option<I>,
-        limit: Option<D>,
-    ) -> Result<Step<D, Ix>, ()>
-    where
-        D: Measure + Copy + One + Zero,
-    {
-        match goal {
-            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
-                (Some(fidx), Some(tidx)) => self
-                    .depth_first_impl::<D>(fidx, Some(tidx), limit)
-                    .map_err(|_| ()),
-                (None, None) => Err(()),
-                (None, Some(_)) => Err(()),
-                (Some(_), None) => Err(()),
-            },
-            _ => match self.name_index(start) {
-                Some(fidx) => self.depth_first_impl(fidx, None, limit).map_err(|_| ()),
-                _ => Err(()),
-            },
-        }
+    ) -> Result<(NodeIndex<Ix>, Option<NodeIndex<Ix>>)> {
+        let start = self
+            .name_index(start)
+            .context(format!("Starting node {} does not exist", start))?;
+        let end = goal
+            .map(|ident| {
+                self.name_index(ident)
+                    .context(format!("Target node {} does not exist", ident))
+            })
+            .transpose()?;
+        Ok((start, end))
     }
 
-    pub fn depth_first_impl<D>(
+    pub fn perform_search<D>(
         &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        limit: Option<D>,
-    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>>
-    where
-        D: Measure + Copy + One + Zero + Debug,
-    {
-        let mut border = VecDeque::with_capacity(self.node_count());
-        border.push_front(Step {
-            caller: None,
-            idx: start,
-            rel: None,
-            state: Zero::zero(),
-        });
-        let mut cutoff = false;
-        let mut nivel;
+        mut machine: impl Walker<D, Ix>,
+    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>> {
+        let mut res = machine.step();
 
-        let mut i = 0.0;
-        while let Some(parent) = border.pop_front() {
-            #[cfg(feature = "wasm")]
-            {
-                // std::thread::sleep(std::time::Duration::from_secs_f32(0.1));
-                use leptos::*;
-
-                leptos::spawn_local(async move {
-                    async_std::task::sleep(std::time::Duration::from_secs_f32(i)).await;
-                    let polyline_list = document().get_elements_by_tag_name("polyline");
-                    let child = polyline_list
-                        .get_with_index(parent.rel.unwrap_or_default().index() as u32)
-                        .unwrap();
-                    child.set_attribute("stroke", "#FFFFFF");
-                });
+        while !matches!(res, WalkerState::Done | WalkerState::Cutoff) {
+            if let WalkerState::Found(step) = res {
+                return Ok(step);
             }
-            if limit
-                .and_then(|limit| Some(parent.state == limit))
-                .unwrap_or(false)
-            {
-                if self
-                    .inner
-                    .neighbors_directed(parent.idx.into(), Direction::Outgoing)
-                    .count()
-                    != 0
-                {
-                    cutoff = true;
-                }
-                continue;
-            }
-            if goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
-                return Ok(parent.clone());
-            }
-
-            nivel = parent.state + One::one();
-            for child in self
-                .inner
-                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
-            {
-                border.push_front(Step {
-                    caller: Some(Rc::new(parent.clone())),
-                    idx: child,
-                    rel: Some(self.edge_between(parent.idx, child)),
-                    state: nivel,
-                })
-            }
-            i += 0.2;
+            res = machine.step();
         }
-
-        if cutoff {
-            Err(WalkerState::Cutoff)
-        } else {
-            Err(WalkerState::Done)
-        }
-    }
-
-    pub fn breadth_first(&self, start: I, goal: Option<I>) -> Result<Steps<(), Ix>, ()> {
-        match goal {
-            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
-                (Some(fidx), Some(tidx)) => self.breadth_first_impl(fidx, Some(tidx)),
-                (None, None) => Err(()),
-                (None, Some(_)) => Err(()),
-                (Some(_), None) => Err(()),
-            },
-            _ => match self.name_index(start) {
-                Some(fidx) => self.breadth_first_impl(fidx, None),
-                _ => Err(()),
-            },
-        }
+        Err(res)
     }
 
     pub fn dijkstra<K, F>(
@@ -674,10 +599,7 @@ where
                 .map(|(x, _)| x);
             i.map(|i| border.remove(i).unwrap())
         } {
-            if goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
+            if goal.map(|goal| goal == parent.idx).unwrap_or(false) {
                 return Ok(parent.into_iter());
             }
 
@@ -686,9 +608,7 @@ where
                 .inner
                 .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
             {
-                let es_goal = goal
-                    .and_then(|goal| Some(goal == child_idx))
-                    .unwrap_or(false);
+                let es_goal = goal.map(|goal| goal == child_idx).unwrap_or(false);
                 let tiene_hijos = self
                     .inner
                     .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
@@ -744,74 +664,6 @@ where
         self.best_first_impl(start, goal, |node, _, _, _| h(&node))
     }
 
-    /// The implementation of Beam Search
-    ///
-    /// The function takes two principal values, the number of successor to take
-    /// from the pool of best successors and a function `F` that can compare between
-    /// successors for the function to sort by a score each successor node.
-    pub fn beam_search<F>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        successors: usize,
-        mut compare: F,
-    ) -> Result<Steps<(), Ix>, ()>
-    where
-        F: FnMut(&NodeIndex<Ix>, &NodeIndex<Ix>) -> Ordering,
-    {
-        let mut border = VecDeque::with_capacity(self.inner.node_count());
-        border.push_front(Step {
-            caller: None,
-            idx: start,
-            rel: None,
-            state: (),
-        });
-
-        let mut neighbors = Vec::with_capacity(self.inner.edge_count());
-
-        while let Some(parent) = border.pop_front() {
-            println!("{}", self.index_name(parent.idx).unwrap());
-            if goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
-                return Ok(parent.into_iter());
-            }
-
-            if self
-                .inner
-                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
-                .count()
-                != 0
-            {
-                let parent = Rc::new(parent);
-
-                neighbors.clear();
-                neighbors.extend(
-                    self.inner
-                        .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing),
-                );
-
-                neighbors.sort_by(&mut compare);
-
-                neighbors
-                    .iter()
-                    .copied()
-                    .enumerate()
-                    .take_while(|(i, _)| i < &successors)
-                    .for_each(|(_, child_idx)| {
-                        border.push_back(Step {
-                            caller: Some(parent.clone()),
-                            idx: child_idx.into(),
-                            rel: None,
-                            state: (),
-                        });
-                    });
-            }
-        }
-        Err(())
-    }
-
     /// The implementation of A*
     ///
     /// This is a variant of best first
@@ -853,89 +705,6 @@ where
         })
     }
 
-    pub fn edge_between(&self, source: NodeIndex<Ix>, target: NodeIndex<Ix>) -> EdgeIndex<Ix> {
-        use petgraph::visit::EdgeRef;
-        self.inner
-            .edges_connecting(source, target)
-            .next()
-            .unwrap()
-            .id()
-            .into()
-    }
-
-    pub fn breadth_first_impl(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-    ) -> Result<Steps<(), Ix>, ()> {
-        let mut border = VecDeque::with_capacity(self.inner.node_count());
-        let mut visited = self.inner.visit_map();
-        border.push_front(Step {
-            caller: None,
-            idx: start,
-            rel: None,
-            state: (),
-        });
-
-        let mut i = 0.0;
-        while let Some(parent) = border.pop_front() {
-            #[cfg(feature = "wasm")]
-            {
-                // std::thread::sleep(std::time::Duration::from_secs_f32(0.1));
-                use leptos::*;
-
-                leptos::spawn_local(async move {
-                    async_std::task::sleep(std::time::Duration::from_secs_f32(i)).await;
-                    let polyline_list = document().get_elements_by_tag_name("polyline");
-                    let child = polyline_list
-                        .get_with_index(parent.rel.unwrap_or_default().index() as u32)
-                        .unwrap();
-                    child.set_attribute("stroke", "#FFFFFF");
-                });
-            }
-
-            if goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
-                return Ok(parent.into_iter());
-            }
-
-            let idx = parent.idx.index();
-
-            if self
-                .inner
-                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
-                .count()
-                != 0
-            {
-                let parent = Rc::new(parent);
-                self.inner
-                    .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
-                    .for_each(|child_idx| {
-                        (!visited.is_visited(&child_idx)).then(|| {
-                            visited.visit(child_idx);
-                            border.push_back(Step {
-                                caller: Some(parent.clone()),
-                                idx: child_idx.into(),
-                                rel: Some(self.edge_between(parent.idx, child_idx)),
-                                state: (),
-                            });
-                        });
-                    });
-            }
-            i += 0.2;
-            // #[cfg(feature = "wasm")]
-            // {
-            //     use leptos::*;
-            //     let polyline_list = document().get_elements_by_tag_name("polyline");
-            //     let child = polyline_list.get_with_index(idx as u32).unwrap();
-            //     child.set_attribute("stroke", "#FF0000");
-            // }
-        }
-        Err(())
-    }
-
     pub fn bidirectional<S: Debug, D: Debug>(
         &self,
         mut algo1: impl Walker<S, Ix>,
@@ -951,10 +720,7 @@ where
 
         let mut last_step_1 = None;
         let mut last_step_2 = None;
-        // let mut i = 0;
         let matching_on = loop {
-            // i += 1;
-            // println!("{i}");
             res1 = algo1.step();
             res2 = algo2.step();
 
@@ -988,7 +754,6 @@ where
             }
         };
 
-        // println!("Break on {}", matching_on);
         if let (Some(mut last1), Some(mut last2)) = (last_step_1, last_step_2) {
             let mut trace1 = VecDeque::new();
             let mut trace2 = VecDeque::new();
@@ -1001,22 +766,18 @@ where
                 *res1_p.0 = res1_p.1.get(&res2_p.0.idx).unwrap().clone();
             }
 
-            // println!("***1");
             let mut last1 = Some(last1);
             while let Some(i) = last1 {
                 trace1.push_back(i.clone());
-                // println!("{:?}", self.index_name(i.idx));
                 last1 = i.caller.clone();
             }
-            // println!("***2");
+
             let mut last2 = Some(last2);
             while let Some(i) = last2 {
                 trace2.push_back(i.clone());
-                // println!("{:?}", self.index_name(i.idx));
                 last2 = i.caller.clone();
             }
 
-            // println!("***3");
             for i in trace1.range(1..) {
                 trace2.push_front(i.clone());
             }
@@ -1280,7 +1041,12 @@ mod tests {
     fn test_depth() {
         let graph = test_graph();
         let a = graph
-            .depth_first::<u32>("Arad", Some("Neamt"), None)
+            .perform_search::<u32>(walkers::DepthFirst::new(
+                &graph,
+                graph.journey("Arad", Some("Neamt")).unwrap(),
+                None,
+                Direction::Outgoing,
+            ))
             .unwrap();
 
         for node in a {
@@ -1291,7 +1057,13 @@ mod tests {
     #[test]
     fn test_breadth() {
         let graph = test_graph();
-        let a = graph.breadth_first("Arad", Some("Neamt")).unwrap();
+        let a = graph
+            .perform_search::<()>(walkers::BreadthFirst::new(
+                &graph,
+                graph.journey("Arad", Some("Neamt")).unwrap(),
+                Direction::Outgoing,
+            ))
+            .unwrap();
 
         for node in a {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
@@ -1370,16 +1142,20 @@ mod tests {
     #[test]
     fn test_beam_impl() {
         let graph = test_graph();
-        let start = graph.name_index("Arad").unwrap();
-        let goal = graph.name_index("Bucharest").unwrap();
-        let graph = test_graph();
-        let distances = graph.get_haversine_6371(goal);
+        let journey = graph.journey("Arad", Some("Bucharest")).unwrap();
+        let distances = graph.get_haversine_6371(journey.1.unwrap());
         let a = graph
-            .beam_search(start, Some(goal), 2, |i1, i2| {
-                (distances.get(i1).unwrap())
-                    .partial_cmp(distances.get(i2).unwrap())
-                    .unwrap()
-            })
+            .perform_search(walkers::Beam::new(
+                &graph,
+                journey,
+                10,
+                |i1, i2| {
+                    (distances.get(i1).unwrap())
+                        .partial_cmp(distances.get(i2).unwrap())
+                        .unwrap()
+                },
+                Direction::Outgoing,
+            ))
             .unwrap();
 
         for node in a {

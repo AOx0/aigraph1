@@ -6,3 +6,5 @@ docs/build/**
 *.lock
 
 dist/**
+
+.idea/**

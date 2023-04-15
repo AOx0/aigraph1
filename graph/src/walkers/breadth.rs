@@ -13,18 +13,17 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> BreadthFirst<'a, I, N, E, Ty, Ix>
     #[allow(dead_code)]
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
+        journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
         direction: Direction,
     ) -> Self {
         Self {
-            goal,
+            goal: journey.1,
             graph,
             border: {
                 let mut border = VecDeque::with_capacity(graph.node_count());
                 border.push_front(Step {
                     caller: None,
-                    idx: start,
+                    idx: journey.0,
                     rel: None,
                     state: (),
                 });
