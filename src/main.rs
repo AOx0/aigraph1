@@ -38,24 +38,102 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     let search = move |_| {
         spawn_local(async move {
+            restart_colors();
             let journey = graph.journey(&start.get(), Some(&end.get())).unwrap();
             let distances = graph.get_haversine_6371(journey.1.unwrap());
-            let mut machine = greedy::new(
-                graph,
-                journey,
-                |index| *distances.get(index).unwrap(),
-                Direction::Outgoing,
-            );
-            visual_search(time, &mut machine).await;
+
+            match method.get().as_str() {
+                "A*" => {
+                    visual_search(
+                        time,
+                        a_star::new(
+                            graph,
+                            journey,
+                            |index| *distances.get(index).unwrap(),
+                            |state| *state as f32,
+                            Direction::Outgoing,
+                        ),
+                    )
+                    .await;
+                }
+                "Weighted A*" => {
+                    visual_search(
+                        time,
+                        weighted_a_star::new(
+                            graph,
+                            journey,
+                            |index| *distances.get(index).unwrap(),
+                            |state| *state as f32,
+                            1.5,
+                            Direction::Outgoing,
+                        ),
+                    )
+                    .await;
+                }
+                "Dijkstra" => {
+                    visual_search(
+                        time,
+                        dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
+                    )
+                    .await;
+                }
+                "Greedy" => {
+                    visual_search(
+                        time,
+                        greedy::new(
+                            &graph,
+                            journey,
+                            |index| *distances.get(index).unwrap(),
+                            Direction::Outgoing,
+                        ),
+                    )
+                    .await;
+                }
+                "Beam" => {
+                    visual_search(
+                        time,
+                        Beam::new(
+                            &graph,
+                            journey,
+                            2,
+                            |i1, i2| {
+                                (distances.get(i1).unwrap())
+                                    .partial_cmp(distances.get(i2).unwrap())
+                                    .unwrap()
+                            },
+                            Direction::Outgoing,
+                        ),
+                    )
+                    .await;
+                }
+                "BFS" => {
+                    visual_search(
+                        time,
+                        BreadthFirst::new(&graph, journey, Direction::Outgoing),
+                    )
+                    .await;
+                }
+                "DFS" => {
+                    visual_search(
+                        time,
+                        DepthFirst::new(&graph, journey, None::<usize>, Direction::Outgoing),
+                    )
+                    .await;
+                }
+                _ => {
+                    let machine = greedy::new(
+                        graph,
+                        journey,
+                        |index| *distances.get(index).unwrap(),
+                        Direction::Outgoing,
+                    );
+                    visual_search(time, machine).await;
+                }
+            }
         })
     };
 
-    let restart = move |_| {
-        let polyline_list = document().get_elements_by_tag_name("polyline");
-        for child in 0..polyline_list.length() {
-            set_stroke(child, "#FF0000");
-        }
-    };
+    let restart = move |_| restart_colors();
 
     let set_start = move |e: web_sys::Event| set_start.set(event_target_value(&e));
     let set_end = move |e: web_sys::Event| set_end.set(event_target_value(&e));
@@ -65,24 +143,52 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     view! {
         cx,
-        <div class="flex items-center h-full w-full">
-            <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-1/3 p-5">
+        <div class="flex flex-col md:flex-row items-center h-full w-full">
+            <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-full md:w-1/3 p-5">
                 <p class="text-xl md:text-2xl" >"aigraph1/"</p>
                 <div class="h-full w-full flex flex-col items-center justify-center space-y-5">
-                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Start" prop:value={start.get()} on:input=set_start />
-                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="End" prop:value={end.get()} on:input=set_end />
-                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Time" prop:value={time.get()} on:input=set_time />
-                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Method" prop:value={method.get()} on:input=set_method />
-                    <button class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
-                    <button class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>
+                    <div>
+                        <p class="text-sm font-bold pb-1" >"Starting node"</p>
+                        <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Start" prop:value={start.get()} on:input=set_start />
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold pb-1" >"Target node"</p>
+                        <input class="dark:bg-[#0d1117] rounded p-2" placeholder="End" prop:value={end.get()} on:input=set_end />
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold pb-1" >"Delay (ms)"</p>
+                        <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Time" prop:value={time.get()} on:input=set_time />
+                    </div>
+                    <div class="overflow-y-scroll">
+                        <select class="dark:bg-[#0d1117] rounded p-2" prop:value={method.get()} on:input=set_method>
+                            <option value="A*">"A*"</option>
+                            <option value="Weighted A*">"Weighted A*"</option>
+                            <option value="Beam">"Beam"</option>
+                            <option value="BFS">"BFS"</option>
+                            <option value="DFS">"DFS"</option>
+                            <option value="Dijkstra">"Dijkstra"</option>
+                            <option value="Greedy">"Greedy"</option>
+                        </select>
+                    </div>
+                    <div class="flex space-x-5">
+                        <button class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
+                        <button class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>
+                    </div>
                 </div>
             </div>
-            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-2/3 h-full"/>
+            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-full md:w-2/3 h-full"/>
         </div>
     }
 }
 
-async fn visual_search<S>(time: ReadSignal<u64>, machine: &mut impl Walker<S>) {
+fn restart_colors() {
+    let polyline_list = document().get_elements_by_tag_name("polyline");
+    for child in 0..polyline_list.length() {
+        set_stroke(child, "#FF0000");
+    }
+}
+
+async fn visual_search<S>(time: ReadSignal<u64>, mut machine: impl Walker<S>) {
     loop {
         use async_std::task::sleep;
 
