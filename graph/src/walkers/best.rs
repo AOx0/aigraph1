@@ -93,3 +93,36 @@ where
         }
     }
 }
+
+pub mod dijkstra {
+    use super::*;
+
+    pub fn new<'a, I, N, E, Ty: EdgeType, Ix: IndexType, K, G>(
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
+        edge_cost: G,
+        direction: Direction,
+    ) -> BestFirst<
+        'a,
+        I,
+        N,
+        E,
+        Ty,
+        Ix,
+        K,
+        impl Fn(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K + 'a,
+    >
+    where
+        K: Measure + Copy + Eq + Default + Ord + PartialOrd,
+        G: Fn(&E) -> K + 'a,
+    {
+        BestFirst::new(
+            graph,
+            journey,
+            move |_: NodeIndex<Ix>, edge: EdgeIndex<Ix>, past: K, _: NodeIndex<Ix>| {
+                past + edge_cost(&graph.inner[edge])
+            },
+            direction,
+        )
+    }
+}

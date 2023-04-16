@@ -534,30 +534,6 @@ where
         Err(res)
     }
 
-    pub fn dijkstra<K, F>(
-        &self,
-        start: I,
-        goal: Option<I>,
-        edge_cost: F,
-    ) -> Result<Steps<K, Ix>, ()>
-    where
-        K: Measure + Copy + Eq + Default + Ord + PartialOrd,
-        F: Fn(&E) -> K,
-    {
-        match goal {
-            Some(goal) => match (self.name_index(start), self.name_index(goal)) {
-                (Some(fidx), Some(tidx)) => self.dijkstra_impl(fidx, Some(tidx), edge_cost),
-                (None, None) => Err(()),
-                (None, Some(_)) => Err(()),
-                (Some(_), None) => Err(()),
-            },
-            _ => match self.name_index(start) {
-                Some(fidx) => self.dijkstra_impl(fidx, None, edge_cost),
-                _ => Err(()),
-            },
-        }
-    }
-
     /// Best first implementation.
     ///
     /// This is a key function that is later used to implement variants, this is possible due to the
@@ -631,21 +607,6 @@ where
             }
         }
         Err(())
-    }
-
-    pub fn dijkstra_impl<K, F>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        edge_cost: F,
-    ) -> Result<Steps<K, Ix>, ()>
-    where
-        K: Measure + Copy + Eq + Default + Ord + PartialOrd,
-        F: Fn(&E) -> K,
-    {
-        self.best_first_impl(start, goal, |_, edge, past, _| {
-            past + edge_cost(&self.inner[edge])
-        })
     }
 
     /// The implementation of Greedy best first
@@ -1115,7 +1076,12 @@ mod tests {
     fn test_dijkstra() {
         let graph = test_graph();
         let a = graph
-            .dijkstra("Arad", Some("Neamt"), |state| *state)
+            .perform_search(dijkstra::new(
+                &graph,
+                graph.journey("Arad", Some("Bucharest")).unwrap(),
+                |edge| *edge,
+                Direction::Outgoing,
+            ))
             .unwrap();
 
         for node in a {
