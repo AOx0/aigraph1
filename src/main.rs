@@ -1,23 +1,14 @@
 #![allow(non_snake_case)]
 
 use graph::petgraph::visit::{EdgeRef, IntoEdgeReferences};
-use graph::{
-    test_graph, test_graph2,
-    walkers::{Walker, WalkerState},
-    DefaultIx, Directed, EdgeType, IndexType, Node, PGraph,
-};
+use graph::walkers::*;
 use leptos::*;
+use plotters::prelude::*;
+use std::time::Duration;
 
 fn main() {
     mount_to_body(|cx| view! { cx,  <SimpleCounter /> })
 }
-
-use graph::walkers::DepthFirst;
-use graph::Direction::Outgoing;
-use plotters::prelude::*;
-
-// Note: the following replaces the same-named struct & method from fdg_img
-//  but allows a custom backend
 
 /// Parameters for drawing the SVG image.
 pub struct Settings {
@@ -193,66 +184,133 @@ impl SvgPlot {
 
 #[component]
 pub fn SimpleCounter(cx: Scope) -> impl IntoView {
+    let graph: &'static _ = Box::leak(Box::new(test_graph()));
+    let img = SvgPlot::new(graph.repr.clone(), None).print_to_string();
+    let (time, set_time) = create_signal(cx, 200);
+
     let elem_ref = create_node_ref(cx);
 
+    let (start, set_start) = create_signal(cx, "Arad".to_string());
+    let (end, set_end) = create_signal(cx, "Neamt".to_string());
+
     create_effect(cx, move |_| {
-        if let Some(elem) = elem_ref.get() {
+        if elem_ref.get().is_some() {
             request_animation_frame(move || {
                 let svg_container = document().get_element_by_id("svg-container").unwrap();
                 let child = svg_container.children().get_with_index(0).unwrap();
-                child.set_attribute("height", "100%");
-                child.set_attribute("width", "100%");
+                child.set_attribute("height", "100%").is_err().then(|| {
+                    log!("Failed to set height of child 0 of svg-container");
+                });
+                child.set_attribute("width", "100%").is_err().then(|| {
+                    log!("Failed to set width of child 0 of svg-container");
+                });
             });
         }
     });
 
     let search = move |_| {
-        let graph = test_graph2();
         spawn_local(async move {
-            let mut machine = DepthFirst::new(
-                &graph,
-                graph.journey("Cancun", Some("Cabo San Lucas")).unwrap(),
-                None,
-                Outgoing,
+            let journey = graph.journey(&start.get(), Some(&end.get())).unwrap();
+            let distances = graph.get_haversine_6371(journey.1.unwrap());
+            let mut machine = Beam::new(
+                graph,
+                journey,
+                2,
+                move |i1, i2| {
+                    (distances.get(i1).unwrap())
+                        .partial_cmp(distances.get(i2).unwrap())
+                        .unwrap()
+                },
+                Direction::Outgoing,
             );
 
-            let mut res: WalkerState<usize> = machine.step();
-
-            while !matches!(res, WalkerState::Done | WalkerState::Cutoff) {
+            loop {
+                let res = machine.step();
+                let ended = matches!(res, WalkerState::Done | WalkerState::Found(_));
                 if let Some(step) = res.step_peek() {
-                    async_std::task::sleep(std::time::Duration::from_secs_f32(0.2)).await;
-                    let polyline_list = document().get_elements_by_tag_name("polyline");
-                    let child = polyline_list
-                        .get_with_index(step.rel.unwrap_or_default().index() as u32)
-                        .unwrap();
-                    child.set_attribute("stroke", "#FFFFFF");
-                }
+                    let rel = step.rel.unwrap_or_default().index() as u32;
 
-                if let WalkerState::Found(_) = res {
+                    let time = time.get();
+                    if time != 0 {
+                        async_std::task::sleep(Duration::from_millis(time)).await;
+                    }
+                    request_animation_frame(move || {
+                        let polyline_list = document().get_elements_by_tag_name("polyline");
+                        let child = polyline_list.get_with_index(rel).unwrap();
+                        child.set_attribute("stroke", "#FFFFFF").is_err().then(|| {
+                            log!("Failed to set stroke to edge {}", rel);
+                        });
+                    });
+
+                    if time != 0 {
+                        async_std::task::sleep(Duration::from_millis(time / 2)).await;
+                    }
+                    request_animation_frame(move || {
+                        let polyline_list = document().get_elements_by_tag_name("polyline");
+                        let child = polyline_list.get_with_index(rel).unwrap();
+                        child.set_attribute("stroke", "#555555").is_err().then(|| {
+                            log!("Failed to set stroke to edge {}", rel);
+                        });
+                    });
+                }
+                if ended {
                     break;
                 }
-
-                res = machine.step();
             }
-        })
+        });
     };
 
     let restart = move |_| {
         let polyline_list = document().get_elements_by_tag_name("polyline");
         for child in 0..polyline_list.length() {
-            let child = polyline_list.get_with_index(child as u32).unwrap();
-            child.set_attribute("stroke", "#FF0000");
+            polyline_list
+                .get_with_index(child)
+                .unwrap()
+                .set_attribute("stroke", "#FF0000")
+                .is_err()
+                .then(|| {
+                    log!("Failed to reset stroke to edge {}", child);
+                });
         }
     };
 
-    let img = SvgPlot::new(test_graph2().repr, None).print_to_string();
-    // create user interfaces with the declarative `view!` macro
+    let set_start = move |e: web_sys::Event| {
+        use wasm_bindgen::JsCast;
+        let target = e
+            .target()
+            .unwrap()
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .unwrap();
+        set_start.set(target.value());
+    };
+    let set_end = move |e: web_sys::Event| {
+        use wasm_bindgen::JsCast;
+        let target = e
+            .target()
+            .unwrap()
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .unwrap();
+        set_end.set(target.value());
+    };
+    let set_time = move |e: web_sys::Event| {
+        use wasm_bindgen::JsCast;
+        let target = e
+            .target()
+            .unwrap()
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .unwrap();
+        set_time.set(target.value().parse().unwrap_or(200));
+    };
+
     view! {
         cx,
         <div class="flex items-center h-full w-full">
             <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-1/3 p-5">
                 <p class="text-xl md:text-2xl" >"aigraph1/"</p>
                 <div class="h-full w-full flex flex-col items-center justify-center space-y-5">
+                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Start" value={start.get()} on:input=set_start />
+                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="End" value={end.get()} on:input=set_end />
+                    <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Time" value={time.get()} on:input=set_time />
                     <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Method"/>
                     <button class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
                     <button class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>

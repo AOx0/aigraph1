@@ -3,8 +3,11 @@ pub mod breadth;
 pub mod depth;
 pub mod dijkstra;
 pub use super::*;
+pub mod best;
 
 pub use beam::Beam;
+pub use best::*;
+pub use best::*;
 pub use breadth::BreadthFirst;
 pub use depth::DepthFirst;
 pub use dijkstra::Dijkstra;

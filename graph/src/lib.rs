@@ -255,7 +255,7 @@ pub struct Node {
 /// - `Ix` is the number type value used as indexer for Edges and Nodes.
 pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     /// The inner [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
-    inner: PGraph<N, E, Ty, Ix>,
+    pub inner: PGraph<N, E, Ty, Ix>,
     pub repr: PGraph<Node, (), Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
     pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
@@ -525,7 +525,7 @@ where
     ) -> Result<Step<D, Ix>, WalkerState<D, Ix>> {
         let mut res = machine.step();
 
-        while !matches!(res, WalkerState::Done | WalkerState::Cutoff) {
+        while !matches!(res, WalkerState::Done) {
             if let WalkerState::Found(step) = res {
                 return Ok(step);
             }
