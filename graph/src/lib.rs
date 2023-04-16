@@ -179,6 +179,28 @@ impl<Ix: IndexType> StepUnit<Ix> {
             state: (),
         }
     }
+
+    pub fn collect_nodes<S>(step: Rc<Step<S, Ix>>) -> VecDeque<NodeIndex<Ix>> {
+        let mut nodes = VecDeque::new();
+        let step = Self::make_void(step);
+
+        for node in step.into_iter() {
+            nodes.push_front(node.idx);
+        }
+        nodes
+    }
+
+    pub fn collect_edges<S>(step: Rc<Step<S, Ix>>) -> VecDeque<EdgeIndex<Ix>> {
+        let mut nodes = VecDeque::new();
+        let step = Self::make_void(step);
+
+        for node in step.into_iter() {
+            if let Some(rel) = node.rel {
+                nodes.push_front(rel);
+            }
+        }
+        nodes
+    }
 }
 
 impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
