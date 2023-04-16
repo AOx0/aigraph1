@@ -18,8 +18,19 @@ jobs:
             toolchain: nightly
             override: true
 
-      - name: Update apt repositories
-        run: sudo apt update
+      - name: Install trunk
+        uses: jetli/trunk-action@v0.2.0
+        with:
+          version: 'latest'
+
+      - name: Install tailwindcss binary
+        run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-amd64
+          chmod +x tailwindcss-linux-amd64
+          sudo mv tailwindcss-linux-amd64 /usr/local/bin/tailwindcss
+
+      - name: Install wasm32 target
+        run: rustup target add wasm32-unknown-unknown
 
       - name: Cache Cargo
         uses: actions/cache@v2
@@ -33,15 +44,25 @@ jobs:
             target/release
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Fetch submodules
-        run: |
-          git submodule update --init --recursive
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
       - name: Build documentation
-        run: cargo doc --release 
-      - name: Publish documentation
+        run: cargo doc --release
+
+      - name: Build WASM website
+        run: env TRUNK_BUILD_PUBLIC_URL="./" trunk build --release
+
+      - name: Copy documentation to dist
         run: |
-          cd target/doc
-          git init
-          git add .
-          git -c user.name='ci' -c user.email='ci' commit -m 'Deploy documentation'
-          git push -f -q https://git:${{ secrets.github_token }}@github.com/${{ github.repository }} HEAD:gh-pages
+          mv target/doc/* dist/
+
+      - name: Deploy to target branch
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          force_orphan: true
