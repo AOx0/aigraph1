@@ -62,6 +62,7 @@ where
 {
     fn step(&mut self) -> WalkerState<K, Ix> {
         if let Some(parent) = {
+            // Pop the best node from the border
             let i = self
                 .border
                 .iter()
@@ -78,27 +79,24 @@ where
             for child_idx in self
                 .graph
                 .inner
-                .neighbors_directed(parent.idx.into(), Direction::Outgoing)
+                .neighbors_directed(parent.idx.into(), self.direction)
             {
                 let es_goal = self.goal.map(|goal| goal == child_idx).unwrap_or(false);
                 let has_kids = self
                     .graph
                     .inner
-                    .neighbors_directed(child_idx, Direction::Outgoing)
+                    .neighbors_directed(child_idx, self.direction)
                     .count()
                     != 0;
                 if es_goal || has_kids {
-                    let edge = self.graph.inner.find_edge(parent.idx, child_idx).unwrap();
+                    let edge = self.graph.edge_between(parent.idx, child_idx);
                     let step = Step {
                         caller: Some(parent.clone()),
                         idx: child_idx.into(),
-                        rel: Some(edge.into()),
+                        rel: Some(edge),
                         state: (self.h)(child_idx, edge, parent.state, parent.idx),
                     };
 
-                    if es_goal {
-                        return WalkerState::Found(step);
-                    }
                     self.border.push_front(step)
                 }
             }

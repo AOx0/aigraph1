@@ -58,7 +58,7 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
                         self.border.push_back(Step {
                             caller: Some(parent.clone()),
                             idx: child_idx.into(),
-                            rel: None,
+                            rel: Some(self.graph.edge_between(parent.idx, child_idx)),
                             state: (),
                         });
                     });

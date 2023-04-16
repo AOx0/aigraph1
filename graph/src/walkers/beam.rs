@@ -6,7 +6,6 @@ pub struct Beam<'a, I, N, E, Ty, Ix, F> {
     border: VecDeque<Step<(), Ix>>,
     successors: usize,
     neighbors: Vec<NodeIndex<Ix>>,
-    visited: FixedBitSet,
     compare: F,
     pub direction: Direction,
 }
@@ -27,7 +26,6 @@ where
             graph,
             goal: journey.1,
             successors,
-            visited: graph.visit_map(),
             neighbors: Vec::with_capacity(graph.edge_count()),
             border: {
                 let mut border = VecDeque::with_capacity(graph.node_count());
@@ -56,15 +54,6 @@ where
             }
 
             let parent = Rc::new(parent);
-
-            // We don't want to keep visiting the same node over and over again, specially if
-            // we have an animation delay.
-            if !self.visited.is_visited(&parent.idx) {
-                self.visited.visit(parent.idx);
-            } else {
-                return WalkerState::NotFound(parent);
-            }
-
             if self
                 .graph
                 .inner
