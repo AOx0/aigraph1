@@ -1,5 +1,20 @@
 use super::*;
 
+/// Best first implementation.
+///
+/// This is a key function that is later used to implement variants, this is possible due to the
+/// pattern all variants repeat, where only the heuristics function changes but te procedure is the same.
+///
+/// The following searching methods are implemented using this function:
+///     - Dijkstra
+///     - A*
+///     - A* Weighted
+///     - Greedy best first
+///
+/// The function takes a function `h` of type `F` for computing the heuristic value for each node.
+/// This function `F` has access to the node index on the graph, the edge index of the connection
+/// to its parent, the current state of the search instance and the index of its parent.
+/// With all these values, any heuristic can be calculated, I presume.
 pub struct BestFirst<'a, I, N, E, Ty, Ix, K, F> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
@@ -122,6 +137,104 @@ pub mod dijkstra {
             move |_: NodeIndex<Ix>, edge: EdgeIndex<Ix>, past: K, _: NodeIndex<Ix>| {
                 past + edge_cost(&graph.inner[edge])
             },
+            direction,
+        )
+    }
+}
+
+pub mod a_star {
+    use super::*;
+
+    pub fn new<'a, I, N, E, Ty: EdgeType, Ix: IndexType, K, G, F>(
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
+        h: G,
+        w: F,
+        direction: Direction,
+    ) -> BestFirst<
+        'a,
+        I,
+        N,
+        E,
+        Ty,
+        Ix,
+        K,
+        impl Fn(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K + 'a,
+    >
+    where
+        G: Fn(&NodeIndex<Ix>) -> K + 'a,
+        F: Fn(&E) -> K + 'a,
+        K: Measure + Copy + Default + PartialOrd + Mul<Output = K> + 'a,
+    {
+        BestFirst::new(
+            graph,
+            (journey.0, journey.1),
+            move |node, edge, _, _| h(&node) + w(&graph.inner[edge]),
+            direction,
+        )
+    }
+}
+
+pub mod greedy {
+    use super::*;
+
+    pub fn new<'a, I, N, E, Ty: EdgeType, Ix: IndexType, K, F>(
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
+        h: F,
+        direction: Direction,
+    ) -> BestFirst<
+        'a,
+        I,
+        N,
+        E,
+        Ty,
+        Ix,
+        K,
+        impl Fn(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K + 'a,
+    >
+    where
+        K: Measure + Copy + Default + PartialOrd + 'a,
+        F: Fn(&NodeIndex<Ix>) -> K + 'a,
+    {
+        BestFirst::new(
+            graph,
+            (journey.0, journey.1),
+            move |node, _, _, _| h(&node),
+            direction,
+        )
+    }
+}
+
+pub mod weighted_a_star {
+    use super::*;
+
+    pub fn new<'a, I, N, E, Ty: EdgeType, Ix: IndexType, K, G, F>(
+        graph: &'a Graph<I, N, E, Ty, Ix>,
+        journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
+        h: G,
+        w: F,
+        k: K,
+        direction: Direction,
+    ) -> BestFirst<
+        'a,
+        I,
+        N,
+        E,
+        Ty,
+        Ix,
+        K,
+        impl Fn(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K + 'a,
+    >
+    where
+        G: Fn(&NodeIndex<Ix>) -> K + 'a,
+        F: Fn(&E) -> K + 'a,
+        K: Measure + Copy + Default + PartialOrd + Mul<Output = K> + 'a,
+    {
+        BestFirst::new(
+            graph,
+            (journey.0, journey.1),
+            move |node, edge, _, _| h(&node) + k * w(&graph.inner[edge]),
             direction,
         )
     }

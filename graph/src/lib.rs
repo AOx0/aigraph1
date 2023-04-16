@@ -534,138 +534,6 @@ where
         Err(res)
     }
 
-    /// Best first implementation.
-    ///
-    /// This is a key function that is later used to implement variants, this is possible due to the
-    /// pattern all variants repeat, where only the heuristics function changes but te procedure is the same.
-    ///
-    /// The following searching methods are implemented using this function:
-    ///     - Dijkstra
-    ///     - A*
-    ///     - A* Weighted
-    ///     - Greedy best first
-    ///
-    /// The function takes a function `h` of type `F` for computing the heuristic value for each node.
-    /// This function `F` has access to the node index on the graph, the edge index of the connection
-    /// to its parent, the current state of the search instance and the index of its parent.
-    /// With all these values, any heuristic can be calculated, I presume.
-    pub fn best_first_impl<'a, K, F>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        h: F,
-    ) -> Result<Steps<K, Ix>, ()>
-    where
-        K: Default + Measure + Copy + PartialEq + PartialOrd,
-        F: Fn(NodeIndex<Ix>, EdgeIndex<Ix>, K, NodeIndex<Ix>) -> K,
-    {
-        let mut border = VecDeque::with_capacity(self.inner.node_count());
-        border.push_front(Step {
-            caller: None,
-            idx: start,
-            rel: None,
-            state: K::default(),
-        });
-
-        while let Some(parent) = {
-            let i = border
-                .iter()
-                .enumerate()
-                .min_by(|(_, s1), (_, s2)| s1.state.partial_cmp(&s2.state).unwrap())
-                .map(|(x, _)| x);
-            i.map(|i| border.remove(i).unwrap())
-        } {
-            if goal.map(|goal| goal == parent.idx).unwrap_or(false) {
-                return Ok(parent.into_iter());
-            }
-
-            let parent = Rc::new(parent);
-            for child_idx in self
-                .inner
-                .neighbors_directed(parent.idx.into(), petgraph::Direction::Outgoing)
-            {
-                let es_goal = goal.map(|goal| goal == child_idx).unwrap_or(false);
-                let tiene_hijos = self
-                    .inner
-                    .neighbors_directed(child_idx, petgraph::Direction::Outgoing)
-                    .count()
-                    != 0;
-                if es_goal || tiene_hijos {
-                    let edge = self.inner.find_edge(parent.idx, child_idx).unwrap();
-                    let step = Step {
-                        caller: Some(parent.clone()),
-                        idx: child_idx.into(),
-                        rel: Some(edge.into()),
-                        state: h(child_idx, edge, parent.state, parent.idx),
-                    };
-
-                    if es_goal {
-                        return Ok(step.into_iter());
-                    }
-                    border.push_front(step)
-                }
-            }
-        }
-        Err(())
-    }
-
-    /// The implementation of Greedy best first
-    ///
-    /// This is a variant of best first
-    pub fn greedy_best_first_impl<K, F>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        h: F,
-    ) -> Result<Steps<K, Ix>, ()>
-    where
-        K: Measure + Copy + Default + PartialOrd,
-        F: Fn(&NodeIndex<Ix>) -> K,
-    {
-        self.best_first_impl(start, goal, |node, _, _, _| h(&node))
-    }
-
-    /// The implementation of A*
-    ///
-    /// This is a variant of best first
-    pub fn a_star_impl<K, F, G>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        h: G,
-        w: F,
-    ) -> Result<Steps<K, Ix>, ()>
-    where
-        G: Fn(&NodeIndex<Ix>) -> K,
-        F: Fn(&E) -> K,
-        K: Measure + Copy + Default + PartialOrd,
-    {
-        self.best_first_impl(start, goal, |node, edge, _, _| {
-            h(&node) + w(&self.inner[edge])
-        })
-    }
-
-    /// The implementation of Weighted A*
-    ///
-    /// This is a variant of best first
-    pub fn weighted_a_star_impl<K, F, G>(
-        &self,
-        start: NodeIndex<Ix>,
-        goal: Option<NodeIndex<Ix>>,
-        h: G,
-        w: F,
-        k: K,
-    ) -> Result<Steps<K, Ix>, ()>
-    where
-        G: Fn(&NodeIndex<Ix>) -> K,
-        F: Fn(&E) -> K,
-        K: Measure + Copy + Default + PartialOrd + Mul<Output = K>,
-    {
-        self.best_first_impl(start, goal, |node, edge, _, _| {
-            h(&node) + k * w(&self.inner[edge])
-        })
-    }
-
     pub fn bidirectional<S: Debug, D: Debug>(
         &self,
         mut algo1: impl Walker<S, Ix>,
@@ -1031,35 +899,34 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_breadth_walker() {
-    //     let graph = test_graph();
-    //     let mut a = BreadthFirst::new(
-    //         &graph,
-    //         graph.name_index("Neamt").unwrap(),
-    //         Some(graph.name_index("Arad").unwrap()),
-    //         Direction::Incoming,
-    //     );
+    #[test]
+    fn test_breadth_walker() {
+        let graph = test_graph();
+        let mut a = BreadthFirst::new(
+            &graph,
+            graph.journey("Neamt", Some("Arad")).unwrap(),
+            Direction::Incoming,
+        );
 
-    //     let a = {
-    //         loop {
-    //             match a.step() {
-    //                 WalkerState::Found(result) => {
-    //                     break Some(result.into_iter());
-    //                 }
-    //                 WalkerState::Done => {
-    //                     break None;
-    //                 }
-    //                 _ => {}
-    //             }
-    //         }
-    //     }
-    //     .unwrap();
+        let a = {
+            loop {
+                match a.step() {
+                    WalkerState::Found(result) => {
+                        break Some(result.into_iter());
+                    }
+                    WalkerState::Done => {
+                        break None;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        .unwrap();
 
-    //     for node in a {
-    //         println!("{:#?}", graph.index_name(node.idx).unwrap());
-    //     }
-    // }
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
 
     #[test]
     fn test_distances() {
@@ -1092,12 +959,14 @@ mod tests {
     #[test]
     fn test_greedy_best_first() {
         let graph = test_graph();
-        let start = graph.name_index("Arad").unwrap();
-        let goal = graph.name_index("Bucharest").unwrap();
-        let graph = test_graph();
-        let distances = graph.get_haversine_6371(goal);
+        let distances = graph.get_haversine_6371(graph.name_index("Bucharest").unwrap());
         let a = graph
-            .greedy_best_first_impl(start, Some(goal), |index| *distances.get(index).unwrap())
+            .perform_search(greedy::new(
+                &graph,
+                graph.journey("Arad", Some("Bucharest")).unwrap(),
+                |index| *distances.get(index).unwrap(),
+                Direction::Outgoing,
+            ))
             .unwrap();
 
         for node in a {
@@ -1129,78 +998,73 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_dijkstra_walker() {
-    //     let graph = test_graph();
-    //     let mut a = Dijkstra::new(
-    //         &graph,
-    //         graph.name_index("Neamt").unwrap(),
-    //         Some(graph.name_index("Arad").unwrap()),
-    //         Direction::Incoming,
-    //         |state| *state,
-    //     );
+    #[test]
+    fn test_dijkstra_walker() {
+        let graph = test_graph();
+        let mut a = dijkstra::new(
+            &graph,
+            graph.journey("Arad", Some("Neamt")).unwrap(),
+            |state| *state,
+            Direction::Incoming,
+        );
 
-    //     let a = {
-    //         // let mut i = 0;
-    //         loop {
-    //             // i += 1;
-    //             // println!("{i}");
-    //             match a.step() {
-    //                 WalkerState::Found(result) => {
-    //                     break Some(result.into_iter());
-    //                 }
-    //                 WalkerState::Done => {
-    //                     break None;
-    //                 }
-    //                 _ => {}
-    //             }
-    //         }
-    //     }
-    //     .unwrap();
+        let a = {
+            // let mut i = 0;
+            loop {
+                // i += 1;
+                // println!("{i}");
+                match a.step() {
+                    WalkerState::Found(result) => {
+                        break Some(result.into_iter());
+                    }
+                    WalkerState::Done => {
+                        break None;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        .unwrap();
 
-    //     for node in a {
-    //         println!("{:#?}", graph.index_name(node.idx).unwrap());
-    //     }
-    // }
+        for node in a {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
 
-    // #[test]
-    // fn test_bidirectional() {
-    //     let graph = test_graph();
+    #[test]
+    fn test_bidirectional() {
+        let graph = test_graph();
 
-    //     let a = BreadthFirst::new(
-    //         &graph,
-    //         graph.name_index("Arad").unwrap(),
-    //         Some(graph.name_index("Neamt").unwrap()),
-    //         Direction::Outgoing,
-    //     );
-    //     let b = DepthFirst::new(
-    //         &graph,
-    //         graph.name_index("Arad").unwrap(),
-    //         Some(graph.name_index("Neamt").unwrap()),
-    //         None::<usize>,
-    //         Direction::Incoming,
-    //     );
+        let a = BreadthFirst::new(
+            &graph,
+            graph.journey("Arad", Some("Neamt")).unwrap(),
+            Direction::Outgoing,
+        );
+        let b = DepthFirst::new(
+            &graph,
+            graph.journey("Arad", Some("Neamt")).unwrap(),
+            None::<usize>,
+            Direction::Incoming,
+        );
 
-    //     let res = graph.bidirectional(a, b).unwrap();
-    //     for node in res {
-    //         println!("{:#?}", graph.index_name(node.idx).unwrap());
-    //     }
-    // }
+        let res = graph.bidirectional(a, b).unwrap();
+        for node in res {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
 
     #[test]
     fn test_a_star_impl() {
         let graph = test_graph();
-        let start = graph.name_index("Arad").unwrap();
-        let goal = graph.name_index("Bucharest").unwrap();
-        let graph = test_graph();
-        let distances = graph.get_haversine_6371(goal);
+        let distances = graph.get_haversine_6371(graph.name_index("Bucharest").unwrap());
         let a = graph
-            .a_star_impl(
-                start,
-                Some(goal),
+            .perform_search(a_star::new(
+                &graph,
+                graph.journey("Arad", Some("Bucharest")).unwrap(),
                 |index| *distances.get(index).unwrap(),
                 |state| *state as f32,
-            )
+                Direction::Outgoing,
+            ))
             .unwrap();
 
         for node in a {
@@ -1211,18 +1075,16 @@ mod tests {
     #[test]
     fn test_a_star_weight_impl() {
         let graph = test_graph();
-        let start = graph.name_index("Arad").unwrap();
-        let goal = graph.name_index("Bucharest").unwrap();
-        let graph = test_graph();
-        let distances = graph.get_haversine_6371(goal);
+        let distances = graph.get_haversine_6371(graph.name_index("Bucharest").unwrap());
         let a = graph
-            .weighted_a_star_impl(
-                start,
-                Some(goal),
+            .perform_search(weighted_a_star::new(
+                &graph,
+                graph.journey("Arad", Some("Bucharest")).unwrap(),
                 |index| *distances.get(index).unwrap(),
                 |state| *state as f32,
                 1.5,
-            )
+                Direction::Outgoing,
+            ))
             .unwrap();
 
         for node in a {

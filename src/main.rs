@@ -184,12 +184,12 @@ impl SvgPlot {
 
 #[component]
 pub fn SimpleCounter(cx: Scope) -> impl IntoView {
-    let graph: &'static _ = Box::leak(Box::new(test_graph()));
+    let graph: &'static _ = Box::leak(Box::new(test_graph2()));
     let img = SvgPlot::new(graph.repr.clone(), None).print_to_string();
 
     let (time, set_time) = create_signal(cx, 100);
-    let (start, set_start) = create_signal(cx, "Arad".to_string());
-    let (end, set_end) = create_signal(cx, "Neamt".to_string());
+    let (start, set_start) = create_signal(cx, "Cancun".to_string());
+    let (end, set_end) = create_signal(cx, "Cabo San Lucas".to_string());
     let elem_ref = create_node_ref(cx);
 
     create_effect(cx, move |_| {
@@ -211,11 +211,15 @@ pub fn SimpleCounter(cx: Scope) -> impl IntoView {
         spawn_local(async move {
             let journey = graph.journey(&start.get(), Some(&end.get())).unwrap();
             let distances = graph.get_haversine_6371(journey.1.unwrap());
-            let mut machine =
-                dijkstra::new(graph, journey, move |e| *e as usize, Direction::Outgoing);
+            let mut machine = greedy::new(
+                graph,
+                journey,
+                |index| *distances.get(index).unwrap(),
+                Direction::Outgoing,
+            );
 
             loop {
-                let res: WalkerState<usize> = machine.step();
+                let res: WalkerState<f32> = machine.step();
                 let ended = matches!(res, WalkerState::Done | WalkerState::Found(_));
                 if let Some(step) = res.step_peek() {
                     let rel = step.rel.unwrap_or_default().index() as u32;
