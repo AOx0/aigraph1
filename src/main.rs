@@ -12,6 +12,7 @@ fn main() {
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
+    let (bench_mode, set_bench_mode) = create_signal(cx, false);
     let graph: &'static _ = Box::leak(Box::new(test_graph2()));
     let img = SvgPlot::new(graph.repr.clone(), None).print_to_string();
 
@@ -121,13 +122,16 @@ pub fn App(cx: Scope) -> impl IntoView {
                     .await;
                 }
                 _ => {
-                    let machine = greedy::new(
-                        graph,
-                        journey,
-                        |index| *distances.get(index).unwrap(),
-                        Direction::Outgoing,
-                    );
-                    visual_search(time, machine).await;
+                    visual_search(
+                        time,
+                        greedy::new(
+                            graph,
+                            journey,
+                            |index| *distances.get(index).unwrap(),
+                            Direction::Outgoing,
+                        ),
+                    )
+                    .await;
                 }
             }
         })
@@ -140,12 +144,256 @@ pub fn App(cx: Scope) -> impl IntoView {
     let set_method = move |e: web_sys::Event| set_method.set(event_target_value(&e));
     let set_time =
         move |e: web_sys::Event| set_time.set(event_target_value(&e).parse().unwrap_or(100));
+    let toggle_bench_mode = move |_| set_bench_mode.set(!bench_mode.get());
+
+    let run_benches = move |_| {
+        restart_colors();
+        let journey = graph.journey(&start.get(), Some(&end.get())).unwrap();
+
+        // Clear tbody
+        let tbody = document().get_element_by_id("bench-results").unwrap();
+        tbody.set_inner_html("");
+
+        spawn_local(async move {
+            let distances = graph.get_haversine_6371(journey.1.unwrap());
+            let result = timed_search(a_star::new(
+                graph,
+                journey,
+                |index| *distances.get(index).unwrap(),
+                |state| *state as f32,
+                Direction::Outgoing,
+            ));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">A*</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+        spawn_local(async move {
+            let distances = graph.get_haversine_6371(journey.1.unwrap());
+            let result = timed_search(weighted_a_star::new(
+                graph,
+                journey,
+                |index| *distances.get(index).unwrap(),
+                |state| *state as f32,
+                1.5,
+                Direction::Outgoing,
+            ));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">Weighted A*</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+
+        spawn_local(async move {
+            let result = timed_search(dijkstra::new(
+                graph,
+                journey,
+                |edge| *edge,
+                Direction::Outgoing,
+            ));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">Dijkstra</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+
+        spawn_local(async move {
+            let distances = graph.get_haversine_6371(journey.1.unwrap());
+            let result = timed_search(greedy::new(
+                graph,
+                journey,
+                |index| *distances.get(index).unwrap(),
+                Direction::Outgoing,
+            ));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">Greedy</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+
+        spawn_local(async move {
+            let distances = graph.get_haversine_6371(journey.1.unwrap());
+            let result = timed_search(Beam::new(
+                graph,
+                journey,
+                2,
+                |i1, i2| {
+                    (distances.get(i1).unwrap())
+                        .partial_cmp(distances.get(i2).unwrap())
+                        .unwrap()
+                },
+                Direction::Outgoing,
+            ));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">Beam</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+
+        spawn_local(async move {
+            let result = timed_search(BreadthFirst::new(graph, journey, Direction::Outgoing));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">Breadth First</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+
+        spawn_local(async move {
+            let result = timed_search(DepthFirst::new(
+                graph,
+                journey,
+                None::<usize>,
+                Direction::Outgoing,
+            ));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">Depth First</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+    };
+
+    create_effect(cx, move |prev_value| {
+        if bench_mode.get() != prev_value.flatten().unwrap_or_default() {
+            request_animation_frame(move || {
+                let bench_mode = bench_mode;
+                let bench_related = &[
+                    "bench-title",
+                    "bench-start",
+                    "bench-container",
+                    "bench-toggle",
+                ];
+                let graph_related = &[
+                    "graph-title",
+                    "graph-start",
+                    "graph-restart",
+                    "svg-container",
+                    "graph-toggle",
+                    "graph-selector",
+                    "graph-time",
+                ];
+
+                if bench_mode.get() {
+                    for i in bench_related {
+                        let elem = document().get_element_by_id(i).unwrap();
+                        elem.class_list().remove_1("hidden").is_err().then(|| {
+                            log!("Failed to remove hidden class from {}", i);
+                        });
+                    }
+                    for i in graph_related {
+                        let elem = document().get_element_by_id(i).unwrap();
+                        elem.class_list().add_1("hidden").is_err().then(|| {
+                            log!("Failed to add hidden class to {}", i);
+                        });
+                    }
+                } else {
+                    for i in bench_related {
+                        let elem = document().get_element_by_id(i).unwrap();
+                        elem.class_list().add_1("hidden").is_err().then(|| {
+                            log!("Failed to add hidden class to {}", i);
+                        });
+                    }
+                    for i in graph_related {
+                        let elem = document().get_element_by_id(i).unwrap();
+                        elem.class_list().remove_1("hidden").is_err().then(|| {
+                            log!("Failed to remove hidden class from {}", i);
+                        });
+                    }
+                }
+            });
+        }
+        Some(bench_mode.get())
+    });
 
     view! {
         cx,
-        <div class="flex flex-col md:flex-row items-center h-full w-full">
+        <div id="graph-container" class="flex flex-col md:flex-row items-center h-full w-full">
             <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-full md:w-1/3 p-5">
-                <p class="text-xl md:text-2xl" >"aigraph1/"</p>
+                <p id="graph-title" class="text-xl md:text-2xl" >"aigraph1/graph"</p>
+                <p id="bench-title" class="hidden text-xl md:text-2xl" >"aigraph1/bench"</p>
                 <div class="h-full w-full flex flex-col items-center justify-center space-y-5">
                     <div>
                         <p class="text-sm font-bold pb-1" >"Starting node"</p>
@@ -155,11 +403,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                         <p class="text-sm font-bold pb-1" >"Target node"</p>
                         <input class="dark:bg-[#0d1117] rounded p-2" placeholder="End" prop:value={end.get()} on:input=set_end />
                     </div>
-                    <div>
+                    <div id="graph-time">
                         <p class="text-sm font-bold pb-1" >"Delay (ms)"</p>
                         <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Time" prop:value={time.get()} on:input=set_time />
                     </div>
-                    <div class="overflow-y-scroll">
+                    <div id="graph-selector" class="overflow-y-scroll">
                         <select class="dark:bg-[#0d1117] rounded p-2" prop:value={method.get()} on:input=set_method>
                             <option value="A*">"A*"</option>
                             <option value="Weighted A*">"Weighted A*"</option>
@@ -171,12 +419,36 @@ pub fn App(cx: Scope) -> impl IntoView {
                         </select>
                     </div>
                     <div class="flex space-x-5">
-                        <button class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
-                        <button class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>
+                        <button id="bench-start" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=run_benches>"Start benches"</button>
+                        <button id="graph-start" class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
+                        <button id="graph-restart" class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>
                     </div>
+                    <button id="graph-toggle" class="dark:bg-[#0d1117] rounded p-2" on:click=toggle_bench_mode>"Change to bench mode"</button>
+                    <button id="bench-toggle" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=toggle_bench_mode>"Change to visual mode"</button>
                 </div>
             </div>
-            <div _ref=elem_ref id="svg-container" inner_html=img class="c-block justify-items-center flex w-full md:w-2/3 h-full"/>
+            <div _ref=elem_ref id="svg-container" inner_html={&img} class="c-block justify-items-center flex w-full md:w-2/3 h-full"/>
+            <div _ref=elem_ref id="bench-container" class="hidden items-center justify-center flex w-full md:w-2/3 h-full">
+                // Minimal tailwindcss table with method name, time, iterations and cost
+                <table class="table-auto">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2">"Method"</th>
+                            <th class="px-4 py-2">"Time (ms)"</th>
+                            <th class="px-4 py-2">"Iterations"</th>
+                            <th class="px-4 py-2">"Cost"</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bench-results">
+                        <tr>
+                            <td class="border-t border-b px-4 py-2">{"Dijkstra"}</td>
+                            <td class="border-t border-b px-4 py-2">{"34 ms"}</td>
+                            <td class="border-t border-b px-4 py-2">{"123"}</td>
+                            <td class="border-t border-b px-4 py-2">{"34.43"}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
 }
@@ -185,6 +457,46 @@ fn restart_colors() {
     let polyline_list = document().get_elements_by_tag_name("polyline");
     for child in 0..polyline_list.length() {
         set_stroke(child, "#FF0000");
+    }
+}
+
+fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, WalkerState<S>) {
+    let mut iter = 0;
+    let start = window()
+        .performance()
+        .map(|p| p.now())
+        .unwrap_or(js_sys::Date::now());
+
+    loop {
+        iter += 1;
+
+        let res: WalkerState<_> = machine.step();
+
+        match res {
+            WalkerState::Found(step) => {
+                return (
+                    window()
+                        .performance()
+                        .map(|p| p.now())
+                        .unwrap_or(js_sys::Date::now())
+                        - start,
+                    iter,
+                    WalkerState::Found(step),
+                );
+            }
+            WalkerState::Done => {
+                return (
+                    window()
+                        .performance()
+                        .map(|p| p.now())
+                        .unwrap_or(js_sys::Date::now())
+                        - start,
+                    iter,
+                    WalkerState::Done,
+                );
+            }
+            _ => {}
+        }
     }
 }
 
