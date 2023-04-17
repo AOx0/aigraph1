@@ -336,6 +336,10 @@ pub fn App(cx: Scope) -> impl IntoView {
         });
     };
 
+    spawn_local(async move {
+        run_benches(web_sys::MouseEvent::new("click").unwrap());
+    });
+
     create_effect(cx, move |prev_value| {
         if bench_mode.get() != prev_value.flatten().unwrap_or_default() {
             request_animation_frame(move || {
@@ -419,7 +423,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         </select>
                     </div>
                     <div class="flex space-x-5">
-                        <button id="bench-start" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=run_benches>"Start benches"</button>
+                        <button id="bench-start" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=run_benches>"Re-run benches"</button>
                         <button id="graph-start" class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
                         <button id="graph-restart" class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>
                     </div>
