@@ -18,7 +18,7 @@ web-sys = { workspace = true, optional = true }
 wasm-bindgen-futures = "0.4.34"
 async-std = "1.12.0"
 anyhow = "1.0.70"
-rand = "0.8.5"
+rand = { version = "0.8.5", default-features = false, features = ["alloc", "libc", "rand_chacha"] }
 
 [features]
 wasm = ["leptos", "wasm-bindgen", "js-sys", "web-sys"]

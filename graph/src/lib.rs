@@ -203,6 +203,18 @@ impl<Ix: IndexType> StepUnit<Ix> {
     }
 }
 
+impl<S, Ix> Step<S, Ix> {
+    pub fn chain_size(&self) -> usize {
+        let mut size = 0;
+        let mut step = self;
+        while let Some(caller) = step.caller.as_ref() {
+            size += 1;
+            step = caller;
+        }
+        size
+    }
+}
+
 impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
     fn clone(&self) -> Self {
         Self {

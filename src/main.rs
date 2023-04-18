@@ -183,17 +183,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">A*</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("A*", result));
             tbody.append_child(&row).unwrap();
         });
         spawn_local(async move {
@@ -210,17 +200,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">Weighted A*</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("Weighted A*", result));
             tbody.append_child(&row).unwrap();
         });
 
@@ -235,17 +215,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">Dijkstra</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("Dijkstra", result));
             tbody.append_child(&row).unwrap();
         });
 
@@ -261,17 +231,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">Greedy</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("Greedy", result));
             tbody.append_child(&row).unwrap();
         });
 
@@ -292,17 +252,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">Beam</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("Beam", result));
             tbody.append_child(&row).unwrap();
         });
 
@@ -322,17 +272,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">Hill</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("Hill", result));
             tbody.append_child(&row).unwrap();
         });
 
@@ -342,17 +282,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">Breadth First</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("Breadth First", result));
             tbody.append_child(&row).unwrap();
         });
 
@@ -367,17 +297,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
             let row = document().create_element("tr").unwrap();
-            row.set_inner_html(&format!(
-                "<tr>
-                    <td class=\"border-t border-b px-4 py-2\">Depth First</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{}</td>
-                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
-                </tr>",
-                result.0,
-                result.1,
-                result.2.step_peek().map(|s| s.state).unwrap_or_default()
-            ));
+            row.set_inner_html(&gen_row("Depth First", result));
             tbody.append_child(&row).unwrap();
         });
     };
@@ -487,17 +407,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <th class="px-4 py-2">"Method"</th>
                             <th class="px-4 py-2">"Time (ms)"</th>
                             <th class="px-4 py-2">"Iterations"</th>
+                            <th class="px-4 py-2">"Size"</th>
                             <th class="px-4 py-2">"Cost"</th>
                         </tr>
                     </thead>
-                    <tbody id="bench-results">
-                        <tr>
-                            <td class="border-t border-b px-4 py-2">{"Dijkstra"}</td>
-                            <td class="border-t border-b px-4 py-2">{"34 ms"}</td>
-                            <td class="border-t border-b px-4 py-2">{"123"}</td>
-                            <td class="border-t border-b px-4 py-2">{"34.43"}</td>
-                        </tr>
-                    </tbody>
+                    <tbody id="bench-results" />
                 </table>
             </div>
         </div>
@@ -511,7 +425,7 @@ fn restart_colors() {
     }
 }
 
-fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, WalkerState<S>) {
+fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, usize, WalkerState<S>) {
     let mut iter = 0;
     let start = window()
         .performance()
@@ -532,6 +446,7 @@ fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, WalkerState<S>) 
                         .unwrap_or(js_sys::Date::now())
                         - start,
                     iter,
+                    step.chain_size(),
                     WalkerState::Found(step),
                 );
             }
@@ -543,6 +458,7 @@ fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, WalkerState<S>) 
                         .unwrap_or(js_sys::Date::now())
                         - start,
                     iter,
+                    0,
                     WalkerState::Done,
                 );
             }
@@ -601,4 +517,24 @@ fn set_stroke(rel: u32, stroke: &'static str) {
             log!("Failed to set stroke to edge {}", rel);
         });
     });
+}
+
+fn gen_row<S: Default + std::fmt::Debug + Copy>(
+    name: &str,
+    result: (f64, usize, usize, WalkerState<S>),
+) -> String {
+    format!(
+        "<tr>
+    <td class=\"border-t border-b px-4 py-2\">{}</td>
+    <td class=\"border-t border-b px-4 py-2\">{}</td>
+    <td class=\"border-t border-b px-4 py-2\">{}</td>
+    <td class=\"border-t border-b px-4 py-2\">{}</td>
+    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+    </tr>",
+        name,
+        result.0,
+        result.1,
+        result.2,
+        result.3.step_peek().map(|s| s.state).unwrap_or_default()
+    )
 }
