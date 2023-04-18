@@ -3,11 +3,13 @@ pub mod breadth;
 pub mod depth;
 pub use super::*;
 pub mod best;
+pub mod hill;
 
 pub use beam::*;
 pub use best::*;
 pub use breadth::*;
 pub use depth::*;
+pub use hill::*;
 
 #[derive(Debug)]
 pub enum WalkerState<S, Ix = DefaultIx> {
@@ -31,3 +33,4 @@ impl<S, Ix> WalkerState<S, Ix> {
 pub trait Walker<S, Ix = DefaultIx> {
     fn step(&mut self) -> WalkerState<S, Ix>;
 }
+

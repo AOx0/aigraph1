@@ -107,6 +107,22 @@ pub fn App(cx: Scope) -> impl IntoView {
                     )
                     .await;
                 }
+                "Hill" => {
+                    visual_search(
+                        time,
+                        Hill::new(
+                            &graph,
+                            journey,
+                            |i1, i2| {
+                                (distances.get(i1).unwrap())
+                                    .partial_cmp(distances.get(i2).unwrap())
+                                    .unwrap()
+                            },
+                            Direction::Outgoing,
+                        ),
+                    )
+                    .await;
+                }
                 "BFS" => {
                     visual_search(
                         time,
@@ -291,6 +307,36 @@ pub fn App(cx: Scope) -> impl IntoView {
         });
 
         spawn_local(async move {
+            let distances = graph.get_haversine_6371(journey.1.unwrap());
+            let result = timed_search(Hill::new(
+                graph,
+                journey,
+                |i1, i2| {
+                    (distances.get(i1).unwrap())
+                        .partial_cmp(distances.get(i2).unwrap())
+                        .unwrap()
+                },
+                Direction::Outgoing,
+            ));
+
+            // Add result to tbody
+            let tbody = document().get_element_by_id("bench-results").unwrap();
+            let row = document().create_element("tr").unwrap();
+            row.set_inner_html(&format!(
+                "<tr>
+                    <td class=\"border-t border-b px-4 py-2\">Hill</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{}</td>
+                    <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+                </tr>",
+                result.0,
+                result.1,
+                result.2.step_peek().map(|s| s.state).unwrap_or_default()
+            ));
+            tbody.append_child(&row).unwrap();
+        });
+
+        spawn_local(async move {
             let result = timed_search(BreadthFirst::new(graph, journey, Direction::Outgoing));
 
             // Add result to tbody
@@ -420,6 +466,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <option value="DFS">"DFS"</option>
                             <option value="Dijkstra">"Dijkstra"</option>
                             <option value="Greedy">"Greedy"</option>
+                            <option value="Hill">"Hill"</option>
                         </select>
                     </div>
                     <div class="flex space-x-5">
@@ -523,7 +570,7 @@ async fn visual_search<S>(time: ReadSignal<u64>, mut machine: impl Walker<S>) {
                     .for_each(|edge| set_stroke(edge.index() as u32, "#FFFFFF"));
 
                 if time != 0 {
-                    sleep(std::time::Duration::from_millis(time / 2)).await;
+                    sleep(std::time::Duration::from_millis(50)).await;
                 }
                 edges
                     .into_iter()
