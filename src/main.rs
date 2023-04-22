@@ -343,6 +343,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <div>
                     <p id="graph-title" class="text-xl md:text-2xl" >"aigraph1/graph"</p>
                     <p id="bench-title" class="hidden text-xl md:text-2xl" >"aigraph1/bench"</p>
+                    <a href="./graph/" class="text-sm" target="_blank">"docs/"</a>
                 </div>
                 <div class="h-full w-full flex flex-col items-center justify-center space-y-5">
                     <div>
