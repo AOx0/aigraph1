@@ -16,7 +16,7 @@ pub fn App(cx: Scope) -> impl IntoView {
     let graph: &'static _ = Box::leak(Box::new(test_graph2()));
     let img = SvgPlot::new(graph.repr.clone(), None).print_to_string();
 
-    let (time, set_time) = create_signal(cx, 100);
+    let (time, set_time) = create_signal(cx, 10);
     let (start, set_start) = create_signal(cx, "Cancun".to_string());
     let (end, set_end) = create_signal(cx, "Cabo San Lucas".to_string());
     let (method, set_method) = create_signal(cx, "A*".to_string());
@@ -159,7 +159,7 @@ pub fn App(cx: Scope) -> impl IntoView {
     let set_end = move |e: web_sys::Event| set_end.set(event_target_value(&e));
     let set_method = move |e: web_sys::Event| set_method.set(event_target_value(&e));
     let set_time =
-        move |e: web_sys::Event| set_time.set(event_target_value(&e).parse().unwrap_or(100));
+        move |e: web_sys::Event| set_time.set(event_target_value(&e).parse().unwrap_or(10));
     let toggle_bench_mode = move |_| set_bench_mode.set(!bench_mode.get());
 
     let run_benches = move |_| {
@@ -361,9 +361,11 @@ pub fn App(cx: Scope) -> impl IntoView {
     view! {
         cx,
         <div id="graph-container" class="flex flex-col md:flex-row items-center h-full w-full">
-            <div class="flex flex-col space-y-5 bg-gray-900 w-full h-auto md:h-full w-full md:w-1/3 p-5">
-                <p id="graph-title" class="text-xl md:text-2xl" >"aigraph1/graph"</p>
-                <p id="bench-title" class="hidden text-xl md:text-2xl" >"aigraph1/bench"</p>
+            <div class="flex flex-col justify-between space-y-5 bg-gray-900 w-full h-auto md:h-full w-full md:w-1/3 p-5">
+                <div>
+                    <p id="graph-title" class="text-xl md:text-2xl" >"aigraph1/graph"</p>
+                    <p id="bench-title" class="hidden text-xl md:text-2xl" >"aigraph1/bench"</p>
+                </div>
                 <div class="h-full w-full flex flex-col items-center justify-center space-y-5">
                     <div>
                         <p class="text-sm font-bold pb-1" >"Starting node"</p>
@@ -397,6 +399,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <button id="graph-toggle" class="dark:bg-[#0d1117] rounded p-2" on:click=toggle_bench_mode>"Change to bench mode"</button>
                     <button id="bench-toggle" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=toggle_bench_mode>"Change to visual mode"</button>
                 </div>
+                <div/>
             </div>
             <div _ref=elem_ref id="svg-container" inner_html={&img} class="c-block justify-items-center flex w-full md:w-2/3 h-full"/>
             <div _ref=elem_ref id="bench-container" class="hidden items-center justify-center flex w-full md:w-2/3 h-full">
