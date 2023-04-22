@@ -7,8 +7,11 @@ use super::*;
 ///
 /// Steps can store a type `S` which can be used to hold any information like
 /// total weight or any other primitive or structure.
+///
+/// The `Step` type is a singly linked list, where each step has a reference to its parent.
+/// It is a singly linked list because we only need to go backwards to the root node to get the path.
 #[derive(Debug)]
-pub struct Step<S, Ix> {
+pub struct Step<S = f64, Ix = DefaultIx> {
     /// The parent State that invoked this instance.
     /// If the option is None then it means we arrived to the root state.
     pub caller: Option<Rc<Step<S, Ix>>>,
@@ -27,7 +30,7 @@ impl<S, Ix: IndexType> Step<S, Ix> {
     /// To get the nodes in the correct order, you need to reverse the result with `rev()`.
     ///
     /// This is an O(n) operation.
-    pub fn collect_nodes(&self) -> VecDeque<NodeIndex<Ix>> {
+    pub fn collect_nodes(&self) -> Vec<NodeIndex<Ix>> {
         self.iter().map(|step| step.idx).collect()
     }
 
@@ -37,7 +40,7 @@ impl<S, Ix: IndexType> Step<S, Ix> {
     /// To get the edges in the correct order, you need to reverse the result with `rev()`.
     ///
     /// This is an O(n) operation.
-    pub fn collect_edges(&self) -> VecDeque<EdgeIndex<Ix>> {
+    pub fn collect_edges(&self) -> Vec<EdgeIndex<Ix>> {
         self.iter().filter_map(|step| step.rel).collect()
     }
 
@@ -72,7 +75,7 @@ impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
 
 /// An iterator over the borrowed steps of a step chain
 #[derive(Debug)]
-pub struct Iter<'a, S, Ix = DefaultIx> {
+pub struct Iter<'a, S, Ix> {
     current: Option<&'a Step<S, Ix>>,
 }
 

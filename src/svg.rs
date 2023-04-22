@@ -38,15 +38,12 @@ impl Default for Settings {
 }
 
 pub struct SvgPlot {
-    pub plot_type: PGraph<Node, (), Directed, DefaultIx>,
+    pub plot_type: PGraph<Node, (), Directed, u32>,
     pub settings: Settings,
 }
 
 impl SvgPlot {
-    pub fn new(
-        plot_type: PGraph<Node, (), Directed, DefaultIx>,
-        settings: Option<Settings>,
-    ) -> Self {
+    pub fn new(plot_type: PGraph<Node, (), Directed, u32>, settings: Option<Settings>) -> Self {
         let settings = settings.unwrap_or_default();
         let mut s = Self {
             settings,

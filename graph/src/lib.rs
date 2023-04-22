@@ -3,9 +3,8 @@ use fixedbitset::FixedBitSet;
 use glam::f32::Vec2;
 use num::{One, Zero};
 pub use petgraph;
-pub use petgraph::stable_graph::{
-    DefaultIx, EdgeIndex, IndexType, NodeIndex, StableGraph as PGraph,
-};
+use petgraph::stable_graph::DefaultIx;
+pub use petgraph::stable_graph::{EdgeIndex, IndexType, NodeIndex, StableGraph as PGraph};
 pub use petgraph::Direction;
 use petgraph::{
     algo::Measure,
@@ -24,7 +23,7 @@ use unicase::Ascii;
 
 mod step;
 pub mod walkers;
-use step::*;
+pub use step::*;
 use walkers::{Walker, WalkerState};
 
 /// Counts the number of nodes and edges of the graph
@@ -51,7 +50,7 @@ macro_rules! count {
 /// Example:
 /// ```rust
 /// use graph::{Graph, graph, count};
-/// let graph: Graph<&str, (), u8> = graph! {
+/// let graph: Graph<&str, (), u8, graph::Directed, u32> = graph! {
 ///     with_node: (),
 ///     with_edges: unchecked_next,
 ///     nodes: [ "A", "B", "C", "D", "E" ],
@@ -91,7 +90,7 @@ macro_rules! graph {
         nodes: [$($ident:expr => $node:expr),*],
         connections: [ $($from:expr => {$(($type:tt, $cost:expr) {$($to:expr),+}),+}),* ]
     ) => {{
-        let mut g = Graph::with_capacity(count!($($node)*), count!($($({$from;$($to)+})+)*) );
+        let mut g = Graph::<_, _, _, _, _>::with_capacity(count!($($node)*), count!($($({$from;$($to)+})+)*) );
         $(g.unchecked_register($ident, $node));*;
         $(
             $($(g.$type($from, $to,$cost));+);+
@@ -131,7 +130,7 @@ pub struct Node {
 /// - `E` is the type used to store values within the graph's edges
 /// - `Ty` is the Graph connection type. [`petgraph::Directed`](../petgraph/enum.Directed.html) by default
 /// - `Ix` is the number type value used as indexer for Edges and Nodes.
-pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
+pub struct Graph<I, N, E, Ty, Ix = DefaultIx> {
     /// The inner [`petgraph::Graph<N, E, Ty, Ix>`](../petgraph/graph/struct.Graph.html)
     pub inner: PGraph<N, E, Ty, Ix>,
     pub repr: PGraph<Node, (), Ty, Ix>,
@@ -150,46 +149,63 @@ pub trait Coords {
 
 /// Implementation block for distance methods for Graphs where its type N has the Coords trait.
 /// The trait Coords is necessary to extract the node coordinates from any given generic N type.
-impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
+impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
 where
     N: Coords,
+    Ty: EdgeType,
+    Ix: IndexType,
 {
-    /// Get the distance between two nodes using the Haversine formula with a constant radius of 6371 km
-    pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f32> {
-        self.get_haversine(to, 6371.)
+    /// Get the distance to all nodes from a given node `idx` with the Haversine formula using the Earth radius as 6371 km
+    pub fn get_haversine_table_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f32> {
+        self.get_haversine_table(to, 6371.)
     }
 
-    /// Haversine distance with a given radius `r`
+    /// Haversine distance between two nodes using a given radius `r` as the Earth radius
+    ///
     /// Formula from <https://en.wikipedia.org/wiki/Haversine_formula#Formulation>
-    pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f32) -> HashMap<NodeIndex<Ix>, f32> {
+    pub fn get_haversine(&self, from: NodeIndex<Ix>, to: NodeIndex<Ix>, r: f32) -> f32 {
         use std::f32::consts::PI;
 
-        let w_original = self.inner.node_weight(to).unwrap();
+        // Get the coordinates of the origin node
+        let w_original = self.inner.node_weight(from).unwrap();
         let (x1, y1) = (
             w_original.get_x() * PI / 180.,
             w_original.get_y() * PI / 180.,
         );
+
+        // Get the coordinates of the destination node
+        let node = self.inner.node_weight(to).unwrap();
+        let (x2, y2) = (&node.get_x() * PI / 180., &node.get_y() * PI / 180.);
+
+        // Calculate the distance between the two nodes
+        let distance = 2. * r * {
+            {
+                ((x2 - x1) / 2.).sin().powi(2)
+                    + x1.cos() * x2.cos() * ((y2 - y1) / 2.).sin().powi(2)
+            }
+            .sqrt()
+        }
+        .asin();
+        distance
+    }
+
+    /// Get the distance to all nodes in the graph using the Haversine formula.
+    ///
+    /// The returned HashMap has the node index as key and the distance as value.
+    pub fn get_haversine_table(&self, to: NodeIndex<Ix>, r: f32) -> HashMap<NodeIndex<Ix>, f32> {
         self.inner
             .node_indices()
             .into_iter()
-            .map(|idx| {
-                let node = self.inner.node_weight(idx).unwrap();
-                let (x2, y2) = (&node.get_x() * PI / 180., &node.get_y() * PI / 180.);
-                let distance = 2. * r * {
-                    {
-                        ((x2 - x1) / 2.).sin().powi(2)
-                            + x1.cos() * x2.cos() * ((y2 - y1) / 2.).sin().powi(2)
-                    }
-                    .sqrt()
-                }
-                .asin();
-                (idx, distance)
-            })
+            .map(|idx| (idx, self.get_haversine(idx, to, r)))
             .collect::<HashMap<_, _>>()
     }
 }
 
-impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
+impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
+where
+    Ty: EdgeType,
+    Ix: IndexType,
+{
     /// Create a new empty instance of [`graph::Graph`](./struct.Graph.html)
     pub fn new() -> Self {
         Self {
@@ -205,10 +221,10 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
     /// graph we do call this constructor to save a couple calls to the allocator
     pub fn with_capacity(nodes: usize, edges: usize) -> Self {
         Self {
-            inner: PGraph::with_capacity(nodes, edges),
+            inner: PGraph::<N, E, Ty, Ix>::with_capacity(nodes, edges),
             nodes: HashMap::with_capacity(nodes),
             repr_nodes: HashMap::with_capacity(nodes),
-            repr: PGraph::with_capacity(nodes, edges),
+            repr: PGraph::<Node, (), Ty, Ix>::with_capacity(nodes, edges),
         }
     }
 
@@ -239,9 +255,11 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
     }
 }
 
-impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
+impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
 where
     I: Copy + Hash + Eq + Debug + Display,
+    Ty: EdgeType,
+    Ix: IndexType,
     Ascii<I>: Copy + Hash + Eq,
     NodeIndex: From<NodeIndex<Ix>>,
     EdgeIndex: From<EdgeIndex<Ix>>,
@@ -467,7 +485,7 @@ impl Coords for () {
 }
 
 #[allow(dead_code)]
-pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
+pub fn test_graph() -> Graph<&'static str, (f32, f32), u16, Directed, u32> {
     let mut g = graph! {
         with_edges: unchecked_next,
         nodes: [
@@ -516,8 +534,8 @@ pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
     g
 }
 
-pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16> {
-    let mut graph: Graph<&'static str, (f32, f32), u16> = graph! {
+pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16, Directed> {
+    let mut graph = graph! {
         with_edges: unchecked_next,
         nodes: [
             "Acapulco" => ( -99.82365329900568, 16.85310859874989 ),
@@ -742,7 +760,7 @@ mod tests {
     fn test_distances() {
         let graph = test_graph();
         for (k, v) in graph
-            .get_haversine_6371(graph.name_index("Bucharest").unwrap())
+            .get_haversine_table_6371(graph.name_index("Bucharest").unwrap())
             .into_iter()
         {
             println!("{}: {}", graph.index_name(k).unwrap(), v);
@@ -769,7 +787,7 @@ mod tests {
     #[test]
     fn test_greedy_best_first() {
         let graph = test_graph();
-        let distances = graph.get_haversine_6371(graph.name_index("Bucharest").unwrap());
+        let distances = graph.get_haversine_table_6371(graph.name_index("Bucharest").unwrap());
         let a = graph
             .perform_search(greedy::new(
                 &graph,
@@ -788,7 +806,7 @@ mod tests {
     fn test_beam_impl() {
         let graph = test_graph();
         let journey = graph.journey("Arad", Some("Bucharest")).unwrap();
-        let distances = graph.get_haversine_6371(journey.1.unwrap());
+        let distances = graph.get_haversine_table_6371(journey.1.unwrap());
         let a = graph
             .perform_search(walkers::Beam::new(
                 &graph,
@@ -866,7 +884,7 @@ mod tests {
     #[test]
     fn test_a_star_impl() {
         let graph = test_graph();
-        let distances = graph.get_haversine_6371(graph.name_index("Bucharest").unwrap());
+        let distances = graph.get_haversine_table_6371(graph.name_index("Bucharest").unwrap());
         let a = graph
             .perform_search(a_star::new(
                 &graph,
@@ -885,7 +903,7 @@ mod tests {
     #[test]
     fn test_a_star_weight_impl() {
         let graph = test_graph();
-        let distances = graph.get_haversine_6371(graph.name_index("Bucharest").unwrap());
+        let distances = graph.get_haversine_table_6371(graph.name_index("Bucharest").unwrap());
         let a = graph
             .perform_search(weighted_a_star::new(
                 &graph,
