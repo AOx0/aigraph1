@@ -108,7 +108,7 @@ impl SvgPlot {
     }
 
     /// Based on
-    ///     - https://github.com/grantshandy/fdg/blob/main/fdg-img/src/lib.rs
+    ///     - <https://github.com/grantshandy/fdg/blob/main/fdg-img/src/lib.rs>
     /// Generate an image from a graph and a force.
     fn draw_on_backend<Backend>(
         &self,

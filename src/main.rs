@@ -172,13 +172,16 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         spawn_local(async move {
             let distances = graph.get_haversine_6371(journey.1.unwrap());
-            let result = timed_search(a_star::new(
-                graph,
-                journey,
-                |index| *distances.get(index).unwrap(),
-                |state| *state as f32,
-                Direction::Outgoing,
-            ));
+            let result = timed_search(
+                a_star::new(
+                    graph,
+                    journey,
+                    |index| *distances.get(index).unwrap(),
+                    |state| *state as f32,
+                    Direction::Outgoing,
+                ),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -188,14 +191,17 @@ pub fn App(cx: Scope) -> impl IntoView {
         });
         spawn_local(async move {
             let distances = graph.get_haversine_6371(journey.1.unwrap());
-            let result = timed_search(weighted_a_star::new(
-                graph,
-                journey,
-                |index| *distances.get(index).unwrap(),
-                |state| *state as f32,
-                1.5,
-                Direction::Outgoing,
-            ));
+            let result = timed_search(
+                weighted_a_star::new(
+                    graph,
+                    journey,
+                    |index| *distances.get(index).unwrap(),
+                    |state| *state as f32,
+                    1.5,
+                    Direction::Outgoing,
+                ),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -205,12 +211,10 @@ pub fn App(cx: Scope) -> impl IntoView {
         });
 
         spawn_local(async move {
-            let result = timed_search(dijkstra::new(
-                graph,
-                journey,
-                |edge| *edge,
-                Direction::Outgoing,
-            ));
+            let result = timed_search(
+                dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -221,12 +225,15 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         spawn_local(async move {
             let distances = graph.get_haversine_6371(journey.1.unwrap());
-            let result = timed_search(greedy::new(
-                graph,
-                journey,
-                |index| *distances.get(index).unwrap(),
-                Direction::Outgoing,
-            ));
+            let result = timed_search(
+                greedy::new(
+                    graph,
+                    journey,
+                    |index| *distances.get(index).unwrap(),
+                    Direction::Outgoing,
+                ),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -237,17 +244,20 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         spawn_local(async move {
             let distances = graph.get_haversine_6371(journey.1.unwrap());
-            let result = timed_search(Beam::new(
-                graph,
-                journey,
-                2,
-                |i1, i2| {
-                    (distances.get(i1).unwrap())
-                        .partial_cmp(distances.get(i2).unwrap())
-                        .unwrap()
-                },
-                Direction::Outgoing,
-            ));
+            let result = timed_search(
+                Beam::new(
+                    graph,
+                    journey,
+                    2,
+                    |i1, i2| {
+                        (distances.get(i1).unwrap())
+                            .partial_cmp(distances.get(i2).unwrap())
+                            .unwrap()
+                    },
+                    Direction::Outgoing,
+                ),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -258,16 +268,19 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         spawn_local(async move {
             let distances = graph.get_haversine_6371(journey.1.unwrap());
-            let result = timed_search(Hill::new(
-                graph,
-                journey,
-                |i1, i2| {
-                    (distances.get(i1).unwrap())
-                        .partial_cmp(distances.get(i2).unwrap())
-                        .unwrap()
-                },
-                Direction::Outgoing,
-            ));
+            let result = timed_search(
+                Hill::new(
+                    graph,
+                    journey,
+                    |i1, i2| {
+                        (distances.get(i1).unwrap())
+                            .partial_cmp(distances.get(i2).unwrap())
+                            .unwrap()
+                    },
+                    Direction::Outgoing,
+                ),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -277,7 +290,10 @@ pub fn App(cx: Scope) -> impl IntoView {
         });
 
         spawn_local(async move {
-            let result = timed_search(BreadthFirst::new(graph, journey, Direction::Outgoing));
+            let result = timed_search(
+                BreadthFirst::new(graph, journey, Direction::Outgoing),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -287,12 +303,10 @@ pub fn App(cx: Scope) -> impl IntoView {
         });
 
         spawn_local(async move {
-            let result = timed_search(DepthFirst::new(
-                graph,
-                journey,
-                None::<usize>,
-                Direction::Outgoing,
-            ));
+            let result = timed_search(
+                DepthFirst::new(graph, journey, None::<usize>, Direction::Outgoing),
+                &graph,
+            );
 
             // Add result to tbody
             let tbody = document().get_element_by_id("bench-results").unwrap();
@@ -411,7 +425,8 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <th class="px-4 py-2">"Time (ms)"</th>
                             <th class="px-4 py-2">"Iterations"</th>
                             <th class="px-4 py-2">"Size"</th>
-                            <th class="px-4 py-2">"Cost"</th>
+                            <th class="px-4 py-2">"State"</th>
+                            <th class="px-4 py-2">"Edge Cost"</th>
                         </tr>
                     </thead>
                     <tbody id="bench-results" />
@@ -428,7 +443,10 @@ fn restart_colors() {
     }
 }
 
-fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, usize, WalkerState<S>) {
+fn timed_search<S>(
+    mut machine: impl Walker<S>,
+    graph: &Graph<&'static str, (f32, f32), u16>,
+) -> (f64, usize, usize, WalkerState<S>, u64) {
     let mut iter = 0;
     let start = window()
         .performance()
@@ -442,6 +460,10 @@ fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, usize, WalkerSta
 
         match res {
             WalkerState::Found(step) => {
+                let edges = StepUnit::collect_edges(&step)
+                    .into_iter()
+                    .map(|edge| graph.inner.edge_weight(edge.into()).unwrap())
+                    .fold(0u64, |acc, x| acc + *x as u64);
                 return (
                     window()
                         .performance()
@@ -451,6 +473,7 @@ fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, usize, WalkerSta
                     iter,
                     step.chain_size(),
                     WalkerState::Found(step),
+                    edges,
                 );
             }
             WalkerState::Done => {
@@ -463,6 +486,7 @@ fn timed_search<S>(mut machine: impl Walker<S>) -> (f64, usize, usize, WalkerSta
                     iter,
                     0,
                     WalkerState::Done,
+                    0,
                 );
             }
             _ => {}
@@ -479,7 +503,7 @@ async fn visual_search<S>(time: ReadSignal<u64>, mut machine: impl Walker<S>) {
 
         match res {
             WalkerState::NotFound(ref step) => {
-                let edges = StepUnit::collect_edges(step.clone());
+                let edges = StepUnit::collect_edges(&step);
 
                 if time != 0 {
                     sleep(std::time::Duration::from_millis(time)).await;
@@ -499,7 +523,7 @@ async fn visual_search<S>(time: ReadSignal<u64>, mut machine: impl Walker<S>) {
                 if time != 0 {
                     sleep(std::time::Duration::from_millis(time)).await;
                 }
-                StepUnit::collect_edges(std::rc::Rc::new(step))
+                StepUnit::collect_edges(&step)
                     .into_iter()
                     .for_each(|edge| set_stroke(edge.index() as u32, "#FFFFFF"));
                 break;
@@ -524,7 +548,7 @@ fn set_stroke(rel: u32, stroke: &'static str) {
 
 fn gen_row<S: Default + std::fmt::Debug + Copy>(
     name: &str,
-    result: (f64, usize, usize, WalkerState<S>),
+    result: (f64, usize, usize, WalkerState<S>, u64),
 ) -> String {
     format!(
         "<tr>
@@ -533,11 +557,13 @@ fn gen_row<S: Default + std::fmt::Debug + Copy>(
     <td class=\"border-t border-b px-4 py-2\">{}</td>
     <td class=\"border-t border-b px-4 py-2\">{}</td>
     <td class=\"border-t border-b px-4 py-2\">{:?}</td>
+    <td class=\"border-t border-b px-4 py-2\">{}</td>
     </tr>",
         name,
         result.0,
         result.1,
         result.2,
-        result.3.step_peek().map(|s| s.state).unwrap_or_default()
+        result.3.step_peek().map(|s| s.state).unwrap_or_default(),
+        result.4
     )
 }

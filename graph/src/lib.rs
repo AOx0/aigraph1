@@ -180,21 +180,21 @@ impl<Ix: IndexType> StepUnit<Ix> {
         }
     }
 
-    pub fn collect_nodes<S>(step: Rc<Step<S, Ix>>) -> VecDeque<NodeIndex<Ix>> {
+    pub fn collect_nodes<S>(step: &Step<S, Ix>) -> VecDeque<NodeIndex<Ix>> {
         let mut nodes = VecDeque::new();
-        let step = Self::make_void(step);
+        let step = RefSteps::new(step);
 
-        for node in step.into_iter() {
+        for node in step {
             nodes.push_front(node.idx);
         }
         nodes
     }
 
-    pub fn collect_edges<S>(step: Rc<Step<S, Ix>>) -> VecDeque<EdgeIndex<Ix>> {
+    pub fn collect_edges<S>(step: &Step<S, Ix>) -> VecDeque<EdgeIndex<Ix>> {
         let mut nodes = VecDeque::new();
-        let step = Self::make_void(step);
+        let step = RefSteps::new(step);
 
-        for node in step.into_iter() {
+        for node in step {
             if let Some(rel) = node.rel {
                 nodes.push_front(rel);
             }
@@ -229,7 +229,28 @@ impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
 /// A Step iterator
 #[derive(Debug)]
 pub struct Steps<S, Ix = DefaultIx> {
-    start: Option<Rc<Step<S, Ix>>>,
+    current: Option<Rc<Step<S, Ix>>>,
+}
+
+pub struct RefSteps<'a, S, Ix = DefaultIx> {
+    current: Option<&'a Step<S, Ix>>,
+}
+
+impl<'a, S, Ix> RefSteps<'a, S, Ix> {
+    pub fn new(step: &'a Step<S, Ix>) -> Self {
+        Self {
+            current: Some(step),
+        }
+    }
+}
+
+impl<'a, S, Ix> Iterator for RefSteps<'a, S, Ix> {
+    type Item = &'a Step<S, Ix>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let head = self.current;
+        self.current = head.and_then(|head| head.caller.as_ref().map(|step| step.as_ref()));
+        head
+    }
 }
 
 impl<S: Debug, Ix: Debug> IntoIterator for Step<S, Ix> {
@@ -237,7 +258,7 @@ impl<S: Debug, Ix: Debug> IntoIterator for Step<S, Ix> {
     type IntoIter = Steps<S, Ix>;
     fn into_iter(self) -> Self::IntoIter {
         Steps {
-            start: Some(Rc::new(self)),
+            current: Some(Rc::new(self)),
         }
     }
 }
@@ -245,22 +266,24 @@ impl<S: Debug, Ix: Debug> IntoIterator for Step<S, Ix> {
 impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
     type Item = Rc<Step<S, Ix>>;
     fn next(&mut self) -> Option<Self::Item> {
-        let head = self.start.clone();
-        self.start = head.as_ref().and_then(|head| head.caller.clone());
+        let head = self.current.clone();
+        self.current = head.as_ref().and_then(|head| head.caller.clone());
         head
     }
 }
 
 impl<S, Ix> Steps<S, Ix> {
     pub fn from_step(step: Rc<Step<S, Ix>>) -> Self {
-        Self { start: Some(step) }
+        Self {
+            current: Some(step),
+        }
     }
 }
 
 impl<S: Clone, Ix: Clone> Clone for Steps<S, Ix> {
     fn clone(&self) -> Self {
         Self {
-            start: self.start.clone(),
+            current: self.current.clone(),
         }
     }
 }
@@ -313,7 +336,7 @@ where
     }
 
     /// Haversine distance with a given radius `r`
-    /// Formula from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
+    /// Formula from <https://en.wikipedia.org/wiki/Haversine_formula#Formulation>
     pub fn get_haversine(&self, to: NodeIndex<Ix>, r: f32) -> HashMap<NodeIndex<Ix>, f32> {
         use std::f32::consts::PI;
 
