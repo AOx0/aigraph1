@@ -22,7 +22,9 @@ use std::{
 };
 use unicase::Ascii;
 
+mod step;
 pub mod walkers;
+use step::*;
 use walkers::{Walker, WalkerState};
 
 /// Counts the number of nodes and edges of the graph
@@ -51,7 +53,7 @@ macro_rules! count {
 /// use graph::{Graph, graph, count};
 /// let graph: Graph<&str, (), u8> = graph! {
 ///     with_node: (),
-///     with_edges: next,
+///     with_edges: unchecked_next,
 ///     nodes: [ "A", "B", "C", "D", "E" ],
 ///     connections: [
 ///         "A" => { (7) "C", (10) "B" },
@@ -90,207 +92,26 @@ macro_rules! graph {
         connections: [ $($from:expr => {$(($type:tt, $cost:expr) {$($to:expr),+}),+}),* ]
     ) => {{
         let mut g = Graph::with_capacity(count!($($node)*), count!($($({$from;$($to)+})+)*) );
-        $(g.register($ident, $node).unwrap());*;
+        $(g.unchecked_register($ident, $node));*;
         $(
-            $($(g.$type($from, $to,$cost).unwrap());+);+
+            $($(g.$type($from, $to,$cost));+);+
         );*;
         g
     }};
 }
 
-/// A single step in the graph
+/// A node in the graph with a name and a location.
 ///
-/// Steps are the way we compute and represent the graph traversal with the
-/// various algorithms.
+/// The name is used to identify the node and the location is used
+/// to calculate the distance between nodes and to draw the graph in a 2D space.
 ///
-/// Steps can store a type `S` which can be used to hold any information like
-/// total weight or any other primitive or structure.
-#[derive(Debug)]
-pub struct Step<S, Ix> {
-    /// The parent State that invoked this instance.
-    /// If the option is None then it means we arrived to the root state.
-    pub caller: Option<Rc<Step<S, Ix>>>,
-    /// The current node index the step is at within the graph.
-    pub idx: NodeIndex<Ix>,
-    /// The index of the edge that binds caller -> self
-    pub rel: Option<EdgeIndex<Ix>>,
-    /// State of the walking progress
-    pub state: S,
-}
-
-/// A stateless step.
-///
-/// The structure comes in handy when working with two `Step` instances bound to
-/// different data types for storing state e.g. `Step<S, Ix>` and `Step<Y, Ix>`
-///
-/// We then construct a copy of the call-chain removing the state from each step,
-/// the final result is two `StepUnit<Ix>` that we can work with.
-pub type StepUnit<Ix> = Step<(), Ix>;
-
-impl<Ix: IndexType> StepUnit<Ix> {
-    /// TODO: Document
-    /// Creates a new `StepUnit` from a `Step` instance.
-    ///
-    /// The function will recursively create a new `StepUnit` from the `caller`
-    /// field of the `Step` instance.
-    ///
-    /// The function will also remove the state from the `Step` instance.
-    pub fn from_step<S>(step: Rc<Step<S, Ix>>) -> Rc<Self> {
-        Rc::new(Self {
-            caller: step
-                .caller
-                .as_ref()
-                .map(|step| Self::from_step(step.clone())),
-            idx: step.idx,
-            rel: step.rel,
-            state: (),
-        })
-    }
-
-    /// TODO: Document
-    /// Transform a `Step` into a `Step` instance with no datatype coupled to
-    /// the state type, instead the state is set to `()`.
-    pub fn make_void<S>(step: Rc<Step<S, Ix>>) -> Step<(), Ix> {
-        Step {
-            caller: step
-                .caller
-                .as_ref()
-                .map(|step| Rc::new(Self::make_void(step.clone()))),
-            idx: step.idx,
-            rel: step.rel,
-            state: (),
-        }
-    }
-
-    /// TODO: Document
-    /// Transform a `StepUnit` into a `Step` instance with no coupling to the
-    /// state type, instead the state is set to `()`.
-    ///
-    /// The function will recursively create a new `Step` from the `caller`
-    /// field of the `StepUnit` instance.
-    pub fn into_step(step: Rc<StepUnit<Ix>>) -> Step<(), Ix> {
-        Step {
-            caller: step
-                .caller
-                .as_ref()
-                .map(|step| Rc::new(Self::into_step(step.clone()))),
-            idx: step.idx,
-            rel: step.rel,
-            state: (),
-        }
-    }
-
-    pub fn collect_nodes<S>(step: &Step<S, Ix>) -> VecDeque<NodeIndex<Ix>> {
-        let mut nodes = VecDeque::new();
-        let step = RefSteps::new(step);
-
-        for node in step {
-            nodes.push_front(node.idx);
-        }
-        nodes
-    }
-
-    pub fn collect_edges<S>(step: &Step<S, Ix>) -> VecDeque<EdgeIndex<Ix>> {
-        let mut nodes = VecDeque::new();
-        let step = RefSteps::new(step);
-
-        for node in step {
-            if let Some(rel) = node.rel {
-                nodes.push_front(rel);
-            }
-        }
-        nodes
-    }
-}
-
-impl<S, Ix> Step<S, Ix> {
-    pub fn chain_size(&self) -> usize {
-        let mut size = 0;
-        let mut step = self;
-        while let Some(caller) = step.caller.as_ref() {
-            size += 1;
-            step = caller;
-        }
-        size
-    }
-}
-
-impl<S: Clone, Ix: Clone> Clone for Step<S, Ix> {
-    fn clone(&self) -> Self {
-        Self {
-            caller: self.caller.as_ref().map(|step| Rc::new(Self::clone(step))),
-            idx: self.idx.clone(),
-            rel: self.rel.clone(),
-            state: self.state.clone(),
-        }
-    }
-}
-
-/// A Step iterator
-#[derive(Debug)]
-pub struct Steps<S, Ix = DefaultIx> {
-    current: Option<Rc<Step<S, Ix>>>,
-}
-
-pub struct RefSteps<'a, S, Ix = DefaultIx> {
-    current: Option<&'a Step<S, Ix>>,
-}
-
-impl<'a, S, Ix> RefSteps<'a, S, Ix> {
-    pub fn new(step: &'a Step<S, Ix>) -> Self {
-        Self {
-            current: Some(step),
-        }
-    }
-}
-
-impl<'a, S, Ix> Iterator for RefSteps<'a, S, Ix> {
-    type Item = &'a Step<S, Ix>;
-    fn next(&mut self) -> Option<Self::Item> {
-        let head = self.current;
-        self.current = head.and_then(|head| head.caller.as_ref().map(|step| step.as_ref()));
-        head
-    }
-}
-
-impl<S: Debug, Ix: Debug> IntoIterator for Step<S, Ix> {
-    type Item = Rc<Step<S, Ix>>;
-    type IntoIter = Steps<S, Ix>;
-    fn into_iter(self) -> Self::IntoIter {
-        Steps {
-            current: Some(Rc::new(self)),
-        }
-    }
-}
-
-impl<S: Debug, Ix: Debug> Iterator for Steps<S, Ix> {
-    type Item = Rc<Step<S, Ix>>;
-    fn next(&mut self) -> Option<Self::Item> {
-        let head = self.current.clone();
-        self.current = head.as_ref().and_then(|head| head.caller.clone());
-        head
-    }
-}
-
-impl<S, Ix> Steps<S, Ix> {
-    pub fn from_step(step: Rc<Step<S, Ix>>) -> Self {
-        Self {
-            current: Some(step),
-        }
-    }
-}
-
-impl<S: Clone, Ix: Clone> Clone for Steps<S, Ix> {
-    fn clone(&self) -> Self {
-        Self {
-            current: self.current.clone(),
-        }
-    }
-}
-
+/// This struct is used by the [`Graph`](./struct.Graph.html) struct to store the nodes
+/// and their names within the repr field.
 #[derive(Clone, PartialEq)]
 pub struct Node {
+    /// The name of the node
     pub name: String,
+    /// The location of the node in a 2D space
     pub location: Vec2,
 }
 
@@ -316,11 +137,14 @@ pub struct Graph<I, N, E, Ty = Directed, Ix = DefaultIx> {
     pub repr: PGraph<Node, (), Ty, Ix>,
     /// The map of the `I` node-name to the [`NodeIndex<Ix>`](../petgraph/graph/struct.NodeIndex.html)
     pub nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
-    repr_nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
+    pub repr_nodes: HashMap<Ascii<I>, NodeIndex<Ix>>,
 }
 
+/// A trait to extract the coordinates of a node.
 pub trait Coords {
+    /// Get the x coordinate of the node
     fn get_x(&self) -> f32;
+    /// Get the y coordinate of the node
     fn get_y(&self) -> f32;
 }
 
@@ -330,7 +154,7 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix>
 where
     N: Coords,
 {
-    /// Haversine with a constant r of 6317
+    /// Get the distance between two nodes using the Haversine formula with a constant radius of 6371 km
     pub fn get_haversine_6371(&self, to: NodeIndex<Ix>) -> HashMap<NodeIndex<Ix>, f32> {
         self.get_haversine(to, 6371.)
     }
@@ -388,6 +212,7 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
         }
     }
 
+    /// Get the [`EdgeIndex<Ix>`](../petgraph/graph/struct.EdgeIndex.html) of the edge between two nodes.
     pub fn edge_between(&self, source: NodeIndex<Ix>, target: NodeIndex<Ix>) -> EdgeIndex<Ix> {
         use petgraph::visit::EdgeRef;
         self.inner
@@ -398,14 +223,17 @@ impl<I, N, E, Ty: EdgeType, Ix: IndexType> Graph<I, N, E, Ty, Ix> {
             .into()
     }
 
+    /// Returns the number of nodes in the graph.
     pub fn node_count(&self) -> usize {
         self.inner.node_count()
     }
 
+    /// Returns the number of edges in the graph.
     pub fn edge_count(&self) -> usize {
         self.inner.edge_count()
     }
 
+    /// Create a bit set for registering which nodes have been visited.
     pub fn visit_map(&self) -> FixedBitSet {
         self.inner.visit_map()
     }
@@ -419,7 +247,7 @@ where
     EdgeIndex: From<EdgeIndex<Ix>>,
 {
     /// Get the high-level node name from the low-level node index. E.g. NodeIndex(0) -> "Arad"
-    pub fn index_name<'a>(&'a self, value: NodeIndex<Ix>) -> Option<I> {
+    pub fn index_name(&self, value: NodeIndex<Ix>) -> Option<I> {
         self.nodes.iter().find_map(|(key, val)| {
             if val == &value {
                 Some(key.into_inner())
@@ -440,8 +268,8 @@ where
     /// within the inner graph.
     ///
     /// Adds values to the inner graph's `Vec<Edge<E, Ix>>` to represent neighbors between nodes
-    /// and the binded `E` value
-    pub fn next(&mut self, from: I, to: I, edge: E) -> Result<(), ()>
+    /// and the bound `E` value.
+    pub fn next(&mut self, from: I, to: I, edge: E) -> Result<(), String>
     where
         I: Debug,
     {
@@ -455,9 +283,21 @@ where
                 );
                 Ok(())
             }
-            (None, None) => panic!("Los nodos {:?} y {:?} no existen", from, to),
-            (None, Some(_)) => panic!("El nodo {:?} no existe", from),
-            (Some(_), None) => panic!("El nodo {:?} no existe", to),
+            (None, None) => Err(format!("Los nodos {:?} y {:?} no existen", from, to)),
+            (None, Some(_)) => Err(format!("El nodo {:?} no existe", from)),
+            (Some(_), None) => Err(format!("El nodo {:?} no existe", to)),
+        }
+    }
+
+    /// Connect two nodes by their high-level names. E.g. "Arad" -> "Neamt"
+    ///
+    /// Panics if any of the nodes doesn't exist
+    pub fn unchecked_next(&mut self, from: I, to: I, edge: E)
+    where
+        I: Debug,
+    {
+        if let Err(err) = self.next(from, to, edge) {
+            panic!("{}", err);
         }
     }
 
@@ -468,7 +308,7 @@ where
     ///
     /// Adds values to the inner graph's `Vec<Node<N, Ix>>` to represent neighbors between nodes
     /// and the bound `N` value
-    pub fn register(&mut self, ident: I, node: N) -> Result<(), ()>
+    pub fn register(&mut self, ident: I, node: N) -> Result<(), String>
     where
         I: Debug,
     {
@@ -485,7 +325,19 @@ where
             self.repr_nodes.insert(ascii, ix_repr);
             Ok(())
         } else {
-            panic!("El nodo {:?} ya existe", ident);
+            Err(format!("El nodo {:?} ya existe", ident))
+        }
+    }
+
+    /// Register a node with a given name and stored `N` value
+    ///
+    /// Panics if the node already exists
+    pub fn unchecked_register(&mut self, ident: I, node: N)
+    where
+        I: Debug,
+    {
+        if let Err(err) = self.register(ident, node) {
+            panic!("{}", err);
         }
     }
 
@@ -590,105 +442,6 @@ where
         }
         Err(res)
     }
-
-    pub fn bidirectional<S: Debug, D: Debug>(
-        &self,
-        mut algo1: impl Walker<S, Ix>,
-        mut algo2: impl Walker<D, Ix>,
-    ) -> Result<Step<(), Ix>, ()> {
-        let mut res1;
-        let mut res2;
-        let mut visited1 = self.visit_map();
-        let mut visited2 = self.visit_map();
-
-        let mut steps1: HashMap<_, Rc<StepUnit<_>>> = HashMap::new();
-        let mut steps2: HashMap<_, Rc<StepUnit<_>>> = HashMap::new();
-
-        let mut last_step_1 = None;
-        let mut last_step_2 = None;
-        let matching_on = loop {
-            res1 = algo1.step();
-            res2 = algo2.step();
-
-            if let WalkerState::NotFound(ref node) = res1 {
-                visited1.visit(node.idx);
-                steps1.insert(node.idx, StepUnit::from_step(node.clone()));
-                last_step_1 = Some(StepUnit::from_step(node.clone()));
-                if visited2.is_visited(&node.idx) {
-                    break 1;
-                }
-            }
-
-            if let WalkerState::NotFound(ref node) = res2 {
-                visited2.visit(node.idx);
-                steps2.insert(node.idx, StepUnit::from_step(node.clone()));
-                last_step_2 = Some(StepUnit::from_step(node.clone()));
-                if visited1.is_visited(&node.idx) {
-                    break 2;
-                }
-            }
-
-            if matches!(&res1, WalkerState::Done) && matches!(&res2, WalkerState::Done) {
-                return Err(());
-            }
-
-            if let WalkerState::Found(node) = res1 {
-                return Ok(StepUnit::make_void(Rc::new(node)));
-            }
-            if let WalkerState::Found(node) = res2 {
-                return Ok(StepUnit::make_void(Rc::new(node)));
-            }
-        };
-
-        if let (Some(mut last1), Some(mut last2)) = (last_step_1, last_step_2) {
-            let mut trace1 = VecDeque::new();
-            let mut trace2 = VecDeque::new();
-
-            let res1_p = (&mut last1, &mut steps1);
-            let res2_p = (&mut last2, &mut steps2);
-            if matching_on == 1 {
-                *res2_p.0 = res2_p.1.get(&res1_p.0.idx).unwrap().clone();
-            } else {
-                *res1_p.0 = res1_p.1.get(&res2_p.0.idx).unwrap().clone();
-            }
-
-            let mut last1 = Some(last1);
-            while let Some(i) = last1 {
-                trace1.push_back(i.clone());
-                last1 = i.caller.clone();
-            }
-
-            let mut last2 = Some(last2);
-            while let Some(i) = last2 {
-                trace2.push_back(i.clone());
-                last2 = i.caller.clone();
-            }
-
-            for i in trace1.range(1..) {
-                trace2.push_front(i.clone());
-            }
-
-            let first = trace2.pop_front().unwrap();
-            let mut result = Step {
-                caller: None,
-                idx: first.idx,
-                rel: None,
-                state: (),
-            };
-
-            while let Some(i) = trace2.pop_front() {
-                result = Step {
-                    caller: Some(Rc::new(result.clone())),
-                    idx: i.idx,
-                    state: (),
-                    rel: i.rel,
-                }
-            }
-            Ok(result)
-        } else {
-            unreachable!("This point should always have valid last steps")
-        }
-    }
 }
 
 /// Implement the Coords trait for all tuples (f32, f32).
@@ -716,7 +469,7 @@ impl Coords for () {
 #[allow(dead_code)]
 pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
     let mut g = graph! {
-        with_edges: next,
+        with_edges: unchecked_next,
         nodes: [
             "Arad" => (-8., 3.),
             "Zerind" => (-7.5,4.8),
@@ -765,7 +518,7 @@ pub fn test_graph() -> Graph<&'static str, (f32, f32), u16> {
 
 pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16> {
     let mut graph: Graph<&'static str, (f32, f32), u16> = graph! {
-        with_edges: next,
+        with_edges: unchecked_next,
         nodes: [
             "Acapulco" => ( -99.82365329900568, 16.85310859874989 ),
             "Chilpancingo" => ( -99.50063219718855, 17.5515346019228 ),

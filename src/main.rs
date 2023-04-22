@@ -460,7 +460,8 @@ fn timed_search<S>(
 
         match res {
             WalkerState::Found(step) => {
-                let edges = StepUnit::collect_edges(&step)
+                let edges = step
+                    .collect_edges()
                     .into_iter()
                     .map(|edge| graph.inner.edge_weight(edge.into()).unwrap())
                     .fold(0u64, |acc, x| acc + *x as u64);
@@ -503,7 +504,7 @@ async fn visual_search<S>(time: ReadSignal<u64>, mut machine: impl Walker<S>) {
 
         match res {
             WalkerState::NotFound(ref step) => {
-                let edges = StepUnit::collect_edges(&step);
+                let edges = step.collect_edges();
 
                 if time != 0 {
                     sleep(std::time::Duration::from_millis(time)).await;
@@ -523,7 +524,7 @@ async fn visual_search<S>(time: ReadSignal<u64>, mut machine: impl Walker<S>) {
                 if time != 0 {
                     sleep(std::time::Duration::from_millis(time)).await;
                 }
-                StepUnit::collect_edges(&step)
+                step.collect_edges()
                     .into_iter()
                     .for_each(|edge| set_stroke(edge.index() as u32, "#FFFFFF"));
                 break;
