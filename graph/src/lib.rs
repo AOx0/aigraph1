@@ -160,6 +160,10 @@ where
         self.get_haversine_table(to, 6371.)
     }
 
+    pub fn get_haversine_6371(&self, from: NodeIndex<Ix>, to: NodeIndex<Ix>) -> f32 {
+        self.get_haversine(from, to, 6371.)
+    }
+
     /// Haversine distance between two nodes using a given radius `r` as the Earth radius
     ///
     /// Formula from <https://en.wikipedia.org/wiki/Haversine_formula#Formulation>

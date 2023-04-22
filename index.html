@@ -8,6 +8,7 @@
   <meta name="theme-color" id="tcolor" content="">
     <script>
         const html = document.getElementsByTagName('html')[0];
+        localStorage.setItem('rustdoc-theme', 'ayu');
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.getElementById("tcolor").content = "rgb(31 41 55 / var(--tw-bg-opacity))"
             html.classList.add('dark');
