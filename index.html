@@ -7,19 +7,12 @@
   <link data-trunk rel="rust" data-wasm-opt="s" />
   <meta name="theme-color" id="tcolor" content="">
     <script>
-        const html = document.getElementsByTagName('html')[0];
+        document.getElementById("tcolor").content = "rgb(31 41 55 / var(--tw-bg-opacity))"
+        document.getElementsByTagName('html')[0].classList.add('dark');
         localStorage.setItem('rustdoc-theme', 'ayu');
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.getElementById("tcolor").content = "rgb(31 41 55 / var(--tw-bg-opacity))"
-            html.classList.add('dark');
-            localStorage.theme = 'dark'
-        } else {
-            document.getElementById("tcolor").content = "black"
-            html.classList.remove('dark');
-            localStorage.theme = 'light'
-        }
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <title>aigraph1</title>
 </head>
 <body id="main" class="flex flex-col h-screen max-h-screen w-screen max-w-screen bg-white dark:bg-[#0d1117] dark:text-[#c9d1d9]">
 </body>

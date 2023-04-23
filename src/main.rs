@@ -436,7 +436,6 @@ fn timed_search<S>(
                     .windows(2)
                     .map(|window| {
                         let (a, b) = (window[0], window[1]);
-                        log!("{:?}", (a, b));
                         graph.get_haversine_6371(a, b)
                     })
                     .fold(0f64, |acc, x| acc + x as f64);
