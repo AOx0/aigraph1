@@ -10,7 +10,7 @@ use super::*;
 ///
 /// The `Step` type is a singly linked list, where each step has a reference to its parent.
 /// It is a singly linked list because we only need to go backwards to the root node to get the path.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Step<S = f64, Ix = DefaultIx> {
     /// The parent State that invoked this instance.
     /// If the option is None then it means we arrived to the root state.
@@ -51,6 +51,15 @@ impl<S, Ix: IndexType> Step<S, Ix> {
         let mut size = 0;
         self.iter().for_each(|_| size += 1);
         size
+    }
+
+    pub fn to_void(&self) -> Step<(), Ix> {
+        Step {
+            caller: self.caller.as_ref().map(|step| Rc::new(step.to_void())),
+            idx: self.idx,
+            rel: self.rel,
+            state: (),
+        }
     }
 
     /// Returns an iterator visiting all the steps in the chain

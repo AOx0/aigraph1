@@ -919,4 +919,54 @@ mod tests {
             assert!(num < 10);
         }
     }
+
+    #[test]
+    fn test_bidirectional_dijkstra() {
+        let graph = test_graph();
+        let journey = graph.journey("Arad", Some("Bucharest")).unwrap();
+        let journey_rev = graph.journey("Bucharest", Some("Arad")).unwrap();
+        let res = graph
+            .perform_search(Bidirectional::new(
+                &graph,
+                dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
+                dijkstra::new(&graph, journey_rev, |edge| *edge, Direction::Incoming),
+            ))
+            .unwrap();
+
+        let dijkstra_res = graph
+            .perform_search(dijkstra::new(
+                &graph,
+                journey,
+                |edge| *edge,
+                Direction::Outgoing,
+            ))
+            .unwrap();
+
+        assert_eq!(res.collect_nodes(), dijkstra_res.collect_nodes());
+    }
+
+    #[test]
+    fn test_bidirectional_dijkstra2() {
+        let graph = test_graph();
+        let journey = graph.journey("Arad", Some("Neamt")).unwrap();
+        let journey_rev = graph.journey("Neamt", Some("Arad")).unwrap();
+        let res = graph
+            .perform_search(Bidirectional::new(
+                &graph,
+                dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
+                dijkstra::new(&graph, journey_rev, |edge| *edge, Direction::Incoming),
+            ))
+            .unwrap();
+
+        let dijkstra_res = graph
+            .perform_search(dijkstra::new(
+                &graph,
+                journey,
+                |edge| *edge,
+                Direction::Outgoing,
+            ))
+            .unwrap();
+
+        assert_eq!(res.collect_nodes(), dijkstra_res.collect_nodes());
+    }
 }

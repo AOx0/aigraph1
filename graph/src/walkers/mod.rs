@@ -3,10 +3,12 @@ pub mod breadth;
 pub mod depth;
 pub use super::*;
 pub mod best;
+pub mod bidirectional;
 pub mod hill;
 
 pub use beam::*;
 pub use best::*;
+pub use bidirectional::*;
 pub use breadth::*;
 pub use depth::*;
 pub use hill::*;
@@ -33,4 +35,3 @@ impl<S, Ix> WalkerState<S, Ix> {
 pub trait Walker<S, Ix = DefaultIx> {
     fn step(&mut self) -> WalkerState<S, Ix>;
 }
-

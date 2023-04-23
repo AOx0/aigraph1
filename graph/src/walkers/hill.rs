@@ -95,7 +95,7 @@ pub struct StochasticHill<'a, I, N, E, Ty, Ix, F> {
 
 impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> StochasticHill<'a, I, N, E, Ty, Ix, F>
 where
-    F: FnMut(&NodeIndex<Ix>, &NodeIndex<Ix>) -> Ordering,
+    F: FnMut(&NodeIndex<Ix>) -> f64,
 {
     #[allow(dead_code)]
     pub fn new(
@@ -127,7 +127,7 @@ where
 impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> Walker<(), Ix>
     for StochasticHill<'a, I, N, E, Ty, Ix, F>
 where
-    F: FnMut(&NodeIndex<Ix>, &NodeIndex<Ix>) -> Ordering,
+    F: FnMut(&NodeIndex<Ix>) -> f64,
 {
     fn step(&mut self) -> WalkerState<(), Ix> {
         if let Some(parent) = self.border.pop_front() {
@@ -150,7 +150,11 @@ where
                         .neighbors_directed(parent.idx, self.direction),
                 );
 
-                self.neighbors.sort_by(&mut self.compare);
+                self.neighbors.sort_by(|a, b| {
+                    (self.compare)(a)
+                        .partial_cmp(&(self.compare)(b))
+                        .unwrap_or(Ordering::Equal)
+                });
 
                 self.neighbors.iter().copied().rev().for_each(|child_idx| {
                     self.border.push_front(Step {

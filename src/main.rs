@@ -123,6 +123,18 @@ pub fn App(cx: Scope) -> impl IntoView {
                     )
                     .await;
                 }
+                "Stochastic Hill" => {
+                    visual_search(
+                        time,
+                        StochasticHill::new(
+                            &graph,
+                            journey,
+                            |i1| *distances.get(i1).unwrap() as f64,
+                            Direction::Outgoing,
+                        ),
+                    )
+                    .await;
+                }
                 "BFS" => {
                     visual_search(
                         time,
@@ -134,6 +146,18 @@ pub fn App(cx: Scope) -> impl IntoView {
                     visual_search(
                         time,
                         DepthFirst::new(&graph, journey, None::<usize>, Direction::Outgoing),
+                    )
+                    .await;
+                }
+                "Bidirectional" => {
+                    let journey_rev = graph.journey(&end.get(), Some(&start.get())).unwrap();
+                    visual_search(
+                        time,
+                        Bidirectional::new(
+                            &graph,
+                            dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
+                            dijkstra::new(&graph, journey_rev, |edge| *edge, Direction::Incoming),
+                        ),
                     )
                     .await;
                 }
@@ -259,6 +283,19 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         results.push((
             timed_search(
+                StochasticHill::new(
+                    graph,
+                    journey,
+                    |i1| *distances.get(i1).unwrap() as f64,
+                    Direction::Outgoing,
+                ),
+                &graph,
+            ),
+            "Stochastic Hill",
+        ));
+
+        results.push((
+            timed_search(
                 BreadthFirst::new(graph, journey, Direction::Outgoing),
                 &graph,
             ),
@@ -271,6 +308,23 @@ pub fn App(cx: Scope) -> impl IntoView {
                 &graph,
             ),
             "Depth First",
+        ));
+
+        results.push((
+            timed_search(
+                Bidirectional::new(
+                    graph,
+                    dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                    dijkstra::new(
+                        graph,
+                        graph.journey(&end.get(), Some(&start.get())).unwrap(),
+                        |edge| *edge,
+                        Direction::Incoming,
+                    ),
+                ),
+                &graph,
+            ),
+            "Bidirectional",
         ));
 
         for (result, name) in results.into_iter() {
@@ -368,6 +422,8 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <option value="Dijkstra">"Dijkstra"</option>
                             <option value="Greedy">"Greedy"</option>
                             <option value="Hill">"Hill"</option>
+                            <option value="Stochastic Hill">"Stochastic Hill"</option>
+                            <option value="Bidirectional">"Bidirectional"</option>
                         </select>
                     </div>
                     <div class="flex space-x-5">

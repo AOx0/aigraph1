@@ -5,6 +5,7 @@ pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
     border: VecDeque<Step<D, Ix>>,
+    visited: FixedBitSet,
     limit: Option<D>,
     cutoff: bool,
     level: D,
@@ -36,6 +37,7 @@ impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, 
             },
             neighbors: Vec::with_capacity(graph.node_count()),
             cutoff: false,
+            visited: graph.visit_map(),
             level: Zero::zero(),
             direction,
         }
@@ -75,6 +77,12 @@ where
 
             let parent = Rc::new(parent);
             self.level = parent.state + One::one();
+
+            if self.visited.is_visited(&parent.idx) {
+                return WalkerState::NotFound(parent);
+            } else {
+                self.visited.visit(parent.idx);
+            }
 
             self.neighbors.clear();
             self.neighbors.extend(
