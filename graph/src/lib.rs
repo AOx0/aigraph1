@@ -21,8 +21,10 @@ use std::{
 };
 use unicase::Ascii;
 
+pub mod rand;
 mod step;
 pub mod walkers;
+
 pub use step::*;
 use walkers::{Walker, WalkerState};
 
@@ -235,12 +237,15 @@ where
     /// Get the [`EdgeIndex<Ix>`](../petgraph/graph/struct.EdgeIndex.html) of the edge between two nodes.
     pub fn edge_between(&self, source: NodeIndex<Ix>, target: NodeIndex<Ix>) -> EdgeIndex<Ix> {
         use petgraph::visit::EdgeRef;
-        self.inner
-            .edges_connecting(source, target)
-            .next()
-            .unwrap()
-            .id()
-            .into()
+        let a = self.inner.edges_connecting(source, target).next();
+        let b = self.inner.edges_connecting(target, source).next();
+        if let Some(edge) = a {
+            edge.id()
+        } else if let Some(edge) = b {
+            edge.id()
+        } else {
+            panic!("No edge between {:?} and {:?}", source, target)
+        }
     }
 
     /// Returns the number of nodes in the graph.
@@ -694,6 +699,7 @@ pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16, Directed> {
     graph.done_register();
     graph
 }
+
 #[cfg(test)]
 mod tests {
     use super::walkers::*;
@@ -710,7 +716,7 @@ mod tests {
             ))
             .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -726,7 +732,7 @@ mod tests {
             ))
             .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -744,7 +750,7 @@ mod tests {
             loop {
                 match a.step() {
                     WalkerState::Found(result) => {
-                        break Some(result.into_iter());
+                        break Some(result);
                     }
                     WalkerState::Done => {
                         break None;
@@ -755,7 +761,7 @@ mod tests {
         }
         .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -783,7 +789,7 @@ mod tests {
             ))
             .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -801,7 +807,7 @@ mod tests {
             ))
             .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -825,7 +831,7 @@ mod tests {
             ))
             .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -835,19 +841,16 @@ mod tests {
         let graph = test_graph();
         let mut a = dijkstra::new(
             &graph,
-            graph.journey("Arad", Some("Neamt")).unwrap(),
+            graph.journey("Neamt", Some("Arad")).unwrap(),
             |state| *state,
             Direction::Incoming,
         );
 
         let a = {
-            // let mut i = 0;
             loop {
-                // i += 1;
-                // println!("{i}");
                 match a.step() {
                     WalkerState::Found(result) => {
-                        break Some(result.into_iter());
+                        break Some(result);
                     }
                     WalkerState::Done => {
                         break None;
@@ -858,29 +861,7 @@ mod tests {
         }
         .unwrap();
 
-        for node in a {
-            println!("{:#?}", graph.index_name(node.idx).unwrap());
-        }
-    }
-
-    #[test]
-    fn test_bidirectional() {
-        let graph = test_graph();
-
-        let a = BreadthFirst::new(
-            &graph,
-            graph.journey("Arad", Some("Neamt")).unwrap(),
-            Direction::Outgoing,
-        );
-        let b = DepthFirst::new(
-            &graph,
-            graph.journey("Arad", Some("Neamt")).unwrap(),
-            None::<usize>,
-            Direction::Incoming,
-        );
-
-        let res = graph.bidirectional(a, b).unwrap();
-        for node in res {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -899,7 +880,7 @@ mod tests {
             ))
             .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
@@ -919,8 +900,23 @@ mod tests {
             ))
             .unwrap();
 
-        for node in a {
+        for node in a.iter() {
             println!("{:#?}", graph.index_name(node.idx).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_random() {
+        for _ in 0..50 {
+            println!("{}", rand::get_random());
+        }
+    }
+
+    #[test]
+    fn test_random_ranged() {
+        for _ in 0..50 {
+            let num = rand::get_random_ranged(0, 10);
+            assert!(num < 10);
         }
     }
 }

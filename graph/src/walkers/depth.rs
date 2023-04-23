@@ -8,6 +8,7 @@ pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
     limit: Option<D>,
     cutoff: bool,
     level: D,
+    neighbors: Vec<NodeIndex<Ix>>,
     pub direction: Direction,
 }
 
@@ -33,6 +34,7 @@ impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, 
                 });
                 border
             },
+            neighbors: Vec::with_capacity(graph.node_count()),
             cutoff: false,
             level: Zero::zero(),
             direction,
@@ -73,11 +75,16 @@ where
 
             let parent = Rc::new(parent);
             self.level = parent.state + One::one();
-            for child in self
-                .graph
-                .inner
-                .neighbors_directed(parent.idx.into(), self.direction)
-            {
+
+            self.neighbors.clear();
+            self.neighbors.extend(
+                self.graph
+                    .inner
+                    .neighbors_directed(parent.idx.into(), self.direction),
+            );
+            rand::shuffle(&mut self.neighbors);
+
+            for child in self.neighbors.iter().copied() {
                 self.border.push_front(Step {
                     caller: Some(parent.clone()),
                     idx: child,
