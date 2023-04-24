@@ -1,11 +1,12 @@
 #![allow(non_snake_case)]
 
-mod svg;
-
 use anyhow::{anyhow, Context, Result};
-use graph::walkers::*;
 use leptos::*;
+
+use graph::walkers::*;
 use svg::SvgPlot;
+
+mod svg;
 
 fn main() {
     mount_to_body(|cx| view! { cx,  <App /> })
@@ -93,7 +94,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                 "Dijkstra" => {
                     visual_search(
                         time,
-                        dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
+                        dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
                     )
                     .await;
                 }
@@ -101,7 +102,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     visual_search(
                         time,
                         greedy::new(
-                            &graph,
+                            graph,
                             journey,
                             |index| *distances.get(index).unwrap(),
                             Direction::Outgoing,
@@ -113,7 +114,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     visual_search(
                         time,
                         Beam::new(
-                            &graph,
+                            graph,
                             journey,
                             2,
                             |i1, i2| {
@@ -130,7 +131,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     visual_search(
                         time,
                         Hill::new(
-                            &graph,
+                            graph,
                             journey,
                             |i1, i2| {
                                 (distances.get(i1).unwrap())
@@ -146,7 +147,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     visual_search(
                         time,
                         StochasticHill::new(
-                            &graph,
+                            graph,
                             journey,
                             |i1| *distances.get(i1).unwrap() as f64,
                             Direction::Outgoing,
@@ -155,16 +156,13 @@ pub fn App(cx: Scope) -> impl IntoView {
                     .await;
                 }
                 "BFS" => {
-                    visual_search(
-                        time,
-                        BreadthFirst::new(&graph, journey, Direction::Outgoing),
-                    )
-                    .await;
+                    visual_search(time, BreadthFirst::new(graph, journey, Direction::Outgoing))
+                        .await;
                 }
                 "DFS" => {
                     visual_search(
                         time,
-                        DepthFirst::new(&graph, journey, None::<usize>, Direction::Outgoing),
+                        DepthFirst::new(graph, journey, None::<usize>, Direction::Outgoing),
                     )
                     .await;
                 }
@@ -173,9 +171,9 @@ pub fn App(cx: Scope) -> impl IntoView {
                     visual_search(
                         time,
                         Bidirectional::new(
-                            &graph,
-                            dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
-                            dijkstra::new(&graph, journey_rev, |edge| *edge, Direction::Incoming),
+                            graph,
+                            dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                            dijkstra::new(graph, journey_rev, |edge| *edge, Direction::Incoming),
                         ),
                     )
                     .await;
@@ -246,7 +244,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         |state| *state as f32,
                         Direction::Outgoing,
                     ),
-                    &graph,
+                    graph,
                 ),
                 "A*",
             ),
@@ -260,14 +258,14 @@ pub fn App(cx: Scope) -> impl IntoView {
                         1.5,
                         Direction::Outgoing,
                     ),
-                    &graph,
+                    graph,
                 ),
                 "Weighted A*",
             ),
             (
                 timed_search(
                     dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
-                    &graph,
+                    graph,
                 ),
                 "Dijkstra",
             ),
@@ -279,7 +277,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         |index| *distances.get(index).unwrap(),
                         Direction::Outgoing,
                     ),
-                    &graph,
+                    graph,
                 ),
                 "Greedy",
             ),
@@ -292,7 +290,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         |i1, i2| distances.get(i1).partial_cmp(&distances.get(i2)).unwrap(),
                         Direction::Outgoing,
                     ),
-                    &graph,
+                    graph,
                 ),
                 "Beam",
             ),
@@ -304,7 +302,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         |i1, i2| distances.get(i1).partial_cmp(&distances.get(i2)).unwrap(),
                         Direction::Outgoing,
                     ),
-                    &graph,
+                    graph,
                 ),
                 "Hill",
             ),
@@ -316,21 +314,21 @@ pub fn App(cx: Scope) -> impl IntoView {
                         |i1| *distances.get(i1).unwrap() as f64,
                         Direction::Outgoing,
                     ),
-                    &graph,
+                    graph,
                 ),
                 "Stochastic Hill",
             ),
             (
                 timed_search(
                     BreadthFirst::new(graph, journey, Direction::Outgoing),
-                    &graph,
+                    graph,
                 ),
                 "Breadth First",
             ),
             (
                 timed_search(
                     DepthFirst::new(graph, journey, None::<u8>, Direction::Outgoing),
-                    &graph,
+                    graph,
                 ),
                 "Depth First",
             ),
@@ -346,7 +344,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                             Direction::Incoming,
                         ),
                     ),
-                    &graph,
+                    graph,
                 ),
                 "Bidirectional",
             ),

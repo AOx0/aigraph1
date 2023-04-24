@@ -53,13 +53,13 @@ where
         if let Some(parent) = self.border.pop_front() {
             if self
                 .limit
-                .and_then(|limit| Some(parent.state == limit))
+                .map(|limit| parent.state == limit)
                 .unwrap_or(false)
             {
                 if self
                     .graph
                     .inner
-                    .neighbors_directed(parent.idx.into(), self.direction)
+                    .neighbors_directed(parent.idx, self.direction)
                     .count()
                     != 0
                 {
@@ -67,12 +67,8 @@ where
                 }
                 return WalkerState::NotFound(Rc::new(parent));
             }
-            if self
-                .goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
-                return WalkerState::Found(parent.clone());
+            if self.goal.map(|goal| goal == parent.idx).unwrap_or(false) {
+                return WalkerState::Found(parent);
             }
 
             let parent = Rc::new(parent);
@@ -88,7 +84,7 @@ where
             self.neighbors.extend(
                 self.graph
                     .inner
-                    .neighbors_directed(parent.idx.into(), self.direction),
+                    .neighbors_directed(parent.idx, self.direction),
             );
             rand::shuffle(&mut self.neighbors);
 

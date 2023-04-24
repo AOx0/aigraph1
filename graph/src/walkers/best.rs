@@ -79,7 +79,7 @@ where
             for child_idx in self
                 .graph
                 .inner
-                .neighbors_directed(parent.idx.into(), self.direction)
+                .neighbors_directed(parent.idx, self.direction)
             {
                 let es_goal = self.goal.map(|goal| goal == child_idx).unwrap_or(false);
                 let has_kids = self
@@ -92,7 +92,7 @@ where
                     let edge = self.graph.edge_between(parent.idx, child_idx);
                     let step = Step {
                         caller: Some(parent.clone()),
-                        idx: child_idx.into(),
+                        idx: child_idx,
                         rel: Some(edge),
                         state: (self.h)(child_idx, edge, parent.state, parent.idx),
                     };

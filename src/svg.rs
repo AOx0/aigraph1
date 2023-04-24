@@ -1,6 +1,7 @@
+use plotters::prelude::*;
+
 use graph::petgraph::visit::{EdgeRef, IntoEdgeReferences};
 use graph::*;
-use plotters::prelude::*;
 
 /// Parameters for drawing the SVG image.
 pub struct Settings {
@@ -93,8 +94,8 @@ impl SvgPlot {
 
         let image_scale = 1.1;
         let (scale_x, scale_y) = (
-            (size.0 as f32) / (diff_x * image_scale),
-            (size.1 as f32) / (diff_y * image_scale),
+            size.0 / (diff_x * image_scale),
+            size.1 / (diff_y * image_scale),
         );
 
         // translate all the points over into the image coordinate space
@@ -159,7 +160,7 @@ impl SvgPlot {
                     node.location.x as i32 + (text_style.font.get_size() / 2.0) as i32,
                     node.location.y as i32,
                 );
-                drawing_area.draw_text(node.name.as_str(), &text_style, pos)?;
+                drawing_area.draw_text(node.name.as_str(), text_style, pos)?;
             }
         }
 

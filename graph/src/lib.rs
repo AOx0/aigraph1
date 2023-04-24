@@ -1,3 +1,12 @@
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, VecDeque},
+    fmt::{Debug, Display},
+    hash::Hash,
+    ops::Mul,
+    rc::Rc,
+};
+
 use anyhow::{anyhow, Context, Result};
 use fixedbitset::FixedBitSet;
 use glam::f32::Vec2;
@@ -11,22 +20,14 @@ use petgraph::{
     visit::{VisitMap, Visitable},
 };
 pub use petgraph::{Directed, EdgeType};
-use std::{
-    cmp::Ordering,
-    collections::{HashMap, VecDeque},
-    fmt::{Debug, Display},
-    hash::Hash,
-    ops::Mul,
-    rc::Rc,
-};
 use unicase::Ascii;
+
+pub use step::*;
+use walkers::{Walker, WalkerState};
 
 pub mod rand;
 mod step;
 pub mod walkers;
-
-pub use step::*;
-use walkers::{Walker, WalkerState};
 
 /// Counts the number of nodes and edges of the graph
 ///
@@ -184,15 +185,15 @@ where
         let (x2, y2) = (&node.get_x() * PI / 180., &node.get_y() * PI / 180.);
 
         // Calculate the distance between the two nodes
-        let distance = 2. * r * {
+
+        2. * r * {
             {
                 ((x2 - x1) / 2.).sin().powi(2)
                     + x1.cos() * x2.cos() * ((y2 - y1) / 2.).sin().powi(2)
             }
             .sqrt()
         }
-        .asin();
-        distance
+        .asin()
     }
 
     /// Get the distance to all nodes in the graph using the Haversine formula.
@@ -201,7 +202,6 @@ where
     pub fn get_haversine_table(&self, to: NodeIndex<Ix>, r: f32) -> HashMap<NodeIndex<Ix>, f32> {
         self.inner
             .node_indices()
-            .into_iter()
             .map(|idx| (idx, self.get_haversine(idx, to, r)))
             .collect::<HashMap<_, _>>()
     }
@@ -302,7 +302,7 @@ where
     {
         match (self.name_index(from), self.name_index(to)) {
             (Some(fidx), Some(tidx)) => {
-                self.inner.add_edge(fidx.into(), tidx.into(), edge);
+                self.inner.add_edge(fidx, tidx, edge);
                 self.repr.add_edge(
                     *self.repr_nodes.get(&Ascii::new(from)).unwrap(),
                     *self.repr_nodes.get(&Ascii::new(to)).unwrap(),
@@ -406,10 +406,7 @@ where
     {
         let mut cur_limit: D = One::one();
         loop {
-            if limit
-                .and_then(|limit| Some(limit == cur_limit))
-                .unwrap_or(false)
-            {
+            if limit.map(|limit| limit == cur_limit).unwrap_or(false) {
                 todo!("Return a cutoff error");
             }
             let machine = walkers::DepthFirst::new(
@@ -547,84 +544,84 @@ pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16, Directed> {
     let mut graph = graph! {
         with_edges: unchecked_next,
         nodes: [
-            "Acapulco" => ( -99.82365329900568, 16.85310859874989 ),
-            "Chilpancingo" => ( -99.50063219718855, 17.5515346019228 ),
-            "Acayucan" => ( -94.91473748198624, 17.94923695984836 ),
-            "Tehuantepec" => ( -95.24232999999997, 16.3226994 ),
-            "Tuxtla" => ( -93.10312145056437, 16.75157557931809 ),
-            "Villa Hermosa" => ( -92.94752610256997, 17.98944564153284 ),
-            "Agua Prieta" => ( -109.5489603638477, 31.32777318316638 ),
-            "Santa Ana" => ( -111.1196215, 30.53983329999999 ),
-            "Aguascalientes" => ( -102.2915677, 21.88525620000001 ),
-            "Guadalajara" => ( -103.3496092, 20.65969879999995 ),
-            "Guanajuato" => ( -101.2573586, 21.0190145 ),
-            "Alvarado" => ( -95.75894900000004, 18.7696195 ),
-            "Oaxaca" => ( -96.72658889999992, 17.0731842 ),
-            "Atlacomulco" => ( -99.87668250000002, 19.7975581 ),
-            "Queretaro" => ( -100.3898881, 20.5887932 ),
-            "Cancun" => ( -86.85153608730901, 21.16190750852745 ),
-            "Valladolid" => ( -88.20224879999994, 20.68964 ),
-            "Chetumal" => ( -88.29614599999994, 18.5001889 ),
-            "Campeche" => ( -90.5349087, 19.8301251 ),
-            "Felipe Carrillo Puerto" => ( -88.04409570000003, 19.58033420000001 ),
-            "Merida" => ( -89.59258569999994, 20.9673702 ),
-            "Chihuahua" => ( -106.0691004, 28.63299570000001 ),
-            "Janos" => ( -108.1924158886408, 30.88893268807164 ),
-            "Juarez" => ( -106.4245478, 31.6903638 ),
-            "Ojinaga" => ( -104.4082915783784, 29.54588456755576 ),
-            "Iguala" => ( -99.53973439999994, 18.3448477 ),
-            "Ciudad Altamirano" => ( -100.6686260911074, 18.35781544847858 ),
-            "Cuernavaca" => ( -99.2215659, 18.9242095 ),
-            "Toluca de Lerdo" => ( -99.65566529999998, 19.2826098 ),
-            "Zihuatanejo" => ( -101.5516954999999, 17.64166930000001 ),
-            "Ciudad del Carmen" => ( -91.8074586, 18.6504879 ),
-            "Ciudad Obregon" => ( -109.9303660117927, 27.4827723941238 ),
-            "Guaymas" => ( -110.9089378, 27.91786510000001 ),
-            "Ciudad Victoria" => ( -99.14111539999999, 23.73691640000001 ),
-            "Matamoros" => ( -97.50273759999996, 25.86902940000001 ),
-            "Soto la Marina" => ( -98.20762819999996, 23.76801930000001 ),
-            "Tampico" => ( -97.86109899999995, 22.2331041 ),
-            "Colima" => ( -103.7240866970209, 19.24523428494255 ),
-            "Morelia" => ( -101.1949825, 19.70595040000001 ),
-            "Playa Azul" => ( -102.350469, 17.98202150000001 ),
-            "Cordoba" => ( -96.9237751, 18.8838909 ),
-            "Veracruz" => ( -96.13422410000001, 19.173773 ),
-            "Culiacan" => ( -107.3940117, 24.80906490000001 ),
-            "Hidalgo del Parral" => ( -105.6666166, 26.9317835 ),
-            "Topolobampo" => ( -109.0503685, 25.60069250000001 ),
-            "Durango" => ( -104.6531759, 24.0277202 ),
-            "Mazatlan" => ( -106.4111425, 23.2494148 ),
-            "Torreon" => ( -103.4067860999999, 25.5428443 ),
-            "Ensenada" => ( -116.5963708985866, 31.86674248460107 ),
-            "San Quintin" => ( -115.9379302, 30.5608767 ),
-            "Francisco Escarcega" => ( -90.73902439049336, 18.61018341806402 ),
-            "Manzanillo" => ( -104.3384616, 19.1138094 ),
-            "Salamanca" => ( -101.1957172, 20.5739314 ),
-            "Tepic" => ( -104.8946664723632, 21.50414299987411 ),
-            "Hermosillo" => ( -110.9559192, 29.0729673 ),
-            "San Luis Potosi" => ( -100.9855409, 22.15646989999995 ),
-            "Izucar de Matamoros" => ( -98.46778509999996, 18.5991249 ),
-            "La Paz" => ( -110.3127531, 24.1426408 ),
-            "Cabo San Lucas" => ( -109.9167371, 22.8905327 ),
-            "Reynosa" => ( -98.29789509999996, 26.05084060000001 ),
-            "Mexicalli" => ( -115.4522620271724, 32.62453873266227 ),
-            "San Felipe" => ( -114.8407776, 31.02507090000001 ),
-            "Tijuana" => ( -117.0382434591223, 32.51494624262627 ),
-            "Ciudad de Mexico" => ( -99.13320799999998, 19.4326077 ),
-            "Pachuca de Soto" => ( -98.75913109999998, 20.10106080000001 ),
-            "Puebla" => ( -98.20627269999999, 19.0414398 ),
-            "Tlaxcala" => ( -98.23757882356725, 19.3181620778507 ),
-            "Monclova" => ( -101.4215189298722, 26.9080248820723 ),
-            "Piedras Negras" => ( -100.5408622, 28.6916182 ),
-            "Monterrey" => ( -100.3161126, 25.68661420000001 ),
-            "Nuevo Laredo" => ( -99.54957116219069, 27.47791757328244 ),
-            "Puerto Angel" => ( -96.49131370809657, 15.66800763147724 ),
-            "Tehuacan" => ( -97.4003716535704, 18.46649712573129 ),
-            "Tuxpan de Rodriguez Cano" => ( -97.40633509999998, 20.95611490000001 ),
-            "Pinotepa Nacional" => ( -98.05368699999998, 16.3411824 ),
-            "Zacatecas" => ( -102.5832525341495, 22.77092401669794 ),
-            "Santa Rosalia" => ( -112.2701464859334, 27.33619390443964 ),
-            "Santo Domingo" => ( -111.9888369288694, 25.34873125527853 )
+            "Acapulco" => ( -99.823_654, 16.853_11 ),
+            "Chilpancingo" => ( -99.500_63, 17.551_535 ),
+            "Acayucan" => ( -94.914_734, 17.949_238 ),
+            "Tehuantepec" => ( -95.242_33, 16.322_699 ),
+            "Tuxtla" => ( -93.103_12, 16.751_575 ),
+            "Villa Hermosa" => ( -92.947_525, 17.989_445 ),
+            "Agua Prieta" => ( -109.548_96, 31.327_774 ),
+            "Santa Ana" => ( -111.119_62, 30.539_833 ),
+            "Aguascalientes" => ( -102.291_565, 21.885_256 ),
+            "Guadalajara" => ( -103.349_61, 20.659_698 ),
+            "Guanajuato" => ( -101.257_36, 21.019_014 ),
+            "Alvarado" => ( -95.758_95, 18.769_619 ),
+            "Oaxaca" => ( -96.726_585, 17.073_185 ),
+            "Atlacomulco" => ( -99.876_686, 19.797_558 ),
+            "Queretaro" => ( -100.389_885, 20.588_793 ),
+            "Cancun" => ( -86.851_54, 21.161_907 ),
+            "Valladolid" => ( -88.202_25, 20.68964 ),
+            "Chetumal" => ( -88.296_14, 18.500_189 ),
+            "Campeche" => ( -90.534_91, 19.830_126 ),
+            "Felipe Carrillo Puerto" => ( -88.044_1, 19.580_334 ),
+            "Merida" => ( -89.592_58, 20.967_371 ),
+            "Chihuahua" => ( -106.069_1, 28.632_996 ),
+            "Janos" => ( -108.192_41, 30.888_933 ),
+            "Juarez" => ( -106.424_545, 31.690_363 ),
+            "Ojinaga" => ( -104.408_295, 29.545_885 ),
+            "Iguala" => ( -99.539_734, 18.344_849 ),
+            "Ciudad Altamirano" => ( -100.668_625, 18.357_815 ),
+            "Cuernavaca" => ( -99.221_565, 18.924_21 ),
+            "Toluca de Lerdo" => ( -99.655_66, 19.282_61 ),
+            "Zihuatanejo" => ( -101.551_7, 17.641_67 ),
+            "Ciudad del Carmen" => ( -91.807_46, 18.650_488 ),
+            "Ciudad Obregon" => ( -109.930_37, 27.482_773 ),
+            "Guaymas" => ( -110.908_936, 27.917_866 ),
+            "Ciudad Victoria" => ( -99.141_11, 23.736_916 ),
+            "Matamoros" => ( -97.502_74, 25.869_03 ),
+            "Soto la Marina" => ( -98.207_63, 23.768_019 ),
+            "Tampico" => ( -97.861_1, 22.233_105 ),
+            "Colima" => ( -103.724_08, 19.245_234 ),
+            "Morelia" => ( -101.194_984, 19.705_95 ),
+            "Playa Azul" => ( -102.350_47, 17.982_021 ),
+            "Cordoba" => ( -96.923_775, 18.883_89 ),
+            "Veracruz" => ( -96.134_224, 19.173773 ),
+            "Culiacan" => ( -107.394_01, 24.809_065 ),
+            "Hidalgo del Parral" => ( -105.666_62, 26.931_784 ),
+            "Topolobampo" => ( -109.050_37, 25.600_693 ),
+            "Durango" => ( -104.653_175, 24.027_72 ),
+            "Mazatlan" => ( -106.411_14, 23.249_414 ),
+            "Torreon" => ( -103.406_784, 25.542_845 ),
+            "Ensenada" => ( -116.596_375, 31.866_743 ),
+            "San Quintin" => ( -115.937_93, 30.560_877 ),
+            "Francisco Escarcega" => ( -90.739_02, 18.610_184 ),
+            "Manzanillo" => ( -104.338_46, 19.113_81 ),
+            "Salamanca" => ( -101.195_72, 20.573_93 ),
+            "Tepic" => ( -104.894_67, 21.504_143 ),
+            "Hermosillo" => ( -110.955_92, 29.072_968 ),
+            "San Luis Potosi" => ( -100.985_54, 22.156_47 ),
+            "Izucar de Matamoros" => ( -98.467_79, 18.599_125 ),
+            "La Paz" => ( -110.312_75, 24.142_641 ),
+            "Cabo San Lucas" => ( -109.916_74, 22.890_533 ),
+            "Reynosa" => ( -98.297_9, 26.050_84 ),
+            "Mexicalli" => ( -115.452_26, 32.624_54 ),
+            "San Felipe" => ( -114.840_775, 31.025_07 ),
+            "Tijuana" => ( -117.038_246, 32.514_946 ),
+            "Ciudad de Mexico" => ( -99.133_21, 19.432_608 ),
+            "Pachuca de Soto" => ( -98.759_13, 20.101_06 ),
+            "Puebla" => ( -98.206_276, 19.041_44 ),
+            "Tlaxcala" => ( -98.237_58, 19.318_163 ),
+            "Monclova" => ( -101.421_52, 26.908_026 ),
+            "Piedras Negras" => ( -100.540_86, 28.691_618 ),
+            "Monterrey" => ( -100.316_12, 25.686_615 ),
+            "Nuevo Laredo" => ( -99.549_57, 27.477_917 ),
+            "Puerto Angel" => ( -96.491_31, 15.668_008 ),
+            "Tehuacan" => ( -97.400_375, 18.466_497 ),
+            "Tuxpan de Rodriguez Cano" => ( -97.406_334, 20.956_116 ),
+            "Pinotepa Nacional" => ( -98.053_69, 16.341_183 ),
+            "Zacatecas" => ( -102.583_25, 22.770_924 ),
+            "Santa Rosalia" => ( -112.270_15, 27.336_193 ),
+            "Santo Domingo" => ( -111.988_84, 25.348_732 )
         ],
         connections: [
             "Cancun" => {(90) "Valladolid", (100) "Felipe Carrillo Puerto"},

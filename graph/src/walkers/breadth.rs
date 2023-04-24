@@ -40,24 +40,20 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
 {
     fn step(&mut self) -> WalkerState<(), Ix> {
         if let Some(parent) = self.border.pop_front() {
-            if self
-                .goal
-                .and_then(|goal| Some(goal == parent.idx))
-                .unwrap_or(false)
-            {
+            if self.goal.map(|goal| goal == parent.idx).unwrap_or(false) {
                 return WalkerState::Found(parent);
             }
 
             let parent = Rc::new(parent);
             self.graph
                 .inner
-                .neighbors_directed(parent.idx.into(), self.direction)
+                .neighbors_directed(parent.idx, self.direction)
                 .for_each(|child_idx| {
                     (!self.visited.is_visited(&child_idx)).then(|| {
                         self.visited.visit(child_idx);
                         self.border.push_back(Step {
                             caller: Some(parent.clone()),
-                            idx: child_idx.into(),
+                            idx: child_idx,
                             rel: Some(self.graph.edge_between(parent.idx, child_idx)),
                             state: (),
                         });

@@ -1,18 +1,20 @@
-pub mod beam;
-pub mod breadth;
-pub mod depth;
-pub use super::*;
-pub mod best;
-pub mod bidirectional;
-pub mod hill;
-mod sim_annealing;
-
 pub use beam::*;
 pub use best::*;
 pub use bidirectional::*;
 pub use breadth::*;
 pub use depth::*;
 pub use hill::*;
+
+pub use super::*;
+
+pub mod beam;
+pub mod breadth;
+pub mod depth;
+
+pub mod best;
+pub mod bidirectional;
+pub mod hill;
+mod sim_annealing;
 
 #[derive(Debug)]
 pub enum WalkerState<S, Ix = DefaultIx> {
