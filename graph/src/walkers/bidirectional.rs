@@ -8,8 +8,6 @@ pub struct Bidirectional<'a, I, N, E, Ty, Ix, M1, M2, U, V> {
     visited_b: FixedBitSet,
     story_a: HashMap<NodeIndex<Ix>, Rc<Step<U, Ix>>>,
     story_b: HashMap<NodeIndex<Ix>, Rc<Step<V, Ix>>>,
-    last_step_a: Option<Rc<Step<U, Ix>>>,
-    last_step_b: Option<Rc<Step<V, Ix>>>,
     turn_of_a: bool,
     machine_a_finished: bool,
     machine_b_finished: bool,
@@ -32,8 +30,6 @@ where
             visited_b: FixedBitSet::with_capacity(graph.node_count()),
             story_a: HashMap::with_capacity(graph.node_count()),
             story_b: HashMap::with_capacity(graph.node_count()),
-            last_step_a: None,
-            last_step_b: None,
             machine_a_finished: false,
             machine_b_finished: false,
         }
@@ -55,7 +51,6 @@ where
                 WalkerState::NotFound(step) => {
                     self.visited_a.visit(step.idx);
                     self.story_a.insert(step.idx, Rc::clone(&step));
-                    self.last_step_a = Some(Rc::clone(self.story_a.get(&step.idx).unwrap()));
                     WalkerState::NotFound(Rc::new(step.to_void()))
                 }
                 WalkerState::Cutoff => WalkerState::Cutoff,
@@ -75,7 +70,6 @@ where
                 WalkerState::NotFound(step) => {
                     self.visited_b.visit(step.idx);
                     self.story_b.insert(step.idx, Rc::clone(&step));
-                    self.last_step_b = Some(Rc::clone(self.story_b.get(&step.idx).unwrap()));
                     WalkerState::NotFound(Rc::new(step.to_void()))
                 }
                 WalkerState::Cutoff => WalkerState::Cutoff,
@@ -101,11 +95,6 @@ where
                 return WalkerState::NotFound(step);
             }
 
-            println!("Intersection: {}", intersection);
-            println!("The intersection is at: {:?}", step.idx);
-            println!("Visited by A: {}", self.visited_a.is_visited(&step.idx));
-            println!("Visited by B: {}", self.visited_b.is_visited(&step.idx));
-
             // If it is indeed an intersection, create a vector of NodeIndex<Ix>
             let mut path = VecDeque::with_capacity(self.graph.node_count());
 
@@ -114,22 +103,16 @@ where
                 path.push_back(step.idx);
             }
 
-            println!("Path: {:?}", path);
-
             // Add all steps from the other machine from the story where the intersection was found
             if self.turn_of_a {
-                println!("{:?}", self.story_a.get(&step.idx).unwrap().collect_nodes());
                 for step in self.story_b.get(&step.idx).unwrap().iter().skip(1) {
                     path.push_front(step.idx);
                 }
             } else {
-                println!("{:?}", self.story_b.get(&step.idx).unwrap().collect_nodes());
                 for step in self.story_a.get(&step.idx).unwrap().iter().skip(1) {
                     path.push_front(step.idx);
                 }
             }
-
-            println!("Path: {:?}", path);
 
             let mut step: Step<(), _> = Step {
                 idx: if self.turn_of_a {

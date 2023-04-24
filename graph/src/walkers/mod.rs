@@ -5,6 +5,7 @@ pub use super::*;
 pub mod best;
 pub mod bidirectional;
 pub mod hill;
+mod sim_annealing;
 
 pub use beam::*;
 pub use best::*;

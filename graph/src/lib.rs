@@ -908,7 +908,8 @@ mod tests {
     #[test]
     fn test_random() {
         for _ in 0..50 {
-            println!("{}", rand::get_random());
+            let rand = rand::get_random();
+            println!("{}, {}", rand, rand as f64);
         }
     }
 
