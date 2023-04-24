@@ -255,147 +255,133 @@ pub fn App(cx: Scope) -> impl IntoView {
         if !(valid_ending_node.get() && valid_starting_node.get()) {
             return;
         }
+
         restart_colors();
+
         let journey = graph.journey(&start.get(), Some(&end.get())).unwrap();
         let distances = graph.get_haversine_table_6371(journey.1.unwrap());
 
         // Clear tbody
         let tbody = document().get_element_by_id("bench-results").unwrap();
         tbody.set_inner_html("");
-        let mut results = Vec::new();
 
-        results.push((
-            timed_search(
-                a_star::new(
-                    graph,
-                    journey,
-                    |index| *distances.get(index).unwrap(),
-                    |state| *state as f32,
-                    Direction::Outgoing,
-                ),
-                &graph,
-            ),
-            "A*",
-        ));
-
-        results.push((
-            timed_search(
-                weighted_a_star::new(
-                    graph,
-                    journey,
-                    |index| *distances.get(index).unwrap(),
-                    |state| *state as f32,
-                    1.5,
-                    Direction::Outgoing,
-                ),
-                &graph,
-            ),
-            "Weighted A*",
-        ));
-
-        results.push((
-            timed_search(
-                dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
-                &graph,
-            ),
-            "Dijkstra",
-        ));
-
-        results.push((
-            timed_search(
-                greedy::new(
-                    graph,
-                    journey,
-                    |index| *distances.get(index).unwrap(),
-                    Direction::Outgoing,
-                ),
-                &graph,
-            ),
-            "Greedy",
-        ));
-
-        results.push((
-            timed_search(
-                Beam::new(
-                    graph,
-                    journey,
-                    2,
-                    |i1, i2| {
-                        (distances.get(i1).unwrap())
-                            .partial_cmp(distances.get(i2).unwrap())
-                            .unwrap()
-                    },
-                    Direction::Outgoing,
-                ),
-                &graph,
-            ),
-            "Beam",
-        ));
-
-        results.push((
-            timed_search(
-                Hill::new(
-                    graph,
-                    journey,
-                    |i1, i2| {
-                        (distances.get(i1).unwrap())
-                            .partial_cmp(distances.get(i2).unwrap())
-                            .unwrap()
-                    },
-                    Direction::Outgoing,
-                ),
-                &graph,
-            ),
-            "Hill",
-        ));
-
-        results.push((
-            timed_search(
-                StochasticHill::new(
-                    graph,
-                    journey,
-                    |i1| *distances.get(i1).unwrap() as f64,
-                    Direction::Outgoing,
-                ),
-                &graph,
-            ),
-            "Stochastic Hill",
-        ));
-
-        results.push((
-            timed_search(
-                BreadthFirst::new(graph, journey, Direction::Outgoing),
-                &graph,
-            ),
-            "Breadth First",
-        ));
-
-        results.push((
-            timed_search(
-                DepthFirst::new(graph, journey, None::<usize>, Direction::Outgoing),
-                &graph,
-            ),
-            "Depth First",
-        ));
-
-        results.push((
-            timed_search(
-                Bidirectional::new(
-                    graph,
-                    dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
-                    dijkstra::new(
+        let mut results = vec![
+            (
+                timed_search(
+                    a_star::new(
                         graph,
-                        graph.journey(&end.get(), Some(&start.get())).unwrap(),
-                        |edge| *edge,
-                        Direction::Incoming,
+                        journey,
+                        |index| *distances.get(index).unwrap(),
+                        |state| *state as f32,
+                        Direction::Outgoing,
                     ),
+                    &graph,
                 ),
-                &graph,
+                "A*",
             ),
-            "Bidirectional",
-        ));
+            (
+                timed_search(
+                    weighted_a_star::new(
+                        graph,
+                        journey,
+                        |index| *distances.get(index).unwrap(),
+                        |state| *state as f32,
+                        1.5,
+                        Direction::Outgoing,
+                    ),
+                    &graph,
+                ),
+                "Weighted A*",
+            ),
+            (
+                timed_search(
+                    dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                    &graph,
+                ),
+                "Dijkstra",
+            ),
+            (
+                timed_search(
+                    greedy::new(
+                        graph,
+                        journey,
+                        |index| *distances.get(index).unwrap(),
+                        Direction::Outgoing,
+                    ),
+                    &graph,
+                ),
+                "Greedy",
+            ),
+            (
+                timed_search(
+                    Beam::new(
+                        graph,
+                        journey,
+                        2,
+                        |i1, i2| distances.get(i1).partial_cmp(&distances.get(i2)).unwrap(),
+                        Direction::Outgoing,
+                    ),
+                    &graph,
+                ),
+                "Beam",
+            ),
+            (
+                timed_search(
+                    Hill::new(
+                        graph,
+                        journey,
+                        |i1, i2| distances.get(i1).partial_cmp(&distances.get(i2)).unwrap(),
+                        Direction::Outgoing,
+                    ),
+                    &graph,
+                ),
+                "Hill",
+            ),
+            (
+                timed_search(
+                    StochasticHill::new(
+                        graph,
+                        journey,
+                        |i1| *distances.get(i1).unwrap() as f64,
+                        Direction::Outgoing,
+                    ),
+                    &graph,
+                ),
+                "Stochastic Hill",
+            ),
+            (
+                timed_search(
+                    BreadthFirst::new(graph, journey, Direction::Outgoing),
+                    &graph,
+                ),
+                "Breadth First",
+            ),
+            (
+                timed_search(
+                    DepthFirst::new(graph, journey, None::<u8>, Direction::Outgoing),
+                    &graph,
+                ),
+                "Depth First",
+            ),
+            (
+                timed_search(
+                    Bidirectional::new(
+                        graph,
+                        dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                        dijkstra::new(
+                            graph,
+                            graph.journey(&end.get(), Some(&start.get())).unwrap(),
+                            |edge| *edge,
+                            Direction::Incoming,
+                        ),
+                    ),
+                    &graph,
+                ),
+                "Bidirectional",
+            ),
+        ];
 
-        for (result, name) in results.into_iter() {
+        for (result, name) in results {
             let tr = document().create_element("tr").unwrap();
             tr.set_inner_html(&gen_row(name, result));
             tbody.append_child(&tr).unwrap();
