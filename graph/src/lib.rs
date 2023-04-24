@@ -35,7 +35,7 @@ use std::{
     rc::Rc,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use fixedbitset::FixedBitSet;
 use glam::f32::Vec2;
 use num::{One, Zero};
@@ -242,6 +242,16 @@ where
     }
 }
 
+impl<I, N, E, Ty, Ix> Default for Graph<I, N, E, Ty, Ix>
+where
+    Ix: IndexType,
+    Ty: EdgeType,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<I, N, E, Ty, Ix> Graph<I, N, E, Ty, Ix>
 where
     Ty: EdgeType,
@@ -430,46 +440,6 @@ where
         );
     }
 
-    pub fn iterative_depth_first<D>(
-        &self,
-        start: I,
-        goal: Option<I>,
-        limit: Option<D>,
-    ) -> Result<Step<D, Ix>>
-    where
-        D: Measure + Copy + One + Zero,
-    {
-        let mut cur_limit: D = One::one();
-        loop {
-            if limit.map(|limit| limit == cur_limit).unwrap_or(false) {
-                todo!("Return a cutoff error");
-            }
-            let machine = walkers::DepthFirst::new(
-                self,
-                self.journey(start, goal)?,
-                limit,
-                Direction::Outgoing,
-            );
-            match self.perform_search::<D>(machine) {
-                Ok(res) => {
-                    return Ok(res);
-                }
-                Err(err) => match err {
-                    WalkerState::Done => {
-                        return Err(anyhow!("No path found"));
-                    }
-                    WalkerState::Cutoff => {
-                        cur_limit = cur_limit + One::one();
-                        continue;
-                    }
-                    _ => {
-                        unreachable!("Only WalkerState::Done and WalkerState::Cutoff are returned")
-                    }
-                },
-            }
-        }
-    }
-
     pub fn journey(
         &self,
         start: I,
@@ -487,10 +457,10 @@ where
         Ok((start, end))
     }
 
-    pub fn perform_search<D>(
+    pub fn perform_search(
         &self,
-        mut machine: impl Walker<D, Ix>,
-    ) -> Result<Step<D, Ix>, WalkerState<D, Ix>> {
+        mut machine: impl Walker<Ix>,
+    ) -> Result<Step<f32, Ix>, WalkerState<Ix>> {
         let mut res = machine.step();
 
         while !matches!(res, WalkerState::Done) {
@@ -740,7 +710,7 @@ mod tests {
     fn test_depth() {
         let graph = test_graph();
         let a = graph
-            .perform_search::<u32>(walkers::DepthFirst::new(
+            .perform_search(walkers::DepthFirst::new(
                 &graph,
                 graph.journey("Arad", Some("Neamt")).unwrap(),
                 None,
@@ -757,7 +727,7 @@ mod tests {
     fn test_breadth() {
         let graph = test_graph();
         let a = graph
-            .perform_search::<()>(walkers::BreadthFirst::new(
+            .perform_search(BreadthFirst::new(
                 &graph,
                 graph.journey("Arad", Some("Neamt")).unwrap(),
                 Direction::Outgoing,
@@ -816,7 +786,7 @@ mod tests {
             .perform_search(dijkstra::new(
                 &graph,
                 graph.journey("Arad", Some("Bucharest")).unwrap(),
-                |edge| *edge,
+                |edge| *edge as f32,
                 Direction::Outgoing,
             ))
             .unwrap();
@@ -874,7 +844,7 @@ mod tests {
         let mut a = dijkstra::new(
             &graph,
             graph.journey("Neamt", Some("Arad")).unwrap(),
-            |state| *state,
+            |state| *state as f32,
             Direction::Incoming,
         );
 
@@ -941,7 +911,7 @@ mod tests {
     fn test_random() {
         for _ in 0..50 {
             let rand = rand::get_random();
-            println!("{}, {}", rand, rand as f64);
+            println!("{}, {}", rand, rand as f32);
         }
     }
 
@@ -961,8 +931,13 @@ mod tests {
         let res = graph
             .perform_search(Bidirectional::new(
                 &graph,
-                dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
-                dijkstra::new(&graph, journey_rev, |edge| *edge, Direction::Incoming),
+                dijkstra::new(&graph, journey, |edge| *edge as f32, Direction::Outgoing),
+                dijkstra::new(
+                    &graph,
+                    journey_rev,
+                    |edge| *edge as f32,
+                    Direction::Incoming,
+                ),
             ))
             .unwrap();
 
@@ -970,7 +945,7 @@ mod tests {
             .perform_search(dijkstra::new(
                 &graph,
                 journey,
-                |edge| *edge,
+                |edge| *edge as f32,
                 Direction::Outgoing,
             ))
             .unwrap();
@@ -986,8 +961,13 @@ mod tests {
         let res = graph
             .perform_search(Bidirectional::new(
                 &graph,
-                dijkstra::new(&graph, journey, |edge| *edge, Direction::Outgoing),
-                dijkstra::new(&graph, journey_rev, |edge| *edge, Direction::Incoming),
+                dijkstra::new(&graph, journey, |edge| *edge as f32, Direction::Outgoing),
+                dijkstra::new(
+                    &graph,
+                    journey_rev,
+                    |edge| *edge as f32,
+                    Direction::Incoming,
+                ),
             ))
             .unwrap();
 
@@ -995,7 +975,7 @@ mod tests {
             .perform_search(dijkstra::new(
                 &graph,
                 journey,
-                |edge| *edge,
+                |edge| *edge as f32,
                 Direction::Outgoing,
             ))
             .unwrap();

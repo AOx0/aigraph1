@@ -3,7 +3,7 @@ use super::*;
 pub struct Beam<'a, I, N, E, Ty, Ix, F> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
-    border: VecDeque<Step<(), Ix>>,
+    border: VecDeque<Step<f32, Ix>>,
     successors: usize,
     neighbors: Vec<NodeIndex<Ix>>,
     compare: F,
@@ -33,7 +33,7 @@ where
                     caller: None,
                     idx: journey.0,
                     rel: None,
-                    state: (),
+                    state: 0.,
                 });
                 border
             },
@@ -43,11 +43,11 @@ where
     }
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> Walker<(), Ix> for Beam<'a, I, N, E, Ty, Ix, F>
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> Walker<Ix> for Beam<'a, I, N, E, Ty, Ix, F>
 where
     F: FnMut(&NodeIndex<Ix>, &NodeIndex<Ix>) -> Ordering,
 {
-    fn step(&mut self) -> WalkerState<(), Ix> {
+    fn step(&mut self) -> WalkerState<Ix> {
         if let Some(parent) = self.border.pop_front() {
             if self.goal.map(|goal| goal == parent.idx).unwrap_or(false) {
                 return WalkerState::Found(parent);
@@ -80,7 +80,7 @@ where
                             caller: Some(parent.clone()),
                             idx: child_idx,
                             rel: Some(self.graph.edge_between(parent.idx, child_idx)),
-                            state: (),
+                            state: 0.,
                         });
                     });
             }

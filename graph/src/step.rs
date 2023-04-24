@@ -11,7 +11,7 @@ use super::*;
 /// The `Step` type is a singly linked list, where each step has a reference to its parent.
 /// It is a singly linked list because we only need to go backwards to the root node to get the path.
 #[derive(Debug, Default)]
-pub struct Step<S = f64, Ix = DefaultIx> {
+pub struct Step<S = f32, Ix = DefaultIx> {
     /// The parent State that invoked this instance.
     /// If the option is None then it means we arrived to the root state.
     pub caller: Option<Rc<Step<S, Ix>>>,
@@ -53,12 +53,12 @@ impl<S, Ix: IndexType> Step<S, Ix> {
         size
     }
 
-    pub fn to_void(&self) -> Step<(), Ix> {
+    pub fn to_void(&self) -> Step<f32, Ix> {
         Step {
             caller: self.caller.as_ref().map(|step| Rc::new(step.to_void())),
             idx: self.idx,
             rel: self.rel,
-            state: (),
+            state: 0.,
         }
     }
 

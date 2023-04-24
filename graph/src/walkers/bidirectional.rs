@@ -1,23 +1,22 @@
 use super::*;
 
-pub struct Bidirectional<'a, I, N, E, Ty, Ix, M1, M2, U, V> {
+pub struct Bidirectional<'a, I, N, E, Ty, Ix, M1, M2> {
     graph: &'a Graph<I, N, E, Ty, Ix>,
     machine_a: M1,
     machine_b: M2,
     visited_a: FixedBitSet,
     visited_b: FixedBitSet,
-    story_a: HashMap<NodeIndex<Ix>, Rc<Step<U, Ix>>>,
-    story_b: HashMap<NodeIndex<Ix>, Rc<Step<V, Ix>>>,
+    story_a: HashMap<NodeIndex<Ix>, Rc<Step<f32, Ix>>>,
+    story_b: HashMap<NodeIndex<Ix>, Rc<Step<f32, Ix>>>,
     turn_of_a: bool,
     machine_a_finished: bool,
     machine_b_finished: bool,
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, M1, M2, U, V>
-    Bidirectional<'a, I, N, E, Ty, Ix, M1, M2, U, V>
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, M1, M2> Bidirectional<'a, I, N, E, Ty, Ix, M1, M2>
 where
-    M1: Walker<U, Ix>,
-    M2: Walker<V, Ix>,
+    M1: Walker<Ix>,
+    M2: Walker<Ix>,
 {
     #[allow(dead_code)]
     pub fn new(graph: &'a Graph<I, N, E, Ty, Ix>, machine_a: M1, machine_b: M2) -> Self {
@@ -36,13 +35,13 @@ where
     }
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, M1, M2, U, V> Walker<(), Ix>
-    for Bidirectional<'a, I, N, E, Ty, Ix, M1, M2, U, V>
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, M1, M2> Walker<Ix>
+    for Bidirectional<'a, I, N, E, Ty, Ix, M1, M2>
 where
-    M1: Walker<U, Ix>,
-    M2: Walker<V, Ix>,
+    M1: Walker<Ix>,
+    M2: Walker<Ix>,
 {
-    fn step(&mut self) -> WalkerState<(), Ix> {
+    fn step(&mut self) -> WalkerState<Ix> {
         let next_step = match self.turn_of_a {
             true => match self.machine_a.step() {
                 WalkerState::Found(step) => {

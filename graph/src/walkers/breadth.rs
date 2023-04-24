@@ -4,7 +4,7 @@ use super::*;
 pub struct BreadthFirst<'a, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
-    border: VecDeque<Step<(), Ix>>,
+    border: VecDeque<Step<f32, Ix>>,
     visited: FixedBitSet,
     pub direction: Direction,
 }
@@ -25,7 +25,7 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> BreadthFirst<'a, I, N, E, Ty, Ix>
                     caller: None,
                     idx: journey.0,
                     rel: None,
-                    state: (),
+                    state: 0.,
                 });
                 border
             },
@@ -35,10 +35,8 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> BreadthFirst<'a, I, N, E, Ty, Ix>
     }
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
-    for BreadthFirst<'a, I, N, E, Ty, Ix>
-{
-    fn step(&mut self) -> WalkerState<(), Ix> {
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<Ix> for BreadthFirst<'a, I, N, E, Ty, Ix> {
+    fn step(&mut self) -> WalkerState<Ix> {
         if let Some(parent) = self.border.pop_front() {
             if self.goal.map(|goal| goal == parent.idx).unwrap_or(false) {
                 return WalkerState::Found(parent);
@@ -55,7 +53,7 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
                             caller: Some(parent.clone()),
                             idx: child_idx,
                             rel: Some(self.graph.edge_between(parent.idx, child_idx)),
-                            state: (),
+                            state: 0.,
                         });
                     });
                 });

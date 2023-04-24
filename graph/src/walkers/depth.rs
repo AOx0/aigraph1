@@ -1,24 +1,24 @@
 use super::*;
 
 #[derive(Clone)]
-pub struct DepthFirst<'a, D, I, N, E, Ty, Ix> {
+pub struct DepthFirst<'a, I, N, E, Ty, Ix> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
-    border: VecDeque<Step<D, Ix>>,
+    border: VecDeque<Step<f32, Ix>>,
     visited: FixedBitSet,
-    limit: Option<D>,
+    limit: Option<f32>,
     cutoff: bool,
-    level: D,
+    level: f32,
     neighbors: Vec<NodeIndex<Ix>>,
     pub direction: Direction,
 }
 
-impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, E, Ty, Ix> {
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, I, N, E, Ty, Ix> {
     #[allow(dead_code)]
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
         journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
-        limit: Option<D>,
+        limit: Option<f32>,
         direction: Direction,
     ) -> Self {
         Self {
@@ -44,12 +44,8 @@ impl<'a, D: Zero, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, D, I, N, 
     }
 }
 
-impl<'a, D, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<D, Ix>
-    for DepthFirst<'a, D, I, N, E, Ty, Ix>
-where
-    D: Measure + Copy + One + Zero,
-{
-    fn step(&mut self) -> WalkerState<D, Ix> {
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<Ix> for DepthFirst<'a, I, N, E, Ty, Ix> {
+    fn step(&mut self) -> WalkerState<Ix> {
         if let Some(parent) = self.border.pop_front() {
             if self
                 .limit
@@ -72,7 +68,7 @@ where
             }
 
             let parent = Rc::new(parent);
-            self.level = parent.state + One::one();
+            self.level = parent.state + 1.;
 
             if self.visited.is_visited(&parent.idx) {
                 return WalkerState::NotFound(parent);

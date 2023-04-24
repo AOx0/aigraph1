@@ -3,14 +3,14 @@ use super::*;
 struct SimAnnealing<'a, I, N, E, Ty, Ix> {
     graph: &'a Graph<I, N, E, Ty, Ix>,
     goal: Option<NodeIndex<Ix>>,
-    temperature: f64,
+    temperature: f32,
 }
 
 impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> SimAnnealing<'a, I, N, E, Ty, Ix> {
     pub fn new(
         graph: &'a Graph<I, N, E, Ty, Ix>,
         journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
-        temperature: f64,
+        temperature: f32,
     ) -> Self {
         Self {
             graph,
@@ -20,10 +20,8 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> SimAnnealing<'a, I, N, E, Ty, Ix>
     }
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<(), Ix>
-    for SimAnnealing<'a, I, N, E, Ty, Ix>
-{
-    fn step(&mut self) -> WalkerState<(), Ix> {
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<Ix> for SimAnnealing<'a, I, N, E, Ty, Ix> {
+    fn step(&mut self) -> WalkerState<Ix> {
         WalkerState::Done
     }
 }

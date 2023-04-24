@@ -17,16 +17,16 @@ pub mod hill;
 mod sim_annealing;
 
 #[derive(Debug)]
-pub enum WalkerState<S, Ix = DefaultIx> {
+pub enum WalkerState<Ix = DefaultIx> {
     Done,
-    Found(Step<S, Ix>),
-    NotFound(Rc<Step<S, Ix>>),
+    Found(Step<f32, Ix>),
+    NotFound(Rc<Step<f32, Ix>>),
     Cutoff,
 }
 
-impl<S, Ix> WalkerState<S, Ix> {
+impl<Ix> WalkerState<Ix> {
     /// Peek into the step value if available
-    pub fn step_peek(&self) -> Option<&Step<S, Ix>> {
+    pub fn step_peek(&self) -> Option<&Step<f32, Ix>> {
         match self {
             WalkerState::Done | WalkerState::Cutoff => None,
             WalkerState::Found(ref state) => Some(state),
@@ -35,6 +35,6 @@ impl<S, Ix> WalkerState<S, Ix> {
     }
 }
 
-pub trait Walker<S, Ix = DefaultIx> {
-    fn step(&mut self) -> WalkerState<S, Ix>;
+pub trait Walker<Ix = DefaultIx> {
+    fn step(&mut self) -> WalkerState<Ix>;
 }

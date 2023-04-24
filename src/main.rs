@@ -94,7 +94,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                 "Dijkstra" => {
                     visual_search(
                         time,
-                        dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                        dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
                     )
                     .await;
                 }
@@ -149,7 +149,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         StochasticHill::new(
                             graph,
                             journey,
-                            |i1| *distances.get(i1).unwrap() as f64,
+                            |i1| *distances.get(i1).unwrap(),
                             Direction::Outgoing,
                         ),
                     )
@@ -162,7 +162,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                 "DFS" => {
                     visual_search(
                         time,
-                        DepthFirst::new(graph, journey, None::<usize>, Direction::Outgoing),
+                        DepthFirst::new(graph, journey, None, Direction::Outgoing),
                     )
                     .await;
                 }
@@ -172,8 +172,13 @@ pub fn App(cx: Scope) -> impl IntoView {
                         time,
                         Bidirectional::new(
                             graph,
-                            dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
-                            dijkstra::new(graph, journey_rev, |edge| *edge, Direction::Incoming),
+                            dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
+                            dijkstra::new(
+                                graph,
+                                journey_rev,
+                                |edge| *edge as f32,
+                                Direction::Incoming,
+                            ),
                         ),
                     )
                     .await;
@@ -264,7 +269,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             ),
             (
                 timed_search(
-                    dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                    dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
                     graph,
                 ),
                 "Dijkstra",
@@ -311,7 +316,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     StochasticHill::new(
                         graph,
                         journey,
-                        |i1| *distances.get(i1).unwrap() as f64,
+                        |i1| *distances.get(i1).unwrap(),
                         Direction::Outgoing,
                     ),
                     graph,
@@ -327,7 +332,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             ),
             (
                 timed_search(
-                    DepthFirst::new(graph, journey, None::<u8>, Direction::Outgoing),
+                    DepthFirst::new(graph, journey, None, Direction::Outgoing),
                     graph,
                 ),
                 "Depth First",
@@ -336,11 +341,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                 timed_search(
                     Bidirectional::new(
                         graph,
-                        dijkstra::new(graph, journey, |edge| *edge, Direction::Outgoing),
+                        dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
                         dijkstra::new(
                             graph,
                             graph.journey(&end.get(), Some(&start.get())).unwrap(),
-                            |edge| *edge,
+                            |edge| *edge as f32,
                             Direction::Incoming,
                         ),
                     ),
@@ -529,10 +534,10 @@ fn restart_colors() {
     }
 }
 
-fn timed_search<S>(
-    mut machine: impl Walker<S>,
+fn timed_search(
+    mut machine: impl Walker,
     graph: &Graph<&'static str, (f32, f32), u16, Directed>,
-) -> (f64, usize, usize, u64, f64) {
+) -> (f32, usize, usize, u64, f32) {
     let mut iter = 0;
     let start = window()
         .performance()
@@ -542,7 +547,7 @@ fn timed_search<S>(
     loop {
         iter += 1;
 
-        let res: WalkerState<_, _> = machine.step();
+        let res: WalkerState<_> = machine.step();
 
         match res {
             WalkerState::Found(step) => {
@@ -559,14 +564,14 @@ fn timed_search<S>(
                         let (a, b) = (window[0], window[1]);
                         graph.get_haversine_6371(a, b)
                     })
-                    .fold(0f64, |acc, x| acc + x as f64);
+                    .fold(0f32, |acc, x| acc + x);
 
                 return (
-                    window()
+                    (window()
                         .performance()
                         .map(|p| p.now())
                         .unwrap_or(js_sys::Date::now())
-                        - start,
+                        - start) as f32,
                     iter,
                     step.chain_size(),
                     edges,
@@ -575,11 +580,11 @@ fn timed_search<S>(
             }
             WalkerState::Done => {
                 return (
-                    window()
+                    (window()
                         .performance()
                         .map(|p| p.now())
                         .unwrap_or(js_sys::Date::now())
-                        - start,
+                        - start) as f32,
                     iter,
                     0,
                     0,
@@ -591,11 +596,11 @@ fn timed_search<S>(
     }
 }
 
-async fn visual_search<S>(time: ReadSignal<u64>, mut machine: impl Walker<S>) {
+async fn visual_search(time: ReadSignal<u64>, mut machine: impl Walker) {
     loop {
         use async_std::task::sleep;
 
-        let res: WalkerState<_, _> = machine.step();
+        let res: WalkerState<_> = machine.step();
         let time = time.get();
 
         match res {
@@ -643,7 +648,7 @@ fn set_stroke(rel: u32, stroke: &'static str) {
     });
 }
 
-fn gen_row(name: &str, result: (f64, usize, usize, u64, f64)) -> String {
+fn gen_row(name: &str, result: (f32, usize, usize, u64, f32)) -> String {
     format!(
         "<tr>
     <td class=\"border-t border-b px-4 py-2\">{}</td>

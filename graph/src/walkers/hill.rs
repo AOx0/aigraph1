@@ -5,7 +5,7 @@ pub struct Hill<'a, I, N, E, Ty, Ix, F> {
     graph: &'a Graph<I, N, E, Ty, Ix>,
     direction: Direction,
     neighbors: Vec<NodeIndex<Ix>>,
-    border: VecDeque<Step<(), Ix>>,
+    border: VecDeque<Step<f32, Ix>>,
     compare: F,
 }
 
@@ -30,7 +30,7 @@ where
                     caller: None,
                     idx: journey.0,
                     rel: None,
-                    state: (),
+                    state: 0.,
                 });
                 border
             },
@@ -40,11 +40,11 @@ where
     }
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> Walker<(), Ix> for Hill<'a, I, N, E, Ty, Ix, F>
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> Walker<Ix> for Hill<'a, I, N, E, Ty, Ix, F>
 where
     F: FnMut(&NodeIndex<Ix>, &NodeIndex<Ix>) -> Ordering,
 {
-    fn step(&mut self) -> WalkerState<(), Ix> {
+    fn step(&mut self) -> WalkerState<Ix> {
         if let Some(parent) = self.border.pop_front() {
             if self.goal.map(|goal| goal == parent.idx).unwrap_or(false) {
                 return WalkerState::Found(parent);
@@ -72,7 +72,7 @@ where
                         caller: Some(parent.clone()),
                         idx: child_idx,
                         rel: Some(self.graph.edge_between(parent.idx, child_idx)),
-                        state: (),
+                        state: 0.,
                     });
                 });
             }
@@ -89,13 +89,13 @@ pub struct StochasticHill<'a, I, N, E, Ty, Ix, F> {
     graph: &'a Graph<I, N, E, Ty, Ix>,
     direction: Direction,
     neighbors: Vec<NodeIndex<Ix>>,
-    border: VecDeque<Step<(), Ix>>,
+    border: VecDeque<Step<f32, Ix>>,
     compare: F,
 }
 
 impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> StochasticHill<'a, I, N, E, Ty, Ix, F>
 where
-    F: FnMut(&NodeIndex<Ix>) -> f64,
+    F: FnMut(&NodeIndex<Ix>) -> f32,
 {
     #[allow(dead_code)]
     pub fn new(
@@ -114,7 +114,7 @@ where
                     caller: None,
                     idx: journey.0,
                     rel: None,
-                    state: (),
+                    state: 0.,
                 });
                 border
             },
@@ -124,12 +124,12 @@ where
     }
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> Walker<(), Ix>
+impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType, F> Walker<Ix>
     for StochasticHill<'a, I, N, E, Ty, Ix, F>
 where
-    F: FnMut(&NodeIndex<Ix>) -> f64,
+    F: FnMut(&NodeIndex<Ix>) -> f32,
 {
-    fn step(&mut self) -> WalkerState<(), Ix> {
+    fn step(&mut self) -> WalkerState<Ix> {
         if let Some(parent) = self.border.pop_front() {
             if self.goal.map(|goal| goal == parent.idx).unwrap_or(false) {
                 return WalkerState::Found(parent);
@@ -161,7 +161,7 @@ where
                         caller: Some(parent.clone()),
                         idx: child_idx,
                         rel: Some(self.graph.edge_between(parent.idx, child_idx)),
-                        state: (),
+                        state: 0.,
                     });
                 });
             }
