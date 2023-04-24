@@ -28,97 +28,41 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     let update_valid_hints = move || {
         request_animation_frame(move || {
-            let start_button = document().get_element_by_id("graph-start").unwrap();
-            let class_list = start_button.class_list();
-            if !(valid_ending_node.get() && valid_starting_node.get()) {
-                class_list.remove_1("dark:bg-[#0d1117]").is_err().then(|| {
-                    log!("Failed to remove cursor-not-allowed from start button");
-                });
-                class_list
-                    .add_2("cursor-not-allowed", "dark:bg-[#444444]")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to add cursor-not-allowed to start button");
-                    });
+            let start_button = document()
+                .get_element_by_id("graph-start")
+                .unwrap()
+                .class_list();
+
+            // Update start button class list based on validity of starting and ending nodes
+            start_button.remove_3(
+                "dark:bg-[#0d1117]",
+                "cursor-not-allowed",
+                "dark:bg-[#444444]",
+            );
+
+            if valid_ending_node.get() && valid_starting_node.get() {
+                start_button.add_1("dark:bg-[#0d1117]");
             } else {
-                class_list.add_1("dark:bg-[#0d1117]").is_err().then(|| {
-                    log!("Failed to add cursor-not-allowed to start button");
-                });
-                class_list
-                    .remove_2("cursor-not-allowed", "dark:bg-[#444444]")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to remove cursor-not-allowed from start button");
-                    });
+                start_button.add_2("cursor-not-allowed", "dark:bg-[#444444]");
             }
 
-            if graph.name_index(&start.get()).is_none() {
-                let start_input = document().get_element_by_id("start-field").unwrap();
-                start_input
-                    .class_list()
-                    .add_1("dark:border-red-500")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to add border-red-500 to start input");
-                    });
-                start_input
-                    .class_list()
-                    .remove_1("dark:border-[#0d1117]")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to add border-red-500 to start input");
-                    });
-            } else {
-                let start_input = document().get_element_by_id("start-field").unwrap();
-                start_input
-                    .class_list()
-                    .add_1("dark:border-[#0d1117]")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to remove border-red-500 from start input");
-                    });
-                start_input
-                    .class_list()
-                    .remove_1("dark:border-red-500")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to remove border-red-500 from start input");
-                    });
-            }
+            // Update start input class list based on whether the start node exists in the graph
+            let start_input = document()
+                .get_element_by_id("start-field")
+                .unwrap()
+                .class_list();
+            let start_exists = graph.name_index(&start.get()).is_some();
+            start_input.toggle_with_force("dark:border-red-500", !start_exists);
+            start_input.toggle_with_force("dark:border-[#0d1117]", start_exists);
 
-            if graph.name_index(&end.get()).is_none() {
-                let end_input = document().get_element_by_id("end-field").unwrap();
-                end_input
-                    .class_list()
-                    .add_1("dark:border-red-500")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to add border-red-500 to end input");
-                    });
-                end_input
-                    .class_list()
-                    .remove_1("dark:border-[#0d1117]")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to add border-red-500 to end input");
-                    });
-            } else {
-                let end_input = document().get_element_by_id("end-field").unwrap();
-                end_input
-                    .class_list()
-                    .add_1("dark:border-[#0d1117]")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to remove border-red-500 from end input");
-                    });
-                end_input
-                    .class_list()
-                    .remove_1("dark:border-red-500")
-                    .is_err()
-                    .then(|| {
-                        log!("Failed to remove border-red-500 from end input");
-                    });
-            }
+            // Update end input class list based on whether the end node exists in the graph
+            let end_input = document()
+                .get_element_by_id("end-field")
+                .unwrap()
+                .class_list();
+            let end_exists = graph.name_index(&end.get()).is_some();
+            end_input.toggle_with_force("dark:border-red-500", !end_exists);
+            end_input.toggle_with_force("dark:border-[#0d1117]", end_exists);
         })
     };
 
@@ -296,7 +240,16 @@ pub fn App(cx: Scope) -> impl IntoView {
     let set_method = move |e: web_sys::Event| set_method.set(event_target_value(&e));
     let set_time =
         move |e: web_sys::Event| set_time.set(event_target_value(&e).parse().unwrap_or(10));
-    let toggle_bench_mode = move |_| set_bench_mode.set(!bench_mode.get());
+
+    let update_hidden_elements = |bench_mode: bool| {
+        toggle_items(bench_mode);
+    };
+
+    let toggle_bench_mode = move |_| {
+        let new_value = !bench_mode.get();
+        set_bench_mode.set(new_value);
+        update_hidden_elements(new_value);
+    };
 
     let run_benches = move |_| {
         if !(valid_ending_node.get() && valid_starting_node.get()) {
@@ -453,58 +406,6 @@ pub fn App(cx: Scope) -> impl IntoView {
         run_benches(web_sys::MouseEvent::new("click").unwrap());
     });
 
-    create_effect(cx, move |prev_value| {
-        if bench_mode.get() != prev_value.flatten().unwrap_or_default() {
-            request_animation_frame(move || {
-                let bench_mode = bench_mode;
-                let bench_related = &[
-                    "bench-title",
-                    "bench-start",
-                    "bench-container",
-                    "bench-toggle",
-                ];
-                let graph_related = &[
-                    "graph-title",
-                    "graph-start",
-                    "graph-restart",
-                    "svg-container",
-                    "graph-toggle",
-                    "graph-selector",
-                    "graph-time",
-                ];
-
-                if bench_mode.get() {
-                    for i in bench_related {
-                        let elem = document().get_element_by_id(i).unwrap();
-                        elem.class_list().remove_1("hidden").is_err().then(|| {
-                            log!("Failed to remove hidden class from {}", i);
-                        });
-                    }
-                    for i in graph_related {
-                        let elem = document().get_element_by_id(i).unwrap();
-                        elem.class_list().add_1("hidden").is_err().then(|| {
-                            log!("Failed to add hidden class to {}", i);
-                        });
-                    }
-                } else {
-                    for i in bench_related {
-                        let elem = document().get_element_by_id(i).unwrap();
-                        elem.class_list().add_1("hidden").is_err().then(|| {
-                            log!("Failed to add hidden class to {}", i);
-                        });
-                    }
-                    for i in graph_related {
-                        let elem = document().get_element_by_id(i).unwrap();
-                        elem.class_list().remove_1("hidden").is_err().then(|| {
-                            log!("Failed to remove hidden class from {}", i);
-                        });
-                    }
-                }
-            });
-        }
-        Some(bench_mode.get())
-    });
-
     view! {
         cx,
         <div id="graph-container" class="flex flex-col md:flex-row items-center h-full w-full">
@@ -545,7 +446,6 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <div class="flex space-x-5">
                         <button id="bench-start" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=run_benches>"Re-run benches"</button>
                         <button _ref=graph_start_button id="graph-start" class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
-                        //<button id="graph-restart" class="dark:bg-[#0d1117] rounded p-2" on:click=restart>"Reset colors"</button>
                     </div>
                     <button id="graph-toggle" class="dark:bg-[#0d1117] rounded p-2" on:click=toggle_bench_mode>"Change to bench mode"</button>
                     <button id="bench-toggle" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=toggle_bench_mode>"Change to visual mode"</button>
@@ -571,6 +471,41 @@ pub fn App(cx: Scope) -> impl IntoView {
             </div>
         </div>
     }
+}
+
+fn toggle_items(bench_mode: bool) {
+    request_animation_frame(move || {
+        let bench_related = &[
+            "bench-title",
+            "bench-start",
+            "bench-container",
+            "bench-toggle",
+        ];
+        let graph_related = &[
+            "graph-title",
+            "graph-start",
+            "svg-container",
+            "graph-toggle",
+            "graph-selector",
+            "graph-time",
+        ];
+
+        for (related, add) in [
+            (bench_related.as_ref(), !bench_mode),
+            (graph_related.as_ref(), bench_mode),
+        ] {
+            for i in related {
+                let elem = document().get_element_by_id(i).unwrap();
+                if elem.class_list().toggle_with_force("hidden", add).is_err() {
+                    log!(
+                        "Failed to {} hidden class from {}",
+                        if add { "add" } else { "remove" },
+                        i
+                    );
+                }
+            }
+        }
+    });
 }
 
 fn restart_colors() {
