@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use anyhow::{anyhow, Context, Result};
+
 use leptos::*;
 
 use graph::walkers::*;
@@ -11,6 +12,20 @@ mod svg;
 fn main() {
     mount_to_body(|cx| view! { cx,  <App /> })
 }
+
+const METHODS: [&str; 11] = [
+    "Bidirectional",
+    "Dijkstra",
+    "A*",
+    "Weighted A*",
+    "Beam",
+    "BFS",
+    "DFS",
+    "Greedy",
+    "Hill",
+    "Stochastic Hill",
+    "Simulated Annealing",
+];
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -60,142 +75,11 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         spawn_local(async move {
             restart_colors();
-            let journey = graph.journey(&start.get(), Some(&end.get())).unwrap();
-            let distances = graph.get_haversine_table_6371(journey.1.unwrap());
-
-            match method.get().as_str() {
-                "A*" => {
-                    visual_search(
-                        time,
-                        a_star::new(
-                            graph,
-                            journey,
-                            |index| *distances.get(index).unwrap(),
-                            |state| *state as f32,
-                            Direction::Outgoing,
-                        ),
-                    )
-                    .await;
-                }
-                "Weighted A*" => {
-                    visual_search(
-                        time,
-                        weighted_a_star::new(
-                            graph,
-                            journey,
-                            |index| *distances.get(index).unwrap(),
-                            |state| *state as f32,
-                            1.5,
-                            Direction::Outgoing,
-                        ),
-                    )
-                    .await;
-                }
-                "Dijkstra" => {
-                    visual_search(
-                        time,
-                        dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
-                    )
-                    .await;
-                }
-                "Greedy" => {
-                    visual_search(
-                        time,
-                        greedy::new(
-                            graph,
-                            journey,
-                            |index| *distances.get(index).unwrap(),
-                            Direction::Outgoing,
-                        ),
-                    )
-                    .await;
-                }
-                "Beam" => {
-                    visual_search(
-                        time,
-                        Beam::new(
-                            graph,
-                            journey,
-                            2,
-                            |i1, i2| {
-                                (distances.get(i1).unwrap())
-                                    .partial_cmp(distances.get(i2).unwrap())
-                                    .unwrap()
-                            },
-                            Direction::Outgoing,
-                        ),
-                    )
-                    .await;
-                }
-                "Hill" => {
-                    visual_search(
-                        time,
-                        Hill::new(
-                            graph,
-                            journey,
-                            |i1, i2| {
-                                (distances.get(i1).unwrap())
-                                    .partial_cmp(distances.get(i2).unwrap())
-                                    .unwrap()
-                            },
-                            Direction::Outgoing,
-                        ),
-                    )
-                    .await;
-                }
-                "Stochastic Hill" => {
-                    visual_search(
-                        time,
-                        StochasticHill::new(
-                            graph,
-                            journey,
-                            |i1| *distances.get(i1).unwrap(),
-                            Direction::Outgoing,
-                        ),
-                    )
-                    .await;
-                }
-                "BFS" => {
-                    visual_search(time, BreadthFirst::new(graph, journey, Direction::Outgoing))
-                        .await;
-                }
-                "DFS" => {
-                    visual_search(
-                        time,
-                        DepthFirst::new(graph, journey, None, Direction::Outgoing),
-                    )
-                    .await;
-                }
-                "Bidirectional" => {
-                    let journey_rev = graph.journey(&end.get(), Some(&start.get())).unwrap();
-                    visual_search(
-                        time,
-                        Bidirectional::new(
-                            graph,
-                            dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
-                            dijkstra::new(
-                                graph,
-                                journey_rev,
-                                |edge| *edge as f32,
-                                Direction::Incoming,
-                            ),
-                        ),
-                    )
-                    .await;
-                }
-                _ => {
-                    visual_search(
-                        time,
-                        greedy::new(
-                            graph,
-                            journey,
-                            |index| *distances.get(index).unwrap(),
-                            Direction::Outgoing,
-                        ),
-                    )
-                    .await;
-                }
-            }
+            visual_search(
+                time,
+                create_machine(graph, &start, &end, method.get().as_str()),
+            )
+            .await;
         })
     };
 
@@ -232,132 +116,16 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         restart_colors();
 
-        let journey = graph.journey(&start.get(), Some(&end.get())).unwrap();
-        let distances = graph.get_haversine_table_6371(journey.1.unwrap());
-
         // Clear tbody
         let tbody = document().get_element_by_id("bench-results").unwrap();
         tbody.set_inner_html("");
 
-        let results = vec![
-            (
-                timed_search(
-                    a_star::new(
-                        graph,
-                        journey,
-                        |index| *distances.get(index).unwrap(),
-                        |state| *state as f32,
-                        Direction::Outgoing,
-                    ),
-                    graph,
-                ),
-                "A*",
-            ),
-            (
-                timed_search(
-                    weighted_a_star::new(
-                        graph,
-                        journey,
-                        |index| *distances.get(index).unwrap(),
-                        |state| *state as f32,
-                        1.5,
-                        Direction::Outgoing,
-                    ),
-                    graph,
-                ),
-                "Weighted A*",
-            ),
-            (
-                timed_search(
-                    dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
-                    graph,
-                ),
-                "Dijkstra",
-            ),
-            (
-                timed_search(
-                    greedy::new(
-                        graph,
-                        journey,
-                        |index| *distances.get(index).unwrap(),
-                        Direction::Outgoing,
-                    ),
-                    graph,
-                ),
-                "Greedy",
-            ),
-            (
-                timed_search(
-                    Beam::new(
-                        graph,
-                        journey,
-                        2,
-                        |i1, i2| distances.get(i1).partial_cmp(&distances.get(i2)).unwrap(),
-                        Direction::Outgoing,
-                    ),
-                    graph,
-                ),
-                "Beam",
-            ),
-            (
-                timed_search(
-                    Hill::new(
-                        graph,
-                        journey,
-                        |i1, i2| distances.get(i1).partial_cmp(&distances.get(i2)).unwrap(),
-                        Direction::Outgoing,
-                    ),
-                    graph,
-                ),
-                "Hill",
-            ),
-            (
-                timed_search(
-                    StochasticHill::new(
-                        graph,
-                        journey,
-                        |i1| *distances.get(i1).unwrap(),
-                        Direction::Outgoing,
-                    ),
-                    graph,
-                ),
-                "Stochastic Hill",
-            ),
-            (
-                timed_search(
-                    BreadthFirst::new(graph, journey, Direction::Outgoing),
-                    graph,
-                ),
-                "Breadth First",
-            ),
-            (
-                timed_search(
-                    DepthFirst::new(graph, journey, None, Direction::Outgoing),
-                    graph,
-                ),
-                "Depth First",
-            ),
-            (
-                timed_search(
-                    Bidirectional::new(
-                        graph,
-                        dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
-                        dijkstra::new(
-                            graph,
-                            graph.journey(&end.get(), Some(&start.get())).unwrap(),
-                            |edge| *edge as f32,
-                            Direction::Incoming,
-                        ),
-                    ),
-                    graph,
-                ),
-                "Bidirectional",
-            ),
-        ];
-
-        for (result, name) in results {
+        for method in METHODS.iter().copied() {
             let tr = document().create_element("tr").unwrap();
-            tr.set_inner_html(&gen_row(name, result));
+            tr.set_inner_html(&gen_row(
+                method,
+                timed_search(create_machine(graph, &start, &end, method), graph),
+            ));
             tbody.append_child(&tr).unwrap();
         }
     };
@@ -390,17 +158,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                     </div>
                     <div id="graph-selector" class="overflow-y-scroll">
                         <select class="dark:bg-[#0d1117] rounded p-2" prop:value={method.get()} on:input=set_method>
-                            <option value="Bidirectional">"Bidirectional"</option>
-                            <option value="Dijkstra">"Dijkstra"</option>
-                            <option value="A*">"A*"</option>
-                            <option value="Weighted A*">"Weighted A*"</option>
-                            <option value="Beam">"Beam"</option>
-                            <option value="BFS">"BFS"</option>
-                            <option value="DFS">"DFS"</option>
-                            <option value="Greedy">"Greedy"</option>
-                            <option value="Hill">"Hill"</option>
-                            <option value="Stochastic Hill">"Stochastic Hill"</option>
-                            <option value="Simulated Annealing">"Simulated Annealing"</option>
+                            <For
+                                 each=|| METHODS
+                                 key=|i| *i
+                                 view=|cx, i| view! { cx, <option value={i}>{i}</option> }
+                            />
                         </select>
                     </div>
                     <div class="flex space-x-5">
@@ -430,6 +192,87 @@ pub fn App(cx: Scope) -> impl IntoView {
                 </table>
             </div>
         </div>
+    }
+}
+
+fn create_machine<'a>(
+    graph: &'a Graph<&str, (f32, f32), u16, Directed>,
+    start: &ReadSignal<String>,
+    end: &ReadSignal<String>,
+    method: &str,
+) -> Box<dyn Walker + 'a> {
+    let journey: (NodeIndex<u32>, Option<NodeIndex<u32>>) = graph
+        .journey(start.get().as_str(), Some(end.get().as_str()))
+        .unwrap();
+
+    let distances = graph.get_haversine_table_6371(journey.1.unwrap());
+
+    match method {
+        "A*" => Box::new(a_star::new(
+            graph,
+            journey,
+            move |index| *distances.get(index).unwrap(),
+            |state| *state as f32,
+            Direction::Outgoing,
+        )),
+        "Weighted A*" => Box::new(weighted_a_star::new(
+            graph,
+            journey,
+            move |index| *distances.get(index).unwrap(),
+            |state| *state as f32,
+            1.5,
+            Direction::Outgoing,
+        )),
+        "Dijkstra" => Box::new(dijkstra::new(
+            graph,
+            journey,
+            |edge| *edge as f32,
+            Direction::Outgoing,
+        )),
+        "Greedy" => Box::new(greedy::new(
+            graph,
+            journey,
+            move |index| *distances.get(index).unwrap(),
+            Direction::Outgoing,
+        )),
+        "Beam" => Box::new(Beam::new(
+            graph,
+            journey,
+            2,
+            move |i1, i2| {
+                (distances.get(i1).unwrap())
+                    .partial_cmp(distances.get(i2).unwrap())
+                    .unwrap()
+            },
+            Direction::Outgoing,
+        )),
+        "Hill" => Box::new(Hill::new(
+            graph,
+            journey,
+            move |i1, i2| {
+                (distances.get(i1).unwrap())
+                    .partial_cmp(distances.get(i2).unwrap())
+                    .unwrap()
+            },
+            Direction::Outgoing,
+        )),
+        "Stochastic Hill" => Box::new(StochasticHill::new(
+            graph,
+            journey,
+            move |i1| *distances.get(i1).unwrap(),
+            Direction::Outgoing,
+        )),
+        "BFS" => Box::new(BreadthFirst::new(graph, journey, Direction::Outgoing)),
+        "DFS" => Box::new(DepthFirst::new(graph, journey, None, Direction::Outgoing)),
+        "Bidirectional" => {
+            let journey_rev = graph.journey(&end.get(), Some(&start.get())).unwrap();
+            Box::new(Bidirectional::new(
+                graph,
+                dijkstra::new(graph, journey, |edge| *edge as f32, Direction::Outgoing),
+                dijkstra::new(graph, journey_rev, |edge| *edge as f32, Direction::Incoming),
+            ))
+        }
+        _ => panic!("Invalid method"),
     }
 }
 
@@ -535,7 +378,7 @@ fn restart_colors() {
 }
 
 fn timed_search(
-    mut machine: impl Walker,
+    mut machine: Box<dyn Walker>,
     graph: &Graph<&'static str, (f32, f32), u16, Directed>,
 ) -> (f32, usize, usize, u64, f32) {
     let mut iter = 0;
@@ -596,7 +439,7 @@ fn timed_search(
     }
 }
 
-async fn visual_search(time: ReadSignal<u64>, mut machine: impl Walker) {
+async fn visual_search(time: ReadSignal<u64>, mut machine: Box<dyn Walker>) {
     loop {
         use async_std::task::sleep;
 

@@ -31,14 +31,14 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> DepthFirst<'a, I, N, E, Ty, Ix> {
                     caller: None,
                     idx: journey.0,
                     rel: None,
-                    state: Zero::zero(),
+                    state: 0.,
                 });
                 border
             },
             neighbors: Vec::with_capacity(graph.node_count()),
             cutoff: false,
             visited: graph.visit_map(),
-            level: Zero::zero(),
+            level: 0.,
             direction,
         }
     }

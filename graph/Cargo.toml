@@ -9,7 +9,6 @@ edition = "2021"
 petgraph = "0.6.3"
 unicase = "2.6.0"
 fixedbitset = "0.4.2"
-num = "0.4.0"
 glam.workspace = true
 leptos = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }

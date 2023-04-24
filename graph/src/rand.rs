@@ -9,12 +9,12 @@
 /// let random_ranged = rand::get_random_ranged(0, 10);
 /// ```
 pub fn get_random() -> usize {
-    let mut buffer = [0; 16];
+    let mut buffer = vec![0; std::mem::size_of::<usize>()];
     getrandom::getrandom(&mut buffer).unwrap();
 
     let mut result = 0;
-    for i in 0..std::mem::size_of::<usize>() {
-        result |= (buffer[i] as usize) << (i * 8);
+    for (i, byte) in buffer.iter().copied().enumerate() {
+        result |= (byte as usize) << (i * 8);
     }
     result
 }

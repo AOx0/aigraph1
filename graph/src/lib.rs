@@ -31,22 +31,17 @@ use std::{
     collections::{HashMap, VecDeque},
     fmt::{Debug, Display},
     hash::Hash,
-    ops::Mul,
     rc::Rc,
 };
 
 use anyhow::{Context, Result};
 use fixedbitset::FixedBitSet;
 use glam::f32::Vec2;
-use num::{One, Zero};
 pub use petgraph;
 use petgraph::stable_graph::DefaultIx;
 pub use petgraph::stable_graph::{EdgeIndex, IndexType, NodeIndex, StableGraph as PGraph};
+use petgraph::visit::{VisitMap, Visitable};
 pub use petgraph::Direction;
-use petgraph::{
-    algo::Measure,
-    visit::{VisitMap, Visitable},
-};
 pub use petgraph::{Directed, EdgeType};
 use unicase::Ascii;
 
@@ -217,7 +212,7 @@ where
 
         // Get the coordinates of the destination node
         let node = self.inner.node_weight(to).unwrap();
-        let (x2, y2) = (&node.get_x() * PI / 180., &node.get_y() * PI / 180.);
+        let (x2, y2) = (node.get_x() * PI / 180., node.get_y() * PI / 180.);
 
         // Calculate the distance between the two nodes
 
