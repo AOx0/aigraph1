@@ -25,9 +25,43 @@ use unicase::Ascii;
 pub use step::*;
 use walkers::{Walker, WalkerState};
 
+/// Random number generator based on the [`getrandom`](../getrandom/index.html) crate.
 pub mod rand;
-mod step;
+
+/// Implementation of the [`Step`](./struct.Step.html) struct for traversal representation.
+pub mod step;
+
+/// Implementations of the [`Walker<T>`](./walkers/trait.Walker.html) trait
+/// for various traversal algorithms.
 pub mod walkers;
+
+/// Universidad Panamericana, Mexico City. Facultad de Ingeniería.
+///
+/// Daniel Alejandro Osornio López (0244685@up.edu.mx),
+/// Daniel Hernandez Toledo ()
+///
+/// A graph is a collection of nodes and edges.
+/// This is a wrapper around the [`petgraph`](../petgraph/index.html) crate.
+/// It provides a set of methods to manipulate the graph.
+/// It also provides a set of macros to create graphs with ease.
+/// The graph is generic over the following types:
+/// - `I`: The type of the node identifier
+/// - `N`: The type of the node data
+/// - `E`: The type of the edge data
+/// - `Ty`: The type of the edge
+/// - `Ix`: The type of the index
+///
+/// [`petgraph`](../petgraph/index.html) uses an adjacency list to represent the graph.
+///
+/// The traversal algorithms are implemented in the [`walkers`](./walkers/index.html) module.
+/// The *walkers* are state machines that implement the [`Walker<T>`](./walkers/trait.Walker.html) trait
+/// that provides the [`step`](./walkers/trait.Walker.html#tymethod.step) method to move the walker to the next node
+/// in the graph according to the algorithm.
+///
+/// All solutions are represented as a singly linked list of [`Step<T, Ix>`](./struct.Step.html) instances.
+///
+/// The [`rand`](./rand/index.html) module provides a set of random graph generators.
+///
 
 /// Counts the number of nodes and edges of the graph
 ///
@@ -163,6 +197,7 @@ where
         self.get_haversine_table(to, 6371.)
     }
 
+    /// Get the distance between two nodes with the Haversine formula using the Earth radius as 6371 km
     pub fn get_haversine_6371(&self, from: NodeIndex<Ix>, to: NodeIndex<Ix>) -> f32 {
         self.get_haversine(from, to, 6371.)
     }
@@ -234,7 +269,7 @@ where
         }
     }
 
-    /// Get the [`EdgeIndex<Ix>`](../petgraph/graph/struct.EdgeIndex.html) of the edge between two nodes.
+    /// Get the [`EdgeIndex<Ix>`](../petgraph/graph/struct.EdgeIndex.html) of the edge between two nodes in any direction.
     pub fn edge_between(&self, source: NodeIndex<Ix>, target: NodeIndex<Ix>) -> EdgeIndex<Ix> {
         use petgraph::visit::EdgeRef;
         let a = self.inner.edges_connecting(source, target).next();
