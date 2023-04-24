@@ -2,6 +2,7 @@
 
 mod svg;
 
+use anyhow::{anyhow, Context, Result};
 use graph::walkers::*;
 use leptos::*;
 use svg::SvgPlot;
@@ -28,41 +29,11 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     let update_valid_hints = move || {
         request_animation_frame(move || {
-            let start_button = document()
-                .get_element_by_id("graph-start")
-                .unwrap()
-                .class_list();
-
-            // Update start button class list based on validity of starting and ending nodes
-            start_button.remove_3(
-                "dark:bg-[#0d1117]",
-                "cursor-not-allowed",
-                "dark:bg-[#444444]",
-            );
-
-            if valid_ending_node.get() && valid_starting_node.get() {
-                start_button.add_1("dark:bg-[#0d1117]");
-            } else {
-                start_button.add_2("cursor-not-allowed", "dark:bg-[#444444]");
+            if let Err(err) =
+                update_hints(graph, &start, &end, valid_starting_node, valid_ending_node)
+            {
+                log!("Error updating hints: {}", err);
             }
-
-            // Update start input class list based on whether the start node exists in the graph
-            let start_input = document()
-                .get_element_by_id("start-field")
-                .unwrap()
-                .class_list();
-            let start_exists = graph.name_index(&start.get()).is_some();
-            start_input.toggle_with_force("dark:border-red-500", !start_exists);
-            start_input.toggle_with_force("dark:border-[#0d1117]", start_exists);
-
-            // Update end input class list based on whether the end node exists in the graph
-            let end_input = document()
-                .get_element_by_id("end-field")
-                .unwrap()
-                .class_list();
-            let end_exists = graph.name_index(&end.get()).is_some();
-            end_input.toggle_with_force("dark:border-red-500", !end_exists);
-            end_input.toggle_with_force("dark:border-[#0d1117]", end_exists);
         })
     };
 
@@ -265,7 +236,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         let tbody = document().get_element_by_id("bench-results").unwrap();
         tbody.set_inner_html("");
 
-        let mut results = vec![
+        let results = vec![
             (
                 timed_search(
                     a_star::new(
@@ -457,6 +428,65 @@ pub fn App(cx: Scope) -> impl IntoView {
             </div>
         </div>
     }
+}
+
+fn update_hints(
+    graph: &Graph<&str, (f32, f32), u16, Directed>,
+    start: &ReadSignal<String>,
+    end: &ReadSignal<String>,
+    valid_starting_node: ReadSignal<bool>,
+    valid_ending_node: ReadSignal<bool>,
+) -> Result<()> {
+    let start_button = document()
+        .get_element_by_id("graph-start")
+        .context("Failed to get graph-start")?
+        .class_list();
+
+    // Update start button class list based on validity of starting and ending nodes
+    start_button
+        .remove_3(
+            "dark:bg-[#0d1117]",
+            "cursor-not-allowed",
+            "dark:bg-[#444444]",
+        )
+        .map_err(|_| anyhow!("Failed to remove 3 classes"))?;
+
+    if valid_ending_node.get() && valid_starting_node.get() {
+        start_button
+            .add_1("dark:bg-[#0d1117]")
+            .map_err(|_| anyhow!("Failed to add 1 class"))?;
+    } else {
+        start_button
+            .add_2("cursor-not-allowed", "dark:bg-[#444444]")
+            .map_err(|_| anyhow!("Failed to add 2 classes"))?;
+    }
+
+    // Update start input class list based on whether the start node exists in the graph
+    let start_input = document()
+        .get_element_by_id("start-field")
+        .context("Failed to get start-field")?
+        .class_list();
+    let start_exists = graph.name_index(&start.get()).is_some();
+    start_input
+        .toggle_with_force("dark:border-red-500", !start_exists)
+        .map_err(|_| anyhow!("Failed to toggle red class"))?;
+    start_input
+        .toggle_with_force("dark:border-[#0d1117]", start_exists)
+        .map_err(|_| anyhow!("Failed to toggle normal class"))?;
+
+    // Update end input class list based on whether the end node exists in the graph
+    let end_input = document()
+        .get_element_by_id("end-field")
+        .context("Failed to get end-field")?
+        .class_list();
+    let end_exists = graph.name_index(&end.get()).is_some();
+    end_input
+        .toggle_with_force("dark:border-red-500", !end_exists)
+        .map_err(|_| anyhow!("Failed to toggle red class"))?;
+    end_input
+        .toggle_with_force("dark:border-[#0d1117]", end_exists)
+        .map_err(|_| anyhow!("Failed to toggle normal class"))?;
+    Ok(())
 }
 
 fn toggle_items(bench_mode: bool) {

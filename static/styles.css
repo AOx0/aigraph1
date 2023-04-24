@@ -669,14 +669,14 @@ video {
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
-.dark .dark\:border-red-500 {
-  --tw-border-opacity: 1;
-  border-color: rgb(239 68 68 / var(--tw-border-opacity));
-}
-
 .dark .dark\:border-\[\#0d1117\] {
   --tw-border-opacity: 1;
   border-color: rgb(13 17 23 / var(--tw-border-opacity));
+}
+
+.dark .dark\:border-red-500 {
+  --tw-border-opacity: 1;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity));
 }
 
 .dark .dark\:bg-\[\#0d1117\] {
