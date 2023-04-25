@@ -165,7 +165,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                             />
                         </select>
                     </div>
-                    <div class="flex space-x-5">
+                    <div class="flex">
                         <button id="bench-start" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=run_benches>"Re-run benches"</button>
                         <button _ref=graph_start_button id="graph-start" class="dark:bg-[#0d1117] rounded p-2" on:click=search>"Start search"</button>
                     </div>
@@ -175,21 +175,26 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <div/>
             </div>
             <div _ref=elem_ref id="svg-container" inner_html={&img} class="c-block justify-items-center flex w-full md:w-2/3 h-full"/>
-            <div id="bench-container" class="hidden items-center justify-center flex w-full md:w-2/3 h-full">
+            <div id="bench-container" class="hidden items-center justify-center flex w-full md:w-2/3 h-0 sm:h-full">
                 // Minimal tailwindcss table with method name, time, iterations and cost
-                <table class="table-auto">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-2">"Method"</th>
-                            <th class="px-4 py-2">"Time (ms)"</th>
-                            <th class="px-4 py-2">"Iterations"</th>
-                            <th class="px-4 py-2">"Size"</th>
-                            <th class="px-4 py-2">"Edge Cost"</th>
-                            <th class="px-4 py-2">"Distance Cost"</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bench-results" />
-                </table>
+                <div class="hidden sm:block">
+                    <table class="table-auto">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2">"Method"</th>
+                                <th class="px-4 py-2">"Time (ms)"</th>
+                                <th class="px-4 py-2">"Iterations"</th>
+                                <th class="px-4 py-2">"Size"</th>
+                                <th class="px-4 py-2">"Edge Cost"</th>
+                                <th class="px-4 py-2">"Distance Cost"</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bench-results" />
+                    </table>
+                </div>
+            </div>
+            <div id="bench-warning" class="block hidden sm:hidden items-center justify-center flex w-full px-4 md:w-2/3 h-full sm:h-0">
+                <p>"Benchmark results only available on larger screens"</p>
             </div>
         </div>
     }
@@ -341,6 +346,7 @@ fn toggle_items(bench_mode: bool) {
             "bench-title",
             "bench-start",
             "bench-container",
+            "bench-warning",
             "bench-toggle",
         ];
         let graph_related = &[
