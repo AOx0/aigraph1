@@ -52,7 +52,7 @@ use walkers::{Walker, WalkerState};
 
 /// Random number generator based on the [`getrandom`](../getrandom/index.html) crate.
 /// You may want to take a look at:
-/// - The random number generator (rng) instantiator [`rrand::get_rng`](./rrand/fn.get_rng.html)
+/// - The random number generator (rng) instantiator [`rrand::get_rng`](./fn.get_rng.html)
 pub mod rrand;
 
 /// Implementation of the [`Step`](./step/struct.Step.html) struct for traversal representation.
@@ -62,8 +62,8 @@ pub mod step;
 /// for various traversal algorithms.
 ///
 /// You may want to take a look at:
-/// - The [`Walker<Ix>`](./walkers/trait.Walker.html) trait
-/// - The [`WalkerState`](./walkers/enum.WalkerState.html) enumerator
+/// - The [`Walker<Ix>`](./trait.Walker.html) trait
+/// - The [`WalkerState`](./enum.WalkerState.html) enumerator
 /// - Each of the strategies implementation their corresponding modules.
 pub mod walkers;
 
