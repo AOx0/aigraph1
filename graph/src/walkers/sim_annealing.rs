@@ -1,27 +1,96 @@
 use super::*;
 
-struct SimAnnealing<'a, I, N, E, Ty, Ix> {
-    graph: &'a Graph<I, N, E, Ty, Ix>,
-    goal: Option<NodeIndex<Ix>>,
+pub struct SimAnnealing<'a, Ix> {
+    graph: &'a Graph<&'static str, (f32, f32), f32, Directed, Ix>,
+    state: Rc<Step<f32, Ix>>,
     temperature: f32,
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> SimAnnealing<'a, I, N, E, Ty, Ix> {
+impl<'a, Ix: IndexType> SimAnnealing<'a, Ix> {
+    fn perturb_state(&mut self) -> Rc<Step<f32, Ix>> {
+        let mut rng = rrand::get_rng();
+        use rand::Rng;
+        let mut indices = self.state.collect_nodes();
+        let len = indices.len() - 1;
+
+        // swap two nodes
+        indices.swap(rng.gen::<usize>() % len + 1, rng.gen::<usize>() % len);
+
+        // Re-create the step chain
+        Rc::new(Step::from_slice(
+            &indices,
+            &self.graph,
+            |par, _, curr, step| {
+                self.graph
+                    .inner
+                    .edge_weight(self.graph.edge_between_unchecked(par, curr))
+                    .unwrap()
+                    + *step
+            },
+        ))
+    }
+
     pub fn new(
-        graph: &'a Graph<I, N, E, Ty, Ix>,
+        graph: &'a Graph<&'static str, (f32, f32), f32, Directed, Ix>,
         journey: (NodeIndex<Ix>, Option<NodeIndex<Ix>>),
         temperature: f32,
     ) -> Self {
+        let mut graph_nodes = graph.inner.node_indices().collect::<Vec<_>>();
+        let mut rng = rrand::get_rng();
+        while let Ok(start) = {
+            graph_nodes.sort();
+            graph_nodes.binary_search(&journey.0)
+        } {
+            graph_nodes.remove(start);
+        }
+        graph_nodes.shuffle(&mut rng);
+
+        let mut result_nodes = Vec::with_capacity(graph_nodes.len() + 1);
+        result_nodes.push(journey.0);
+        result_nodes.extend(graph_nodes);
+        result_nodes.push(journey.0);
+        let step = Rc::new(Step::from_slice(
+            &result_nodes,
+            &graph,
+            |par, _, curr, step| {
+                graph
+                    .inner
+                    .edge_weight(graph.edge_between_unchecked(par, curr))
+                    .unwrap()
+                    + *step
+            },
+        ));
         Self {
             graph,
-            goal: journey.1,
             temperature,
+            state: step,
         }
     }
 }
 
-impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<Ix> for SimAnnealing<'a, I, N, E, Ty, Ix> {
+impl<'a, Ix: IndexType> Walker<Ix> for SimAnnealing<'a, Ix> {
     fn step(&mut self) -> WalkerState<Ix> {
-        WalkerState::Done
+        self.temperature -= 100. * 0.1 / self.temperature;
+        if self.temperature <= 0. {
+            WalkerState::Done
+        } else {
+            let new = self.perturb_state();
+
+            if new.state < self.state.state {
+                self.state = new;
+                WalkerState::NotFound(self.state.clone())
+            } else {
+                //let mut rng = rrand::get_rng();
+                //use rand::Rng;
+                //let p = rng.gen::<f32>();
+                //let delta = new.state - self.state.state;
+                //if p < (-delta / self.temperature).exp() {
+                //    self.state = new;
+                //    WalkerState::NotFound(self.state.clone())
+                //} else {
+                WalkerState::Cutoff
+                //}
+            }
+        }
     }
 }

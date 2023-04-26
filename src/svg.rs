@@ -54,6 +54,19 @@ impl SvgPlot {
         s
     }
 
+    pub fn new_white(plot_type: PGraph<Node, (), Directed, u32>) -> Self {
+        let settings = Settings {
+            edge_color: RGBAColor(255, 255, 255, 1.0),
+            ..Default::default()
+        };
+        let mut s = Self {
+            settings,
+            plot_type,
+        };
+        s.translate_coords();
+        s
+    }
+
     pub fn print_to_string(&self) -> String {
         let mut svg_str = String::new();
         let backend = SVGBackend::with_string(&mut svg_str, self.settings.size);

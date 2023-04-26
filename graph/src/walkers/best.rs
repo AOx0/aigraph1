@@ -86,7 +86,7 @@ where
                     .count()
                     != 0;
                 if es_goal || has_kids {
-                    let edge = self.graph.edge_between(parent.idx, child_idx);
+                    let edge = self.graph.edge_between_unchecked(parent.idx, child_idx);
                     let step = Step {
                         caller: Some(parent.clone()),
                         idx: child_idx,

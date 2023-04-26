@@ -45,12 +45,12 @@ where
         let next_step = match self.turn_of_a {
             true => match self.machine_a.step() {
                 WalkerState::Found(step) => {
-                    return WalkerState::Found(step.to_void());
+                    return WalkerState::Found(step);
                 }
                 WalkerState::NotFound(step) => {
                     self.visited_a.visit(step.idx);
                     self.story_a.insert(step.idx, Rc::clone(&step));
-                    WalkerState::NotFound(Rc::new(step.to_void()))
+                    WalkerState::NotFound(step)
                 }
                 WalkerState::Cutoff => WalkerState::Cutoff,
                 WalkerState::Done => {
@@ -64,12 +64,12 @@ where
             },
             false => match self.machine_b.step() {
                 WalkerState::Found(step) => {
-                    return WalkerState::Found(step.to_void());
+                    return WalkerState::Found(step);
                 }
                 WalkerState::NotFound(step) => {
                     self.visited_b.visit(step.idx);
                     self.story_b.insert(step.idx, Rc::clone(&step));
-                    WalkerState::NotFound(Rc::new(step.to_void()))
+                    WalkerState::NotFound(step)
                 }
                 WalkerState::Cutoff => WalkerState::Cutoff,
                 WalkerState::Done => {
@@ -113,13 +113,14 @@ where
                 }
             }
 
-            let mut step: Step<(), _> = Step {
+            let mut step: Step<_, _> = Step {
                 idx: if self.turn_of_a {
                     path.pop_back()
                 } else {
                     path.pop_front()
                 }
                 .unwrap(),
+                state: 0.,
                 ..Default::default()
             };
             while let Some(next) = if self.turn_of_a {
@@ -131,11 +132,11 @@ where
                 step = Step {
                     idx: next,
                     caller: Some(Rc::new(step)),
-                    rel: Some(self.graph.edge_between(idx, next)),
-                    ..Default::default()
+                    rel: self.graph.edge_between(idx, next),
+                    state: 0.,
                 };
             }
-            return WalkerState::Found(step.to_void());
+            return WalkerState::Found(step);
         } else {
             next_step
         };

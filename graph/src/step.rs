@@ -53,13 +53,36 @@ impl<S, Ix: IndexType> Step<S, Ix> {
         size
     }
 
-    pub fn to_void(&self) -> Step<f32, Ix> {
-        Step {
-            caller: self.caller.as_ref().map(|step| Rc::new(step.to_void())),
-            idx: self.idx,
-            rel: self.rel,
-            state: 0.,
+    pub fn from_slice<I, N, E, Ty: EdgeType, F>(
+        indices: &[NodeIndex<Ix>],
+        graph: &Graph<I, N, E, Ty, Ix>,
+        state: F,
+    ) -> Step<S, Ix>
+    where
+        F: Fn(NodeIndex<Ix>, EdgeIndex<Ix>, NodeIndex<Ix>, &S) -> S,
+        S: Default,
+    {
+        let mut step: Step<S, Ix> = Step {
+            caller: None,
+            idx: indices[0],
+            rel: None,
+            state: Default::default(),
+        };
+        for idx in indices.into_iter().skip(1).copied() {
+            let old_step = Rc::new(step);
+            step = Step {
+                caller: Some(old_step.clone()),
+                idx,
+                rel: graph.edge_between(old_step.idx, idx),
+                state: state(
+                    old_step.idx,
+                    graph.edge_between_unchecked(old_step.idx, idx),
+                    idx,
+                    &old_step.state,
+                ),
+            };
         }
+        step
     }
 
     /// Returns an iterator visiting all the steps in the chain

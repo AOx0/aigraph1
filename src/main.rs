@@ -9,7 +9,10 @@ use svg::SvgPlot;
 
 mod svg;
 
+use std::panic;
+
 fn main() {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
     mount_to_body(|cx| view! { cx,  <App /> })
 }
 
@@ -31,7 +34,11 @@ const METHODS: [&str; 11] = [
 pub fn App(cx: Scope) -> impl IntoView {
     let (bench_mode, set_bench_mode) = create_signal(cx, false);
     let graph: &'static _ = Box::leak(Box::new(test_graph2()));
-    let img = SvgPlot::new(graph.repr.clone(), None).print_to_string();
+    let graph_connected: &'static _ = Box::leak(Box::new(test_connected()));
+    let img: &'static str = Box::leak(Box::new(
+        SvgPlot::new(graph.repr.clone(), None).print_to_string(),
+    ));
+    let (temperature, set_temperature) = create_signal(cx, 150.);
 
     let (time, set_time) = create_signal(cx, 10);
     let (start, set_start) = create_signal(cx, "Cancun".to_string());
@@ -53,7 +60,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         })
     };
 
-    create_effect(cx, move |_| {
+    let remove_size_restriction = move || {
         if elem_ref.get().is_some() {
             request_animation_frame(move || {
                 let svg_container = document().get_element_by_id("svg-container").unwrap();
@@ -66,7 +73,8 @@ pub fn App(cx: Scope) -> impl IntoView {
                 });
             });
         }
-    });
+    };
+    create_effect(cx, move |_| remove_size_restriction());
 
     let search = move |_| {
         if !(valid_ending_node.get() && valid_starting_node.get()) {
@@ -74,16 +82,62 @@ pub fn App(cx: Scope) -> impl IntoView {
         }
 
         spawn_local(async move {
-            restart_colors();
-            visual_search(
-                time,
-                create_machine(graph, &start, &end, method.get().as_str()),
-            )
-            .await;
+            if method.get() == "Simulated Annealing" {
+                let mut machine = SimAnnealing::new(
+                    graph_connected,
+                    graph.journey(&start.get(), None).unwrap(),
+                    temperature.get(),
+                );
+
+                loop {
+                    let step = machine.step();
+                    if let WalkerState::Cutoff = step {
+                        continue;
+                    } else if let WalkerState::Done = step {
+                        restart_colors();
+                        break;
+                    } else {
+                        async_std::task::sleep(std::time::Duration::from_millis(10)).await;
+                        let mut repr = test_empty();
+                        for index in step
+                            .step_peek()
+                            .as_ref()
+                            .unwrap()
+                            .collect_nodes()
+                            .windows(2)
+                        {
+                            repr.next(
+                                repr.index_name(index[0]).unwrap(),
+                                repr.index_name(index[1]).unwrap(),
+                                repr.get_haversine_6371(index[0], index[1]),
+                            )
+                            .unwrap();
+                        }
+                        let svg_container = document().get_element_by_id("svg-container").unwrap();
+                        svg_container
+                            .set_inner_html(&SvgPlot::new_white(repr.repr).print_to_string());
+                        let state_indicator =
+                            document().get_element_by_id("state-indicator").unwrap();
+                        state_indicator.set_inner_html(&format!(
+                            "{}",
+                            step.step_peek().as_ref().unwrap().state
+                        ));
+
+                        remove_size_restriction();
+                    }
+                }
+            } else {
+                let svg_container = document().get_element_by_id("svg-container").unwrap();
+                svg_container.set_inner_html(img);
+                remove_size_restriction();
+                visual_search(
+                    time,
+                    create_machine(graph, &start, &end, method.get().as_str()),
+                )
+                .await;
+            }
         })
     };
-
-    // let restart = move |_| restart_colors();
 
     let set_start = move |e: web_sys::Event| {
         set_start.set(event_target_value(&e));
@@ -95,7 +149,22 @@ pub fn App(cx: Scope) -> impl IntoView {
         set_valid_end.set(graph.name_index(&end.get()).is_some());
         update_valid_hints();
     };
-    let set_method = move |e: web_sys::Event| set_method.set(event_target_value(&e));
+
+    let set_temperature = move |e: web_sys::Event| {
+        set_temperature.set(event_target_value(&e).parse().unwrap_or(150.));
+    };
+
+    let set_method = move |e: web_sys::Event| {
+        let temperature_input = document().get_element_by_id("sim-ann").unwrap();
+        if event_target_value(&e) == "Simulated Annealing" {
+            temperature_input.class_list().remove_1("hidden").unwrap();
+        } else {
+            temperature_input.class_list().add_1("hidden").unwrap();
+        }
+
+        set_method.set(event_target_value(&e));
+    };
+
     let set_time =
         move |e: web_sys::Event| set_time.set(event_target_value(&e).parse().unwrap_or(10));
 
@@ -121,6 +190,9 @@ pub fn App(cx: Scope) -> impl IntoView {
         tbody.set_inner_html("");
 
         for method in METHODS.iter().copied() {
+            if method == "Simulated Annealing" {
+                continue;
+            }
             let tr = document().create_element("tr").unwrap();
             tr.set_inner_html(&gen_row(
                 method,
@@ -129,10 +201,6 @@ pub fn App(cx: Scope) -> impl IntoView {
             tbody.append_child(&tr).unwrap();
         }
     };
-
-    spawn_local(async move {
-        run_benches(web_sys::MouseEvent::new("click").unwrap());
-    });
 
     view! {
         cx,
@@ -156,6 +224,10 @@ pub fn App(cx: Scope) -> impl IntoView {
                         <p class="text-sm font-bold pb-1" >"Delay (ms)"</p>
                         <input class="dark:bg-[#0d1117] rounded p-2" placeholder="Time" prop:value={time.get()} on:input=set_time />
                     </div>
+                    <div id="sim-ann" class="hidden">
+                        <p class="text-sm font-bold pb-1" >"Temperature"</p>
+                        <input class="dark:bg-[#0d1117] focus:border-transparent focus:ring-0 border-2 dark:border-[#0d1117] rounded p-2" placeholder="Temperature" prop:value={temperature.get()} on:input=set_temperature />
+                    </div>
                     <div id="graph-selector" class="overflow-y-scroll">
                         <select class="dark:bg-[#0d1117] rounded p-2" prop:value={method.get()} on:input=set_method>
                             <For
@@ -164,6 +236,10 @@ pub fn App(cx: Scope) -> impl IntoView {
                                  view=|cx, i| view! { cx, <option value={i}>{i}</option> }
                             />
                         </select>
+                    </div>
+                    <div class="flex space-x-2">
+                        <p>"Distance:"</p>
+                        <p id="state-indicator">"0"</p>
                     </div>
                     <div class="flex">
                         <button id="bench-start" class="hidden dark:bg-[#0d1117] rounded p-2" on:click=run_benches>"Re-run benches"</button>
@@ -174,7 +250,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                 </div>
                 <div/>
             </div>
-            <div _ref=elem_ref id="svg-container" inner_html={&img} class="c-block justify-items-center flex w-full md:w-2/3 h-full"/>
+            <div _ref=elem_ref id="svg-container" inner_html={img} class="c-block justify-items-center flex w-full md:w-2/3 h-full"/>
             <div id="bench-container" class="hidden items-center justify-center flex w-full md:w-2/3 h-0 sm:h-full">
                 // Minimal tailwindcss table with method name, time, iterations and cost
                 <div class="hidden sm:block">
@@ -201,7 +277,7 @@ pub fn App(cx: Scope) -> impl IntoView {
 }
 
 fn create_machine<'a>(
-    graph: &'a Graph<&str, (f32, f32), u16, Directed>,
+    graph: &'a Graph<&str, (f32, f32), f32, Directed>,
     start: &ReadSignal<String>,
     end: &ReadSignal<String>,
     method: &str,
@@ -277,12 +353,12 @@ fn create_machine<'a>(
                 dijkstra::new(graph, journey_rev, |edge| *edge as f32, Direction::Incoming),
             ))
         }
-        _ => panic!("Invalid method"),
+        _ => panic!("Invalid method {}", method),
     }
 }
 
 fn update_hints(
-    graph: &Graph<&str, (f32, f32), u16, Directed>,
+    graph: &Graph<&str, (f32, f32), f32, Directed>,
     start: &ReadSignal<String>,
     end: &ReadSignal<String>,
     valid_starting_node: ReadSignal<bool>,
@@ -351,6 +427,7 @@ fn toggle_items(bench_mode: bool) {
         ];
         let graph_related = &[
             "graph-title",
+            "state-indicator",
             "graph-start",
             "svg-container",
             "graph-toggle",
@@ -385,7 +462,7 @@ fn restart_colors() {
 
 fn timed_search(
     mut machine: Box<dyn Walker>,
-    graph: &Graph<&'static str, (f32, f32), u16, Directed>,
+    graph: &Graph<&'static str, (f32, f32), f32, Directed>,
 ) -> (f32, usize, usize, u64, f32) {
     let mut iter = 0;
     let start = window()

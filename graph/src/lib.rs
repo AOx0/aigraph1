@@ -42,6 +42,7 @@ use petgraph::stable_graph::DefaultIx;
 pub use petgraph::stable_graph::{EdgeIndex, IndexType, NodeIndex, StableGraph as PGraph};
 use petgraph::visit::{VisitMap, Visitable};
 pub use petgraph::Direction;
+use petgraph::Undirected;
 pub use petgraph::{Directed, EdgeType};
 use unicase::Ascii;
 
@@ -49,7 +50,7 @@ pub use step::*;
 use walkers::{Walker, WalkerState};
 
 /// Random number generator based on the [`getrandom`](../getrandom/index.html) crate.
-pub mod rand;
+pub mod rrand;
 
 /// Implementation of the [`Step`](./step/struct.Step.html) struct for traversal representation.
 pub mod step;
@@ -275,16 +276,34 @@ where
     }
 
     /// Get the [`EdgeIndex<Ix>`](../petgraph/graph/struct.EdgeIndex.html) of the edge between two nodes in any direction.
-    pub fn edge_between(&self, source: NodeIndex<Ix>, target: NodeIndex<Ix>) -> EdgeIndex<Ix> {
+    pub fn edge_between_unchecked(
+        &self,
+        source: NodeIndex<Ix>,
+        target: NodeIndex<Ix>,
+    ) -> EdgeIndex<Ix> {
+        self.edge_between(source, target).unwrap_or_else(|| {
+            panic!(
+                "No edge between {:?} and {:?} in graph",
+                source.index(),
+                target.index()
+            )
+        })
+    }
+
+    pub fn edge_between(
+        &self,
+        source: NodeIndex<Ix>,
+        target: NodeIndex<Ix>,
+    ) -> Option<EdgeIndex<Ix>> {
         use petgraph::visit::EdgeRef;
         let a = self.inner.edges_connecting(source, target).next();
         let b = self.inner.edges_connecting(target, source).next();
         if let Some(edge) = a {
-            edge.id()
+            Some(edge.id())
         } else if let Some(edge) = b {
-            edge.id()
+            Some(edge.id())
         } else {
-            panic!("No edge between {:?} and {:?}", source, target)
+            None
         }
     }
 
@@ -491,7 +510,200 @@ impl Coords for () {
 }
 
 #[allow(dead_code)]
-pub fn test_graph() -> Graph<&'static str, (f32, f32), u16, Directed, u32> {
+pub fn test_empty() -> Graph<&'static str, (f32, f32), f32, Directed> {
+    let mut graph = graph! {
+        with_edges: unchecked_next,
+        nodes: [
+            "Acapulco" => ( -99.823_654, 16.853_11 ),
+            "Chilpancingo" => ( -99.500_63, 17.551_535 ),
+            "Acayucan" => ( -94.914_734, 17.949_238 ),
+            "Tehuantepec" => ( -95.242_33, 16.322_699 ),
+            "Tuxtla" => ( -93.103_12, 16.751_575 ),
+            "Villa Hermosa" => ( -92.947_525, 17.989_445 ),
+            "Agua Prieta" => ( -109.548_96, 31.327_774 ),
+            "Santa Ana" => ( -111.119_62, 30.539_833 ),
+            "Aguascalientes" => ( -102.291_565, 21.885_256 ),
+            "Guadalajara" => ( -103.349_61, 20.659_698 ),
+            "Guanajuato" => ( -101.257_36, 21.019_014 ),
+            "Alvarado" => ( -95.758_95, 18.769_619 ),
+            "Oaxaca" => ( -96.726_585, 17.073_185 ),
+            "Atlacomulco" => ( -99.876_686, 19.797_558 ),
+            "Queretaro" => ( -100.389_885, 20.588_793 ),
+            "Cancun" => ( -86.851_54, 21.161_907 ),
+            "Valladolid" => ( -88.202_25, 20.68964 ),
+            "Chetumal" => ( -88.296_14, 18.500_189 ),
+            "Campeche" => ( -90.534_91, 19.830_126 ),
+            "Felipe Carrillo Puerto" => ( -88.044_1, 19.580_334 ),
+            "Merida" => ( -89.592_58, 20.967_371 ),
+            "Chihuahua" => ( -106.069_1, 28.632_996 ),
+            "Janos" => ( -108.192_41, 30.888_933 ),
+            "Juarez" => ( -106.424_545, 31.690_363 ),
+            "Ojinaga" => ( -104.408_295, 29.545_885 ),
+            "Iguala" => ( -99.539_734, 18.344_849 ),
+            "Ciudad Altamirano" => ( -100.668_625, 18.357_815 ),
+            "Cuernavaca" => ( -99.221_565, 18.924_21 ),
+            "Toluca de Lerdo" => ( -99.655_66, 19.282_61 ),
+            "Zihuatanejo" => ( -101.551_7, 17.641_67 ),
+            "Ciudad del Carmen" => ( -91.807_46, 18.650_488 ),
+            "Ciudad Obregon" => ( -109.930_37, 27.482_773 ),
+            "Guaymas" => ( -110.908_936, 27.917_866 ),
+            "Ciudad Victoria" => ( -99.141_11, 23.736_916 ),
+            "Matamoros" => ( -97.502_74, 25.869_03 ),
+            "Soto la Marina" => ( -98.207_63, 23.768_019 ),
+            "Tampico" => ( -97.861_1, 22.233_105 ),
+            "Colima" => ( -103.724_08, 19.245_234 ),
+            "Morelia" => ( -101.194_984, 19.705_95 ),
+            "Playa Azul" => ( -102.350_47, 17.982_021 ),
+            "Cordoba" => ( -96.923_775, 18.883_89 ),
+            "Veracruz" => ( -96.134_224, 19.173773 ),
+            "Culiacan" => ( -107.394_01, 24.809_065 ),
+            "Hidalgo del Parral" => ( -105.666_62, 26.931_784 ),
+            "Topolobampo" => ( -109.050_37, 25.600_693 ),
+            "Durango" => ( -104.653_175, 24.027_72 ),
+            "Mazatlan" => ( -106.411_14, 23.249_414 ),
+            "Torreon" => ( -103.406_784, 25.542_845 ),
+            "Ensenada" => ( -116.596_375, 31.866_743 ),
+            "San Quintin" => ( -115.937_93, 30.560_877 ),
+            "Francisco Escarcega" => ( -90.739_02, 18.610_184 ),
+            "Manzanillo" => ( -104.338_46, 19.113_81 ),
+            "Salamanca" => ( -101.195_72, 20.573_93 ),
+            "Tepic" => ( -104.894_67, 21.504_143 ),
+            "Hermosillo" => ( -110.955_92, 29.072_968 ),
+            "San Luis Potosi" => ( -100.985_54, 22.156_47 ),
+            "Izucar de Matamoros" => ( -98.467_79, 18.599_125 ),
+            "La Paz" => ( -110.312_75, 24.142_641 ),
+            "Cabo San Lucas" => ( -109.916_74, 22.890_533 ),
+            "Reynosa" => ( -98.297_9, 26.050_84 ),
+            "Mexicalli" => ( -115.452_26, 32.624_54 ),
+            "San Felipe" => ( -114.840_775, 31.025_07 ),
+            "Tijuana" => ( -117.038_246, 32.514_946 ),
+            "Ciudad de Mexico" => ( -99.133_21, 19.432_608 ),
+            "Pachuca de Soto" => ( -98.759_13, 20.101_06 ),
+            "Puebla" => ( -98.206_276, 19.041_44 ),
+            "Tlaxcala" => ( -98.237_58, 19.318_163 ),
+            "Monclova" => ( -101.421_52, 26.908_026 ),
+            "Piedras Negras" => ( -100.540_86, 28.691_618 ),
+            "Monterrey" => ( -100.316_12, 25.686_615 ),
+            "Nuevo Laredo" => ( -99.549_57, 27.477_917 ),
+            "Puerto Angel" => ( -96.491_31, 15.668_008 ),
+            "Tehuacan" => ( -97.400_375, 18.466_497 ),
+            "Tuxpan de Rodriguez Cano" => ( -97.406_334, 20.956_116 ),
+            "Pinotepa Nacional" => ( -98.053_69, 16.341_183 ),
+            "Zacatecas" => ( -102.583_25, 22.770_924 ),
+            "Santa Rosalia" => ( -112.270_15, 27.336_193 ),
+            "Santo Domingo" => ( -111.988_84, 25.348_732 )
+        ],
+        connections: []
+    };
+    graph.done_register();
+    graph
+}
+
+#[allow(dead_code)]
+pub fn test_connected() -> Graph<&'static str, (f32, f32), f32, Directed> {
+    let mut graph = graph! {
+        with_edges: unchecked_next,
+        nodes: [
+            "Acapulco" => ( -99.823_654, 16.853_11 ),
+            "Chilpancingo" => ( -99.500_63, 17.551_535 ),
+            "Acayucan" => ( -94.914_734, 17.949_238 ),
+            "Tehuantepec" => ( -95.242_33, 16.322_699 ),
+            "Tuxtla" => ( -93.103_12, 16.751_575 ),
+            "Villa Hermosa" => ( -92.947_525, 17.989_445 ),
+            "Agua Prieta" => ( -109.548_96, 31.327_774 ),
+            "Santa Ana" => ( -111.119_62, 30.539_833 ),
+            "Aguascalientes" => ( -102.291_565, 21.885_256 ),
+            "Guadalajara" => ( -103.349_61, 20.659_698 ),
+            "Guanajuato" => ( -101.257_36, 21.019_014 ),
+            "Alvarado" => ( -95.758_95, 18.769_619 ),
+            "Oaxaca" => ( -96.726_585, 17.073_185 ),
+            "Atlacomulco" => ( -99.876_686, 19.797_558 ),
+            "Queretaro" => ( -100.389_885, 20.588_793 ),
+            "Cancun" => ( -86.851_54, 21.161_907 ),
+            "Valladolid" => ( -88.202_25, 20.68964 ),
+            "Chetumal" => ( -88.296_14, 18.500_189 ),
+            "Campeche" => ( -90.534_91, 19.830_126 ),
+            "Felipe Carrillo Puerto" => ( -88.044_1, 19.580_334 ),
+            "Merida" => ( -89.592_58, 20.967_371 ),
+            "Chihuahua" => ( -106.069_1, 28.632_996 ),
+            "Janos" => ( -108.192_41, 30.888_933 ),
+            "Juarez" => ( -106.424_545, 31.690_363 ),
+            "Ojinaga" => ( -104.408_295, 29.545_885 ),
+            "Iguala" => ( -99.539_734, 18.344_849 ),
+            "Ciudad Altamirano" => ( -100.668_625, 18.357_815 ),
+            "Cuernavaca" => ( -99.221_565, 18.924_21 ),
+            "Toluca de Lerdo" => ( -99.655_66, 19.282_61 ),
+            "Zihuatanejo" => ( -101.551_7, 17.641_67 ),
+            "Ciudad del Carmen" => ( -91.807_46, 18.650_488 ),
+            "Ciudad Obregon" => ( -109.930_37, 27.482_773 ),
+            "Guaymas" => ( -110.908_936, 27.917_866 ),
+            "Ciudad Victoria" => ( -99.141_11, 23.736_916 ),
+            "Matamoros" => ( -97.502_74, 25.869_03 ),
+            "Soto la Marina" => ( -98.207_63, 23.768_019 ),
+            "Tampico" => ( -97.861_1, 22.233_105 ),
+            "Colima" => ( -103.724_08, 19.245_234 ),
+            "Morelia" => ( -101.194_984, 19.705_95 ),
+            "Playa Azul" => ( -102.350_47, 17.982_021 ),
+            "Cordoba" => ( -96.923_775, 18.883_89 ),
+            "Veracruz" => ( -96.134_224, 19.173773 ),
+            "Culiacan" => ( -107.394_01, 24.809_065 ),
+            "Hidalgo del Parral" => ( -105.666_62, 26.931_784 ),
+            "Topolobampo" => ( -109.050_37, 25.600_693 ),
+            "Durango" => ( -104.653_175, 24.027_72 ),
+            "Mazatlan" => ( -106.411_14, 23.249_414 ),
+            "Torreon" => ( -103.406_784, 25.542_845 ),
+            "Ensenada" => ( -116.596_375, 31.866_743 ),
+            "San Quintin" => ( -115.937_93, 30.560_877 ),
+            "Francisco Escarcega" => ( -90.739_02, 18.610_184 ),
+            "Manzanillo" => ( -104.338_46, 19.113_81 ),
+            "Salamanca" => ( -101.195_72, 20.573_93 ),
+            "Tepic" => ( -104.894_67, 21.504_143 ),
+            "Hermosillo" => ( -110.955_92, 29.072_968 ),
+            "San Luis Potosi" => ( -100.985_54, 22.156_47 ),
+            "Izucar de Matamoros" => ( -98.467_79, 18.599_125 ),
+            "La Paz" => ( -110.312_75, 24.142_641 ),
+            "Cabo San Lucas" => ( -109.916_74, 22.890_533 ),
+            "Reynosa" => ( -98.297_9, 26.050_84 ),
+            "Mexicalli" => ( -115.452_26, 32.624_54 ),
+            "San Felipe" => ( -114.840_775, 31.025_07 ),
+            "Tijuana" => ( -117.038_246, 32.514_946 ),
+            "Ciudad de Mexico" => ( -99.133_21, 19.432_608 ),
+            "Pachuca de Soto" => ( -98.759_13, 20.101_06 ),
+            "Puebla" => ( -98.206_276, 19.041_44 ),
+            "Tlaxcala" => ( -98.237_58, 19.318_163 ),
+            "Monclova" => ( -101.421_52, 26.908_026 ),
+            "Piedras Negras" => ( -100.540_86, 28.691_618 ),
+            "Monterrey" => ( -100.316_12, 25.686_615 ),
+            "Nuevo Laredo" => ( -99.549_57, 27.477_917 ),
+            "Puerto Angel" => ( -96.491_31, 15.668_008 ),
+            "Tehuacan" => ( -97.400_375, 18.466_497 ),
+            "Tuxpan de Rodriguez Cano" => ( -97.406_334, 20.956_116 ),
+            "Pinotepa Nacional" => ( -98.053_69, 16.341_183 ),
+            "Zacatecas" => ( -102.583_25, 22.770_924 ),
+            "Santa Rosalia" => ( -112.270_15, 27.336_193 ),
+            "Santo Domingo" => ( -111.988_84, 25.348_732 )
+        ],
+        connections: []
+    };
+    for index in graph.inner.node_indices().collect::<Vec<_>>() {
+        for j in graph.inner.node_indices().collect::<Vec<_>>() {
+            let distance = graph.get_haversine_6371(index, j);
+
+            graph
+                .next(
+                    graph.index_name(index).unwrap(),
+                    graph.index_name(j).unwrap(),
+                    distance,
+                )
+                .unwrap();
+        }
+    }
+    graph.done_register();
+    graph
+}
+
+#[allow(dead_code)]
+pub fn test_graph() -> Graph<&'static str, (f32, f32), f32, Directed> {
     let mut g = graph! {
         with_edges: unchecked_next,
         nodes: [
@@ -517,30 +729,30 @@ pub fn test_graph() -> Graph<&'static str, (f32, f32), u16, Directed, u32> {
             "Neamt" => (4.1, 5.)
         ],
         connections: [
-            "Arad" => {(140) "Sibiu", (75) "Zerind", (118) "Timisoara"},
-            "Zerind" => {(71) "Oradea"},
-            "Oradea" => {(151) "Sibiu"},
-            "Sibiu" => {(99) "Fagaras", (80) "Rimnieu Vilcea"},
-            "Timisoara" => {(111) "Lugoj"},
-            "Lugoj" => {(70) "Mehadia"},
-            "Mehadia" => {(75) "Drobeta"},
-            "Drobeta" => {(120) "Craiova"},
-            "Craiova" => {(138) "Pitesti"},
-            "Pitesti" => {(101) "Bucharest"},
-            "Rimnieu Vilcea" => {(97) "Pitesti", (146) "Craiova"},
-            "Fagaras" => {(211) "Bucharest"},
-            "Bucharest" => {(90) "Giurgiu", (85) "Urziceni"},
-            "Urziceni" => {(98) "Hirsova", (142) "Vasiui"},
-            "Vasiui" => {(92) "Iasi"},
-            "Iasi" => {(87) "Neamt"},
-            "Hirsova" => {(86) "Eforie"}
+            "Arad" => {(140.) "Sibiu", (75.) "Zerind", (118.) "Timisoara"},
+            "Zerind" => {(71.) "Oradea"},
+            "Oradea" => {(151.) "Sibiu"},
+            "Sibiu" => {(99.) "Fagaras", (80.) "Rimnieu Vilcea"},
+            "Timisoara" => {(111.) "Lugoj"},
+            "Lugoj" => {(70.) "Mehadia"},
+            "Mehadia" => {(75.) "Drobeta"},
+            "Drobeta" => {(120.) "Craiova"},
+            "Craiova" => {(138.) "Pitesti"},
+            "Pitesti" => {(101.) "Bucharest"},
+            "Rimnieu Vilcea" => {(97.) "Pitesti", (146.) "Craiova"},
+            "Fagaras" => {(211.) "Bucharest"},
+            "Bucharest" => {(90.) "Giurgiu", (85.) "Urziceni"},
+            "Urziceni" => {(98.) "Hirsova", (142.) "Vasiui"},
+            "Vasiui" => {(92.) "Iasi"},
+            "Iasi" => {(87.) "Neamt"},
+            "Hirsova" => {(86.) "Eforie"}
         ]
     };
     g.done_register();
     g
 }
 
-pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16, Directed> {
+pub fn test_graph2() -> Graph<&'static str, (f32, f32), f32, Directed> {
     let mut graph = graph! {
         with_edges: unchecked_next,
         nodes: [
@@ -624,73 +836,73 @@ pub fn test_graph2() -> Graph<&'static str, (f32, f32), u16, Directed> {
             "Santo Domingo" => ( -111.988_84, 25.348_732 )
         ],
         connections: [
-            "Cancun" => {(90) "Valladolid", (100) "Felipe Carrillo Puerto"},
-            "Valladolid" => {(90) "Felipe Carrillo Puerto"},
-            "Felipe Carrillo Puerto" => {(60) "Campeche"},
-            "Campeche" => {(90) "Merida", (100) "Chetumal", (90) "Ciudad del Carmen"},
-            "Chetumal" => {(111) "Francisco Escarcega"},
-            "Ciudad del Carmen" => {(90) "Villa Hermosa", (90) "Tuxtla"},
-            "Villa Hermosa" => {(90) "Acayucan"},
-            "Tuxtla" => {(90) "Acayucan"},
-            "Acayucan" => {(80) "Tehuantepec", (110) "Alvarado"},
-            "Alvarado" => {(100) "Oaxaca"},
-            "Oaxaca" => {(80) "Tehuacan", (90) "Puerto Angel", (90) "Izucar de Matamoros"},
-            "Puerto Angel" => {(100) "Pinotepa Nacional" },
-            "Izucar de Matamoros" => {(90) "Puebla", (100) "Cuernavaca"},
-            "Pinotepa Nacional" => {(100) "Acapulco"},
-            "Cuernavaca" => {(100) "Ciudad de Mexico", (100) "Ciudad Altamirano"},
-            "Puebla" => {(90) "Ciudad de Mexico", (80) "Cordoba"},
-            "Acapulco" => {(140) "Chilpancingo"},
-            "Ciudad de Mexico" => {(100) "Tlaxcala", (110) "Toluca de Lerdo", (90) "Queretaro", (100) "Pachuca de Soto"},
-            "Ciudad Altamirano" => {(90) "Zihuatanejo"},
-            "Cordoba" => {(90) "Veracruz"},
-            "Chilpancingo" => {(90) "Iguala"},
-            "Toluca de Lerdo" => {(100) "Ciudad Altamirano"},
-            "Queretaro" => {(90) "Atlacomulco", (90) "Salamanca", (90) "San Luis Potosi"},
-            "Pachuca de Soto" => {(110) "Tuxpan de Rodriguez Cano"},
-            "Zihuatanejo" => {(90) "Playa Azul"},
-            "Iguala" => {(100) "Cuernavaca", (110) "Ciudad Altamirano"},
-            "Salamanca" => {(90) "Guanajuato", (90) "Guadalajara"},
-            "San Luis Potosi" => {(90) "Zacatecas", (70) "Durango", (100) "Aguascalientes" },
-            "Tuxpan de Rodriguez Cano" => {(100) "Tampico"},
-            "Playa Azul" => {(100) "Morelia", (100) "Colima", (100) "Manzanillo"},
-            "Guanajuato" => {(80) "Aguascalientes"},
-            "Guadalajara" => {(110) "Tepic"},
-            "Aguascalientes" =>{(70) "Guadalajara"},
-            "Durango" => {(90) "Hidalgo del Parral", (90) "Mazatlan"},
-            "Tampico" => {(80) "Ciudad Victoria"},
-            "Morelia" => {(90) "Salamanca"},
-            "Manzanillo" => {(50) "Colima", (80) "Guadalajara"},
-            "Colima" => {(90) "Morelia", (50) "Guadalajara"},
-            "Tepic" =>{(50) "Mazatlan"},
-            "Hidalgo del Parral" => {(130) "Chihuahua", (110) "Topolobampo", (80) "Culiacan"},
-            "Mazatlan" => {(90) "Culiacan"},
-            "Ciudad Victoria" => {(80) "Soto la Marina", (80) "Matamoros", (80) "Monterrey", (80) "Durango"},
-            "Chihuahua" => {(90) "Juarez", (90) "Janos"},
-            "Topolobampo" => {(90) "Ciudad Obregon"},
-            "Culiacan" => {(110) "Topolobampo"},
-            "Matamoros" => {(90) "Reynosa"},
-            "Monterrey" => {(110) "Nuevo Laredo",(70) "Monclova"},
-            "Janos" => {(110) "Agua Prieta"},
-            "Ciudad Obregon" => {(80) "Guaymas"},
-            "Reynosa" => {(100) "Nuevo Laredo"},
-            "Nuevo Laredo" => {(100) "Piedras Negras"},
-            "Monclova" => {(100) "Torreon", (90) "Ojinaga"},
-            "Agua Prieta" => {(90) "Santa Ana"},
-            "Guaymas" => {(90) "Hermosillo"},
-            "Piedras Negras" => {(90) "Monclova"},
-            "Torreon" => {(90) "Durango"},
-            "Ojinaga" => {(90) "Chihuahua"},
-            "Santa Ana" => {(159) "Mexicalli"},
-            "Hermosillo" => {(100) "Santa Ana"},
-            "Mexicalli" => {(50) "Tijuana", (70) "San Felipe"},
-            "Tijuana" => {(30) "Ensenada"},
-            "San Felipe" => {(50) "Ensenada"},
-            "Ensenada" => {(90) "San Quintin"},
-            "San Quintin" => {(140) "Santa Rosalia"},
-            "Santa Rosalia" => {(100) "Santo Domingo"},
-            "Santo Domingo" => {(100) "La Paz"},
-            "La Paz" => {(40) "Cabo San Lucas"}
+            "Cancun" => {(90.) "Valladolid", (100.) "Felipe Carrillo Puerto"},
+            "Valladolid" => {(90.) "Felipe Carrillo Puerto"},
+            "Felipe Carrillo Puerto" => {(60.) "Campeche"},
+            "Campeche" => {(90.) "Merida", (100.) "Chetumal", (90.) "Ciudad del Carmen"},
+            "Chetumal" => {(111.) "Francisco Escarcega"},
+            "Ciudad del Carmen" => {(90.) "Villa Hermosa", (90.) "Tuxtla"},
+            "Villa Hermosa" => {(90.) "Acayucan"},
+            "Tuxtla" => {(90.) "Acayucan"},
+            "Acayucan" => {(80.) "Tehuantepec", (110.) "Alvarado"},
+            "Alvarado" => {(100.) "Oaxaca"},
+            "Oaxaca" => {(80.) "Tehuacan", (90.) "Puerto Angel", (90.) "Izucar de Matamoros"},
+            "Puerto Angel" => {(100.) "Pinotepa Nacional" },
+            "Izucar de Matamoros" => {(90.) "Puebla", (100.) "Cuernavaca"},
+            "Pinotepa Nacional" => {(100.) "Acapulco"},
+            "Cuernavaca" => {(100.) "Ciudad de Mexico", (100.) "Ciudad Altamirano"},
+            "Puebla" => {(90.) "Ciudad de Mexico", (80.) "Cordoba"},
+            "Acapulco" => {(140.) "Chilpancingo"},
+            "Ciudad de Mexico" => {(100.) "Tlaxcala", (110.) "Toluca de Lerdo", (90.) "Queretaro", (100.) "Pachuca de Soto"},
+            "Ciudad Altamirano" => {(90.) "Zihuatanejo"},
+            "Cordoba" => {(90.) "Veracruz"},
+            "Chilpancingo" => {(90.) "Iguala"},
+            "Toluca de Lerdo" => {(100.) "Ciudad Altamirano"},
+            "Queretaro" => {(90.) "Atlacomulco", (90.) "Salamanca", (90.) "San Luis Potosi"},
+            "Pachuca de Soto" => {(110.) "Tuxpan de Rodriguez Cano"},
+            "Zihuatanejo" => {(90.) "Playa Azul"},
+            "Iguala" => {(100.) "Cuernavaca", (110.) "Ciudad Altamirano"},
+            "Salamanca" => {(90.) "Guanajuato", (90.) "Guadalajara"},
+            "San Luis Potosi" => {(90.) "Zacatecas", (70.) "Durango", (100.) "Aguascalientes" },
+            "Tuxpan de Rodriguez Cano" => {(100.) "Tampico"},
+            "Playa Azul" => {(100.) "Morelia", (100.) "Colima", (100.) "Manzanillo"},
+            "Guanajuato" => {(80.) "Aguascalientes"},
+            "Guadalajara" => {(110.) "Tepic"},
+            "Aguascalientes" =>{(70.) "Guadalajara"},
+            "Durango" => {(90.) "Hidalgo del Parral", (90.) "Mazatlan"},
+            "Tampico" => {(80.) "Ciudad Victoria"},
+            "Morelia" => {(90.) "Salamanca"},
+            "Manzanillo" => {(50.) "Colima", (80.) "Guadalajara"},
+            "Colima" => {(90.) "Morelia", (50.) "Guadalajara"},
+            "Tepic" =>{(50.) "Mazatlan"},
+            "Hidalgo del Parral" => {(130.) "Chihuahua", (110.) "Topolobampo", (80.) "Culiacan"},
+            "Mazatlan" => {(90.) "Culiacan"},
+            "Ciudad Victoria" => {(80.) "Soto la Marina", (80.) "Matamoros", (80.) "Monterrey", (80.) "Durango"},
+            "Chihuahua" => {(90.) "Juarez", (90.) "Janos"},
+            "Topolobampo" => {(90.) "Ciudad Obregon"},
+            "Culiacan" => {(110.) "Topolobampo"},
+            "Matamoros" => {(90.) "Reynosa"},
+            "Monterrey" => {(110.) "Nuevo Laredo",(70.) "Monclova"},
+            "Janos" => {(110.) "Agua Prieta"},
+            "Ciudad Obregon" => {(80.) "Guaymas"},
+            "Reynosa" => {(100.) "Nuevo Laredo"},
+            "Nuevo Laredo" => {(100.) "Piedras Negras"},
+            "Monclova" => {(100.) "Torreon", (90.) "Ojinaga"},
+            "Agua Prieta" => {(90.) "Santa Ana"},
+            "Guaymas" => {(90.) "Hermosillo"},
+            "Piedras Negras" => {(90.) "Monclova"},
+            "Torreon" => {(90.) "Durango"},
+            "Ojinaga" => {(90.) "Chihuahua"},
+            "Santa Ana" => {(159.) "Mexicalli"},
+            "Hermosillo" => {(100.) "Santa Ana"},
+            "Mexicalli" => {(50.) "Tijuana", (70.) "San Felipe"},
+            "Tijuana" => {(30.) "Ensenada"},
+            "San Felipe" => {(50.) "Ensenada"},
+            "Ensenada" => {(90.) "San Quintin"},
+            "San Quintin" => {(140.) "Santa Rosalia"},
+            "Santa Rosalia" => {(100.) "Santo Domingo"},
+            "Santo Domingo" => {(100.) "La Paz"},
+            "La Paz" => {(40.) "Cabo San Lucas"}
         ]
     };
     graph.done_register();
@@ -903,18 +1115,19 @@ mod tests {
     }
 
     #[test]
-    fn test_random() {
-        for _ in 0..50 {
-            let rand = rand::get_random();
-            println!("{}, {}", rand, rand as f32);
-        }
-    }
+    fn test_simann() {
+        let graph = test_connected();
+        let distances = graph.get_haversine_table_6371(graph.name_index("Cabo san lucas").unwrap());
+        let a = graph
+            .perform_search(SimAnnealing::new(
+                &graph,
+                graph.journey("Cancun", Some("Cabo san lucas")).unwrap(),
+                50.,
+            ))
+            .unwrap();
 
-    #[test]
-    fn test_random_ranged() {
-        for _ in 0..50 {
-            let num = rand::get_random_ranged(0, 10);
-            assert!(num < 10);
+        for node in a.iter() {
+            println!("{:#?}", graph.index_name(node.idx).unwrap());
         }
     }
 

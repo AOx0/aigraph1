@@ -4,6 +4,9 @@ pub use bidirectional::*;
 pub use breadth::*;
 pub use depth::*;
 pub use hill::*;
+pub use sim_annealing::*;
+
+use rand::seq::SliceRandom;
 
 pub use super::*;
 
@@ -14,7 +17,7 @@ pub mod depth;
 pub mod best;
 pub mod bidirectional;
 pub mod hill;
-mod sim_annealing;
+pub mod sim_annealing;
 
 #[derive(Debug)]
 pub enum WalkerState<Ix = DefaultIx> {

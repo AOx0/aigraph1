@@ -71,7 +71,7 @@ where
                     self.border.push_front(Step {
                         caller: Some(parent.clone()),
                         idx: child_idx,
-                        rel: Some(self.graph.edge_between(parent.idx, child_idx)),
+                        rel: self.graph.edge_between(parent.idx, child_idx),
                         state: 0.,
                     });
                 });
@@ -160,7 +160,7 @@ where
                     self.border.push_front(Step {
                         caller: Some(parent.clone()),
                         idx: child_idx,
-                        rel: Some(self.graph.edge_between(parent.idx, child_idx)),
+                        rel: Some(self.graph.edge_between_unchecked(parent.idx, child_idx)),
                         state: 0.,
                     });
                 });

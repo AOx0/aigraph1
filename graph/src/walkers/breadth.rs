@@ -52,7 +52,7 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<Ix> for BreadthFirst<'a, I
                         self.border.push_back(Step {
                             caller: Some(parent.clone()),
                             idx: child_idx,
-                            rel: Some(self.graph.edge_between(parent.idx, child_idx)),
+                            rel: self.graph.edge_between(parent.idx, child_idx),
                             state: 0.,
                         });
                     });

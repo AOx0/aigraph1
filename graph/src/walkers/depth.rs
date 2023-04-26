@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::vec_deque::VecDeque;
 
 #[derive(Clone)]
 pub struct DepthFirst<'a, I, N, E, Ty, Ix> {
@@ -82,13 +83,14 @@ impl<'a, I, N, E, Ty: EdgeType, Ix: IndexType> Walker<Ix> for DepthFirst<'a, I, 
                     .inner
                     .neighbors_directed(parent.idx, self.direction),
             );
-            rand::shuffle(&mut self.neighbors);
+            let mut rng = rrand::get_rng();
+            self.neighbors.shuffle(&mut rng);
 
             for child in self.neighbors.iter().copied() {
                 self.border.push_front(Step {
                     caller: Some(parent.clone()),
                     idx: child,
-                    rel: Some(self.graph.edge_between(parent.idx, child)),
+                    rel: self.graph.edge_between(parent.idx, child),
                     state: self.level,
                 })
             }
