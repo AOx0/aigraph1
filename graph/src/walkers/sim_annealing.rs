@@ -12,9 +12,10 @@ impl<'a, Ix: IndexType> SimAnnealing<'a, Ix> {
         use rand::Rng;
         let mut indices = self.state.collect_nodes();
         let len = indices.len() - 1;
+        let idx1 = rng.gen_range(1..(len - 1));
+        let idx2 = rng.gen_range(1..(len - 1));
 
-        // swap two nodes
-        indices.swap(rng.gen::<usize>() % len + 1, rng.gen::<usize>() % len);
+        indices.swap(idx1, idx2);
 
         // Re-create the step chain
         Rc::new(Step::from_slice(
@@ -80,16 +81,16 @@ impl<'a, Ix: IndexType> Walker<Ix> for SimAnnealing<'a, Ix> {
                 self.state = new;
                 WalkerState::NotFound(self.state.clone())
             } else {
-                //let mut rng = rrand::get_rng();
-                //use rand::Rng;
-                //let p = rng.gen::<f32>();
-                //let delta = new.state - self.state.state;
-                //if p < (-delta / self.temperature).exp() {
-                //    self.state = new;
-                //    WalkerState::NotFound(self.state.clone())
-                //} else {
-                WalkerState::Cutoff
-                //}
+                // To try and force recalculations we give non-direct benefiting changes a chance
+                use rand::Rng;
+                let mut rng = rrand::get_rng();
+                let p = rng.gen::<f32>().ln();
+                if p > 0.8 {
+                    self.state = new;
+                    WalkerState::NotFound(self.state.clone())
+                } else {
+                    WalkerState::Cutoff
+                }
             }
         }
     }

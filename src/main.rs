@@ -46,6 +46,7 @@ pub fn App(cx: Scope) -> impl IntoView {
     let (method, set_method) = create_signal(cx, "Bidirectional".to_string());
     let elem_ref = create_node_ref(cx);
     let graph_start_button = create_node_ref(cx);
+    let (blocked_button, set_blocked) = create_signal(cx, false);
 
     let (valid_starting_node, set_valid_start) = create_signal(cx, true);
     let (valid_ending_node, set_valid_end) = create_signal(cx, true);
@@ -80,6 +81,12 @@ pub fn App(cx: Scope) -> impl IntoView {
         if !(valid_ending_node.get() && valid_starting_node.get()) {
             return;
         }
+
+        if blocked_button.get() {
+            return;
+        }
+        set_blocked.set(true);
+        block_button(true);
 
         spawn_local(async move {
             if method.get() == "Simulated Annealing" {
@@ -136,6 +143,8 @@ pub fn App(cx: Scope) -> impl IntoView {
                 )
                 .await;
             }
+            set_blocked.set(false);
+            block_button(false);
         })
     };
 
@@ -357,13 +366,7 @@ fn create_machine<'a>(
     }
 }
 
-fn update_hints(
-    graph: &Graph<&str, (f32, f32), f32, Directed>,
-    start: &ReadSignal<String>,
-    end: &ReadSignal<String>,
-    valid_starting_node: ReadSignal<bool>,
-    valid_ending_node: ReadSignal<bool>,
-) -> Result<()> {
+fn block_button(block: bool) -> Result<()> {
     let start_button = document()
         .get_element_by_id("graph-start")
         .context("Failed to get graph-start")?
@@ -378,7 +381,7 @@ fn update_hints(
         )
         .map_err(|_| anyhow!("Failed to remove 3 classes"))?;
 
-    if valid_ending_node.get() && valid_starting_node.get() {
+    if !block {
         start_button
             .add_1("dark:bg-[#0d1117]")
             .map_err(|_| anyhow!("Failed to add 1 class"))?;
@@ -387,6 +390,18 @@ fn update_hints(
             .add_2("cursor-not-allowed", "dark:bg-[#444444]")
             .map_err(|_| anyhow!("Failed to add 2 classes"))?;
     }
+
+    Ok(())
+}
+
+fn update_hints(
+    graph: &Graph<&str, (f32, f32), f32, Directed>,
+    start: &ReadSignal<String>,
+    end: &ReadSignal<String>,
+    valid_starting_node: ReadSignal<bool>,
+    valid_ending_node: ReadSignal<bool>,
+) -> Result<()> {
+    block_button(valid_ending_node.get() && valid_starting_node.get());
 
     // Update start input class list based on whether the start node exists in the graph
     let start_input = document()

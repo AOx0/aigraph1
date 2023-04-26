@@ -521,6 +521,10 @@ video {
   display: block;
 }
 
+.\!block {
+  display: block !important;
+}
+
 .flex {
   display: flex;
 }
