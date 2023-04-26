@@ -1,5 +1,12 @@
 use super::*;
 
+/// The Bidirectional strategy. Performs the seach operation with two (may be different) state machines
+///
+/// Rules:
+/// Each machine needs to be totally opposite to the other one. Thus:
+/// - The target node of the a machine *m1* needs to be the starting node of the machine *m2*
+/// - The starting node of the a walker *m1* needs to be the target node of a machine *m2*
+/// - The direction of the walker *m1* needs to be `petgraph::Outgoing` and the *m2* must be `petgraph::Incoming`
 pub struct Bidirectional<'a, I, N, E, Ty, Ix, M1, M2> {
     graph: &'a Graph<I, N, E, Ty, Ix>,
     machine_a: M1,

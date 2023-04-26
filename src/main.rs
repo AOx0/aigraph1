@@ -258,7 +258,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <a href="./graph/" class="text-sm" target="_blank">"docs/"</a>
                 </div>
                 <div class="h-full w-full flex flex-col items-center justify-center space-y-5">
-                    <div>
+                    <div id="start-div">
                         <p class="text-sm font-bold pb-1" >"Starting node"</p>
                         <input id="start-field" class="dark:bg-[#0d1117] focus:border-transparent focus:ring-0 border-2 dark:border-[#0d1117] rounded p-2" placeholder="Start" prop:value={start.get()} on:input=set_start />
                     </div>
