@@ -33,8 +33,8 @@ const METHODS: [&str; 11] = [
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     let (bench_mode, set_bench_mode) = create_signal(cx, false);
-    let graph: &'static _ = Box::leak(Box::new(test_graph2()));
-    let graph_connected: &'static _ = Box::leak(Box::new(test_connected()));
+    let graph: &'static _ = Box::leak(Box::new(mexico_graph()));
+    let graph_connected: &'static _ = Box::leak(Box::new(full_connected_graph()));
     let img: &'static str = Box::leak(Box::new(
         SvgPlot::new(graph.repr.clone(), None).print_to_string(),
     ));
@@ -111,7 +111,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         break;
                     } else {
                         async_std::task::sleep(std::time::Duration::from_millis(10)).await;
-                        let mut repr = test_empty();
+                        let mut repr = unit_graph();
                         for index in step
                             .step_peek()
                             .as_ref()
@@ -170,6 +170,10 @@ pub fn App(cx: Scope) -> impl IntoView {
     };
 
     let set_method = move |e: web_sys::Event| {
+        if blocked_button.get() {
+            return;
+        }
+
         let temperature_input = document().get_element_by_id("sim-ann").unwrap();
         temperature_input
             .class_list()

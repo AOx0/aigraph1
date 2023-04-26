@@ -19,6 +19,9 @@ pub fn get_random() -> usize {
     result
 }
 
+/// Gets a random number generator ([`SmallRng`](../rand/rngs/struct.SmallRng.html))
+/// using a random number from the [`getrandom`](../getrandom/index.html) crate
+/// as seed.
 pub fn get_rng() -> rand::rngs::SmallRng {
     use rand::rngs::SmallRng;
     use rand::SeedableRng;

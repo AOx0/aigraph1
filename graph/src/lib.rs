@@ -1,7 +1,7 @@
 //! Universidad Panamericana, Mexico City. Facultad de Ingeniería.
 //!
 //! Daniel Alejandro Osornio López (0244685@up.edu.mx),
-//! Daniel Hernandez Toledo ()
+//! Daniel Hernandez Toledo (0243179@up.edu.mx)
 //!
 //! A graph is a collection of nodes and edges.
 //! This is a wrapper around the [`petgraph`](../petgraph/index.html) crate.
@@ -26,6 +26,8 @@
 //! The [`rand`](./rand/index.html) module provides a set of random graph generators.
 //!
 
+#![allow(redundant_semicolons)]
+
 use std::{
     cmp::Ordering,
     collections::{HashMap, VecDeque},
@@ -42,7 +44,6 @@ use petgraph::stable_graph::DefaultIx;
 pub use petgraph::stable_graph::{EdgeIndex, IndexType, NodeIndex, StableGraph as PGraph};
 use petgraph::visit::{VisitMap, Visitable};
 pub use petgraph::Direction;
-use petgraph::Undirected;
 pub use petgraph::{Directed, EdgeType};
 use unicase::Ascii;
 
@@ -276,6 +277,8 @@ where
     }
 
     /// Get the [`EdgeIndex<Ix>`](../petgraph/graph/struct.EdgeIndex.html) of the edge between two nodes in any direction.
+    ///
+    /// Panics if there is no edge between the nodes.
     pub fn edge_between_unchecked(
         &self,
         source: NodeIndex<Ix>,
@@ -290,6 +293,10 @@ where
         })
     }
 
+    /// Gets the edge between two nodes in any direction.
+    ///
+    /// If there is more than one edge only the first one is taken.
+    /// Return None if there is no edge connecting two nodes.
     pub fn edge_between(
         &self,
         source: NodeIndex<Ix>,
@@ -298,13 +305,7 @@ where
         use petgraph::visit::EdgeRef;
         let a = self.inner.edges_connecting(source, target).next();
         let b = self.inner.edges_connecting(target, source).next();
-        if let Some(edge) = a {
-            Some(edge.id())
-        } else if let Some(edge) = b {
-            Some(edge.id())
-        } else {
-            None
-        }
+        a.map(|a| a.id()).or_else(|| b.map(|b| b.id()))
     }
 
     /// Returns the number of nodes in the graph.
@@ -454,6 +455,9 @@ where
         );
     }
 
+    /// Translates start and end node names to node indexes.
+    ///
+    /// Returns an error if any of the two node identifiers is missing in the graph. (does not exist)
     pub fn journey(
         &self,
         start: I,
@@ -471,6 +475,13 @@ where
         Ok((start, end))
     }
 
+    /// Pergorm any shearch stratey easily
+    ///
+    /// This is just a loop wrapped on any search strategy, that is any type that
+    /// implements the [`Walker<T>`](./walkers/trait.Walker.html) trait.
+    ///
+    /// The loop breaks either when a solution is found or when there are no more edges to
+    /// explore.
     pub fn perform_search(
         &self,
         mut machine: impl Walker<Ix>,
@@ -500,6 +511,9 @@ impl Coords for (f32, f32) {
     }
 }
 
+/// Implement the Coords trait for the unit type.
+///
+/// Since there's no data 0. is returned
 impl Coords for () {
     fn get_x(&self) -> f32 {
         0.
@@ -510,7 +524,7 @@ impl Coords for () {
 }
 
 #[allow(dead_code)]
-pub fn test_empty() -> Graph<&'static str, (f32, f32), f32, Directed> {
+pub fn unit_graph() -> Graph<&'static str, (f32, f32), f32, Directed> {
     let mut graph = graph! {
         with_edges: unchecked_next,
         nodes: [
@@ -600,91 +614,8 @@ pub fn test_empty() -> Graph<&'static str, (f32, f32), f32, Directed> {
 }
 
 #[allow(dead_code)]
-pub fn test_connected() -> Graph<&'static str, (f32, f32), f32, Directed> {
-    let mut graph = graph! {
-        with_edges: unchecked_next,
-        nodes: [
-            "Acapulco" => ( -99.823_654, 16.853_11 ),
-            "Chilpancingo" => ( -99.500_63, 17.551_535 ),
-            "Acayucan" => ( -94.914_734, 17.949_238 ),
-            "Tehuantepec" => ( -95.242_33, 16.322_699 ),
-            "Tuxtla" => ( -93.103_12, 16.751_575 ),
-            "Villa Hermosa" => ( -92.947_525, 17.989_445 ),
-            "Agua Prieta" => ( -109.548_96, 31.327_774 ),
-            "Santa Ana" => ( -111.119_62, 30.539_833 ),
-            "Aguascalientes" => ( -102.291_565, 21.885_256 ),
-            "Guadalajara" => ( -103.349_61, 20.659_698 ),
-            "Guanajuato" => ( -101.257_36, 21.019_014 ),
-            "Alvarado" => ( -95.758_95, 18.769_619 ),
-            "Oaxaca" => ( -96.726_585, 17.073_185 ),
-            "Atlacomulco" => ( -99.876_686, 19.797_558 ),
-            "Queretaro" => ( -100.389_885, 20.588_793 ),
-            "Cancun" => ( -86.851_54, 21.161_907 ),
-            "Valladolid" => ( -88.202_25, 20.68964 ),
-            "Chetumal" => ( -88.296_14, 18.500_189 ),
-            "Campeche" => ( -90.534_91, 19.830_126 ),
-            "Felipe Carrillo Puerto" => ( -88.044_1, 19.580_334 ),
-            "Merida" => ( -89.592_58, 20.967_371 ),
-            "Chihuahua" => ( -106.069_1, 28.632_996 ),
-            "Janos" => ( -108.192_41, 30.888_933 ),
-            "Juarez" => ( -106.424_545, 31.690_363 ),
-            "Ojinaga" => ( -104.408_295, 29.545_885 ),
-            "Iguala" => ( -99.539_734, 18.344_849 ),
-            "Ciudad Altamirano" => ( -100.668_625, 18.357_815 ),
-            "Cuernavaca" => ( -99.221_565, 18.924_21 ),
-            "Toluca de Lerdo" => ( -99.655_66, 19.282_61 ),
-            "Zihuatanejo" => ( -101.551_7, 17.641_67 ),
-            "Ciudad del Carmen" => ( -91.807_46, 18.650_488 ),
-            "Ciudad Obregon" => ( -109.930_37, 27.482_773 ),
-            "Guaymas" => ( -110.908_936, 27.917_866 ),
-            "Ciudad Victoria" => ( -99.141_11, 23.736_916 ),
-            "Matamoros" => ( -97.502_74, 25.869_03 ),
-            "Soto la Marina" => ( -98.207_63, 23.768_019 ),
-            "Tampico" => ( -97.861_1, 22.233_105 ),
-            "Colima" => ( -103.724_08, 19.245_234 ),
-            "Morelia" => ( -101.194_984, 19.705_95 ),
-            "Playa Azul" => ( -102.350_47, 17.982_021 ),
-            "Cordoba" => ( -96.923_775, 18.883_89 ),
-            "Veracruz" => ( -96.134_224, 19.173773 ),
-            "Culiacan" => ( -107.394_01, 24.809_065 ),
-            "Hidalgo del Parral" => ( -105.666_62, 26.931_784 ),
-            "Topolobampo" => ( -109.050_37, 25.600_693 ),
-            "Durango" => ( -104.653_175, 24.027_72 ),
-            "Mazatlan" => ( -106.411_14, 23.249_414 ),
-            "Torreon" => ( -103.406_784, 25.542_845 ),
-            "Ensenada" => ( -116.596_375, 31.866_743 ),
-            "San Quintin" => ( -115.937_93, 30.560_877 ),
-            "Francisco Escarcega" => ( -90.739_02, 18.610_184 ),
-            "Manzanillo" => ( -104.338_46, 19.113_81 ),
-            "Salamanca" => ( -101.195_72, 20.573_93 ),
-            "Tepic" => ( -104.894_67, 21.504_143 ),
-            "Hermosillo" => ( -110.955_92, 29.072_968 ),
-            "San Luis Potosi" => ( -100.985_54, 22.156_47 ),
-            "Izucar de Matamoros" => ( -98.467_79, 18.599_125 ),
-            "La Paz" => ( -110.312_75, 24.142_641 ),
-            "Cabo San Lucas" => ( -109.916_74, 22.890_533 ),
-            "Reynosa" => ( -98.297_9, 26.050_84 ),
-            "Mexicalli" => ( -115.452_26, 32.624_54 ),
-            "San Felipe" => ( -114.840_775, 31.025_07 ),
-            "Tijuana" => ( -117.038_246, 32.514_946 ),
-            "Ciudad de Mexico" => ( -99.133_21, 19.432_608 ),
-            "Pachuca de Soto" => ( -98.759_13, 20.101_06 ),
-            "Puebla" => ( -98.206_276, 19.041_44 ),
-            "Tlaxcala" => ( -98.237_58, 19.318_163 ),
-            "Monclova" => ( -101.421_52, 26.908_026 ),
-            "Piedras Negras" => ( -100.540_86, 28.691_618 ),
-            "Monterrey" => ( -100.316_12, 25.686_615 ),
-            "Nuevo Laredo" => ( -99.549_57, 27.477_917 ),
-            "Puerto Angel" => ( -96.491_31, 15.668_008 ),
-            "Tehuacan" => ( -97.400_375, 18.466_497 ),
-            "Tuxpan de Rodriguez Cano" => ( -97.406_334, 20.956_116 ),
-            "Pinotepa Nacional" => ( -98.053_69, 16.341_183 ),
-            "Zacatecas" => ( -102.583_25, 22.770_924 ),
-            "Santa Rosalia" => ( -112.270_15, 27.336_193 ),
-            "Santo Domingo" => ( -111.988_84, 25.348_732 )
-        ],
-        connections: []
-    };
+pub fn full_connected_graph() -> Graph<&'static str, (f32, f32), f32, Directed> {
+    let mut graph = unit_graph();
     for index in graph.inner.node_indices().collect::<Vec<_>>() {
         for j in graph.inner.node_indices().collect::<Vec<_>>() {
             let distance = graph.get_haversine_6371(index, j);
@@ -752,7 +683,7 @@ pub fn test_graph() -> Graph<&'static str, (f32, f32), f32, Directed> {
     g
 }
 
-pub fn test_graph2() -> Graph<&'static str, (f32, f32), f32, Directed> {
+pub fn mexico_graph() -> Graph<&'static str, (f32, f32), f32, Directed> {
     let mut graph = graph! {
         with_edges: unchecked_next,
         nodes: [
@@ -1116,8 +1047,7 @@ mod tests {
 
     #[test]
     fn test_simann() {
-        let graph = test_connected();
-        let distances = graph.get_haversine_table_6371(graph.name_index("Cabo san lucas").unwrap());
+        let graph = full_connected_graph();
         let a = graph
             .perform_search(SimAnnealing::new(
                 &graph,

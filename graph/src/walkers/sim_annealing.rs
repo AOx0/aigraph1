@@ -20,7 +20,7 @@ impl<'a, Ix: IndexType> SimAnnealing<'a, Ix> {
         // Re-create the step chain
         Rc::new(Step::from_slice(
             &indices,
-            &self.graph,
+            self.graph,
             |par, _, curr, step| {
                 self.graph
                     .inner
@@ -52,7 +52,7 @@ impl<'a, Ix: IndexType> SimAnnealing<'a, Ix> {
         result_nodes.push(journey.0);
         let step = Rc::new(Step::from_slice(
             &result_nodes,
-            &graph,
+            graph,
             |par, _, curr, step| {
                 graph
                     .inner

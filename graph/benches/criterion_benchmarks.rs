@@ -4,7 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use graph::walkers::*;
 
 fn breadth_test1(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     c.bench_function("breadth_full", |a| {
         a.iter(|| {
             graph
@@ -19,7 +19,7 @@ fn breadth_test1(c: &mut Criterion) {
 }
 
 fn breadth_test2(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     c.bench_function("breadth_arad_neamt", |a| {
         a.iter(|| {
             graph
@@ -34,7 +34,7 @@ fn breadth_test2(c: &mut Criterion) {
 }
 
 fn breadth_test3(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     let mut group = c.benchmark_group("Evolution breadth_first");
     for (depth, city) in [
         (26, "Cabo San Lucas"),
@@ -80,7 +80,7 @@ fn breadth_test3(c: &mut Criterion) {
     }
 }
 fn depht_test3(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     let mut group = c.benchmark_group("Evolution depth_first");
     for (depth, city) in [
         (26, "Cabo San Lucas"),
@@ -127,7 +127,7 @@ fn depht_test3(c: &mut Criterion) {
     }
 }
 fn dijkstra_test3(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     let mut group = c.benchmark_group("Evolution dijkstra");
     for (depth, city) in [
         (27, "Cabo San Lucas"),
@@ -175,7 +175,7 @@ fn dijkstra_test3(c: &mut Criterion) {
 }
 
 fn bidirectional_test3(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     let mut group = c.benchmark_group("Evolution bidirectional");
     for (depth, city) in [
         // expect nodes
@@ -229,7 +229,7 @@ fn bidirectional_test3(c: &mut Criterion) {
 }
 
 fn depth_test1(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     c.bench_function("depth_full", |a| {
         a.iter(|| {
             graph
@@ -245,7 +245,7 @@ fn depth_test1(c: &mut Criterion) {
 }
 
 fn depth_test2(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     c.bench_function("depth_arad_neamt", |a| {
         a.iter(|| {
             graph
@@ -261,7 +261,7 @@ fn depth_test2(c: &mut Criterion) {
 }
 
 fn depth_test3(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     let mut group = c.benchmark_group("Evolution breadth_first");
     for (depth, city) in [
         (40, "Cabo San Lucas"),
@@ -322,7 +322,7 @@ fn depth_test3(c: &mut Criterion) {
 }
 
 fn dijkstra_test1(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     c.bench_function("dijkstra_full", |a| {
         a.iter(|| {
             graph
@@ -338,7 +338,7 @@ fn dijkstra_test1(c: &mut Criterion) {
 }
 
 fn dijkstra_test2(c: &mut Criterion) {
-    let graph = black_box(test_graph2());
+    let graph = black_box(mexico_graph());
     c.bench_function("dijkstra_arad_neamt", |a| {
         a.iter(|| {
             graph
@@ -356,7 +356,7 @@ fn dijkstra_test2(c: &mut Criterion) {
 fn construct_graph(c: &mut Criterion) {
     c.bench_function("graph_construct", |a| {
         a.iter(|| {
-            test_graph2();
+            mexico_graph();
         })
     });
 }

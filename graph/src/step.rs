@@ -53,6 +53,21 @@ impl<S, Ix: IndexType> Step<S, Ix> {
         size
     }
 
+    /// Creates a step chain from a slice of node indexes.
+    ///
+    /// The cost of each step is computed with the state function `F`.
+    /// The state function receives data regarding the current node and its parent,
+    /// like current index, state of the parent step, binding edge between the parent
+    /// step and the current index, etc.
+    ///
+    /// With this data the user should be able to compute any desired state for each
+    /// step in the chain.
+    ///
+    /// The arguments of the state function are, in order:
+    /// - parent index
+    /// - edge between parent and current
+    /// - current index
+    /// - parent state
     pub fn from_slice<I, N, E, Ty: EdgeType, F>(
         indices: &[NodeIndex<Ix>],
         graph: &Graph<I, N, E, Ty, Ix>,
@@ -68,7 +83,7 @@ impl<S, Ix: IndexType> Step<S, Ix> {
             rel: None,
             state: Default::default(),
         };
-        for idx in indices.into_iter().skip(1).copied() {
+        for idx in indices.iter().skip(1).copied() {
             let old_step = Rc::new(step);
             step = Step {
                 caller: Some(old_step.clone()),

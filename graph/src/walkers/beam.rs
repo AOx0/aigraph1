@@ -1,5 +1,9 @@
 use super::*;
 
+/// The Beam search strategy implementation
+///
+/// This strategy has a limit of candidate routes at all times.
+/// For example, keeps the 3 best routes and all the others get discarded
 pub struct Beam<'a, I, N, E, Ty, Ix, F> {
     goal: Option<NodeIndex<Ix>>,
     graph: &'a Graph<I, N, E, Ty, Ix>,
@@ -61,6 +65,7 @@ where
                 .count()
                 != 0
             {
+                // Get and sort from the best (smallest value) to worst (biggest value) neighbors
                 self.neighbors.clear();
                 self.neighbors.extend(
                     self.graph
@@ -70,6 +75,7 @@ where
 
                 self.neighbors.sort_by(&mut self.compare);
 
+                // Add the self.successors best neighbors
                 self.neighbors
                     .iter()
                     .copied()
