@@ -66,8 +66,13 @@ impl<Ix> WalkerState<Ix> {
     }
 }
 
-/// The Walker trait. All solution searching strategies must implement this trait.
-/// The trait dictates all of the types that want to traverse a graph must return
+/// The Walker trait. All solution-searching strategies must implement this trait.
+///
+/// The *walkers* are state machines that implement this trait that provides a `step` method
+/// to move the walker to the next node in the graph according to the actual implementation of the trait
+/// following each strategy algorithm.
+///
+/// The trait dictates that all of the types that want to traverse a graph must return
 /// the result of performing a single step.
 pub trait Walker<Ix = DefaultIx> {
     fn step(&mut self) -> WalkerState<Ix>;

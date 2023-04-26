@@ -23,7 +23,7 @@
 //!
 //! All solutions are represented as a singly linked list of [`Step<T, Ix>`](./step/struct.Step.html) instances.
 //!
-//! The [`rand`](./rand/index.html) module provides a set of random graph generators.
+//! The [`rrand`](./rrand/index.html) module provides a set of random graph generators.
 //!
 
 #![allow(redundant_semicolons)]
@@ -51,6 +51,8 @@ pub use step::*;
 use walkers::{Walker, WalkerState};
 
 /// Random number generator based on the [`getrandom`](../getrandom/index.html) crate.
+/// You may want to take a look at:
+/// - The random number generator (rng) instantiator [`rrand::get_rng`](./rrand/fn.get_rng.html)
 pub mod rrand;
 
 /// Implementation of the [`Step`](./step/struct.Step.html) struct for traversal representation.
@@ -58,6 +60,11 @@ pub mod step;
 
 /// Implementations of the [`Walker<T>`](./walkers/trait.Walker.html) trait
 /// for various traversal algorithms.
+///
+/// You may want to take a look at:
+/// - The [`Walker<Ix>`](./walkers/trait.Walker.html) trait
+/// - The [`WalkerState`](./walkers/enum.WalkerState.html) enumerator
+/// - Each of the strategies implementation their corresponding modules.
 pub mod walkers;
 
 /// Counts the number of nodes and edges of the graph
