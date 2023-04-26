@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This trait allows obtaining an immutable reference to the signal’s inner type."><title>SignalWith in leptos_reactive::signal_prelude - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="leptos_reactive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../../leptos_reactive/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../../leptos_reactive/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">SignalWith</a></h2><div class="sidebar-elems"><section><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.try_with">try_with</a></li><li><a href="#tymethod.with">with</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.track">track</a></li></ul><h3><a href="#implementors">Implementors</a></h3></section><h2><a href="index.html">In leptos_reactive::signal_prelude</a></h2></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Trait <a href="../index.html">leptos_reactive</a>::<wbr><a href="index.html">signal_prelude</a>::<wbr><a class="trait" href="#">SignalWith</a><button id="copy-path" title="Copy item path to clipboard"><img src="../../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../../src/leptos_reactive/signal.rs.html#115-133">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><code>pub trait SignalWith&lt;T&gt; {
+    // Required methods
+    fn <a href="#tymethod.with" class="fn">with</a>&lt;O&gt;(&amp;self, f: impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.reference.html">&amp;T</a>) -&gt; O) -&gt; O;
+<span class="item-spacer"></span>    fn <a href="#tymethod.try_with" class="fn">try_with</a>&lt;O&gt;(&amp;self, f: impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.reference.html">&amp;T</a>) -&gt; O) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;O&gt;;
+
+    // Provided method
+    fn <a href="#method.track" class="fn">track</a>(&amp;self) { ... }
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This trait allows obtaining an immutable reference to the signal’s
+inner type.</p>
+</div></details><h2 id="required-methods" class="small-section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.with" class="method"><a class="srclink rightside" href="../../src/leptos_reactive/signal.rs.html#122">source</a><h4 class="code-header">fn <a href="#tymethod.with" class="fn">with</a>&lt;O&gt;(&amp;self, f: impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.reference.html">&amp;T</a>) -&gt; O) -&gt; O</h4></section></summary><div class="docblock"><p>Applies a function to the current value of the signal, and subscribes
+the running effect to this signal.</p>
+<h5 id="panics"><a href="#panics">Panics</a></h5>
+<p>Panics if you try to access a signal that was created in a <a href="../struct.Scope.html" title="struct leptos_reactive::Scope">Scope</a> that has been disposed.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="tymethod.try_with" class="method"><a class="srclink rightside" href="../../src/leptos_reactive/signal.rs.html#127">source</a><h4 class="code-header">fn <a href="#tymethod.try_with" class="fn">try_with</a>&lt;O&gt;(&amp;self, f: impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.reference.html">&amp;T</a>) -&gt; O) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;O&gt;</h4></section></summary><div class="docblock"><p>Applies a function to the current value of the signal, and subscribes
+the running effect to this signal. Returns <a href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html#variant.Some" title="variant core::option::Option::Some"><code>Some</code></a> if the signal is
+valid and the function ran, otherwise returns <a href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html#variant.None" title="variant core::option::Option::None"><code>None</code></a>.</p>
+</div></details></div><h2 id="provided-methods" class="small-section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.track" class="method"><a class="srclink rightside" href="../../src/leptos_reactive/signal.rs.html#130-132">source</a><h4 class="code-header">fn <a href="#method.track" class="fn">track</a>(&amp;self)</h4></section></summary><div class="docblock"><p>Subscribes to this signal in the current reactive scope without doing anything with its value.</p>
+</div></details></div><h2 id="implementors" class="small-section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"><section id="impl-SignalWith%3CT%3E-for-MaybeSignal%3CT%3E" class="impl"><a class="srclink rightside" href="../../src/leptos_reactive/signal_wrappers_read.rs.html#607-639">source</a><a href="#impl-SignalWith%3CT%3E-for-MaybeSignal%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.SignalWith.html" title="trait leptos_reactive::signal_prelude::SignalWith">SignalWith</a>&lt;T&gt; for <a class="enum" href="prelude/enum.MaybeSignal.html" title="enum leptos_reactive::signal_prelude::prelude::MaybeSignal">MaybeSignal</a>&lt;T&gt;</h3></section><div class="docblock"><h4 id="examples"><a href="#examples">Examples</a></h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(name, set_name) = create_signal(cx, <span class="string">&quot;Alice&quot;</span>.to_string());
+<span class="kw">let </span>name_upper =
+    MaybeSignal::derive(cx, <span class="kw">move </span>|| name.with(|n| n.to_uppercase()));
+<span class="kw">let </span>memoized_lower =
+    create_memo(cx, <span class="kw">move </span>|<span class="kw">_</span>| name.with(|n| n.to_lowercase()));
+<span class="kw">let </span>static_value: MaybeSignal&lt;String&gt; = <span class="string">&quot;Bob&quot;</span>.to_string().into();
+
+<span class="comment">// this function takes any kind of wrapped signal
+</span><span class="kw">fn </span>current_len_inefficient(arg: <span class="kw-2">&amp;</span>MaybeSignal&lt;String&gt;) -&gt; usize {
+    <span class="comment">// ❌ unnecessarily clones the string
+    </span>arg().len()
+}
+
+<span class="kw">fn </span>current_len(arg: <span class="kw-2">&amp;</span>MaybeSignal&lt;String&gt;) -&gt; usize {
+    <span class="comment">// ✅ gets the length without cloning the `String`
+    </span>arg.with(|value| value.len())
+}
+
+<span class="macro">assert_eq!</span>(current_len(<span class="kw-2">&amp;</span>name.into()), <span class="number">5</span>);
+<span class="macro">assert_eq!</span>(current_len(<span class="kw-2">&amp;</span>name_upper), <span class="number">5</span>);
+<span class="macro">assert_eq!</span>(current_len(<span class="kw-2">&amp;</span>memoized_lower.into()), <span class="number">5</span>);
+<span class="macro">assert_eq!</span>(current_len(<span class="kw-2">&amp;</span>static_value), <span class="number">3</span>);
+
+<span class="macro">assert_eq!</span>(name(), <span class="string">&quot;Alice&quot;</span>);
+<span class="macro">assert_eq!</span>(name_upper(), <span class="string">&quot;ALICE&quot;</span>);
+<span class="macro">assert_eq!</span>(memoized_lower(), <span class="string">&quot;alice&quot;</span>);
+<span class="macro">assert_eq!</span>(static_value(), <span class="string">&quot;Bob&quot;</span>);</code></pre></div>
+</div><section id="impl-SignalWith%3CT%3E-for-Memo%3CT%3E" class="impl"><a class="srclink rightside" href="../../src/leptos_reactive/memo.rs.html#331-380">source</a><a href="#impl-SignalWith%3CT%3E-for-Memo%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.SignalWith.html" title="trait leptos_reactive::signal_prelude::SignalWith">SignalWith</a>&lt;T&gt; for <a class="struct" href="prelude/struct.Memo.html" title="struct leptos_reactive::signal_prelude::prelude::Memo">Memo</a>&lt;T&gt;</h3></section><section id="impl-SignalWith%3CT%3E-for-Signal%3CT%3E" class="impl"><a class="srclink rightside" href="../../src/leptos_reactive/signal_wrappers_read.rs.html#213-254">source</a><a href="#impl-SignalWith%3CT%3E-for-Signal%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.SignalWith.html" title="trait leptos_reactive::signal_prelude::SignalWith">SignalWith</a>&lt;T&gt; for <a class="struct" href="prelude/struct.Signal.html" title="struct leptos_reactive::signal_prelude::prelude::Signal">Signal</a>&lt;T&gt;</h3></section><div class="docblock"><h4 id="examples-1"><a href="#examples-1">Examples</a></h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(name, set_name) = create_signal(cx, <span class="string">&quot;Alice&quot;</span>.to_string());
+<span class="kw">let </span>name_upper =
+    Signal::derive(cx, <span class="kw">move </span>|| name.with(|n| n.to_uppercase()));
+<span class="kw">let </span>memoized_lower =
+    create_memo(cx, <span class="kw">move </span>|<span class="kw">_</span>| name.with(|n| n.to_lowercase()));
+
+<span class="comment">// this function takes any kind of wrapped signal
+</span><span class="kw">fn </span>current_len_inefficient(arg: Signal&lt;String&gt;) -&gt; usize {
+    <span class="comment">// ❌ unnecessarily clones the string
+    </span>arg().len()
+}
+
+<span class="kw">fn </span>current_len(arg: <span class="kw-2">&amp;</span>Signal&lt;String&gt;) -&gt; usize {
+    <span class="comment">// ✅ gets the length without cloning the `String`
+    </span>arg.with(|value| value.len())
+}
+
+<span class="macro">assert_eq!</span>(current_len(<span class="kw-2">&amp;</span>name.into()), <span class="number">5</span>);
+<span class="macro">assert_eq!</span>(current_len(<span class="kw-2">&amp;</span>name_upper), <span class="number">5</span>);
+<span class="macro">assert_eq!</span>(current_len(<span class="kw-2">&amp;</span>memoized_lower.into()), <span class="number">5</span>);
+
+<span class="macro">assert_eq!</span>(name(), <span class="string">&quot;Alice&quot;</span>);
+<span class="macro">assert_eq!</span>(name_upper(), <span class="string">&quot;ALICE&quot;</span>);
+<span class="macro">assert_eq!</span>(memoized_lower(), <span class="string">&quot;alice&quot;</span>);</code></pre></div>
+</div><section id="impl-SignalWith%3CT%3E-for-ReadSignal%3CT%3E" class="impl"><a class="srclink rightside" href="../../src/leptos_reactive/signal.rs.html#602-646">source</a><a href="#impl-SignalWith%3CT%3E-for-ReadSignal%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.SignalWith.html" title="trait leptos_reactive::signal_prelude::SignalWith">SignalWith</a>&lt;T&gt; for <a class="struct" href="struct.ReadSignal.html" title="struct leptos_reactive::signal_prelude::ReadSignal">ReadSignal</a>&lt;T&gt;</h3></section><div class="docblock"><h4 id="examples-2"><a href="#examples-2">Examples</a></h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(name, set_name) = create_signal(cx, <span class="string">&quot;Alice&quot;</span>.to_string());
+
+<span class="comment">// ❌ unnecessarily clones the string
+</span><span class="kw">let </span>first_char = <span class="kw">move </span>|| name().chars().next().unwrap();
+<span class="macro">assert_eq!</span>(first_char(), <span class="string">&#39;A&#39;</span>);
+
+<span class="comment">// ✅ gets the first char without cloning the `String`
+</span><span class="kw">let </span>first_char = <span class="kw">move </span>|| name.with(|n| n.chars().next().unwrap());
+<span class="macro">assert_eq!</span>(first_char(), <span class="string">&#39;A&#39;</span>);
+set_name(<span class="string">&quot;Bob&quot;</span>.to_string());
+<span class="macro">assert_eq!</span>(first_char(), <span class="string">&#39;B&#39;</span>);</code></pre></div>
+</div><section id="impl-SignalWith%3CT%3E-for-RwSignal%3CT%3E" class="impl"><a class="srclink rightside" href="../../src/leptos_reactive/signal.rs.html#1377-1421">source</a><a href="#impl-SignalWith%3CT%3E-for-RwSignal%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.SignalWith.html" title="trait leptos_reactive::signal_prelude::SignalWith">SignalWith</a>&lt;T&gt; for <a class="struct" href="struct.RwSignal.html" title="struct leptos_reactive::signal_prelude::RwSignal">RwSignal</a>&lt;T&gt;</h3></section><div class="docblock"><h4 id="examples-3"><a href="#examples-3">Examples</a></h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>name = create_rw_signal(cx, <span class="string">&quot;Alice&quot;</span>.to_string());
+
+<span class="comment">// ❌ unnecessarily clones the string
+</span><span class="kw">let </span>first_char = <span class="kw">move </span>|| name().chars().next().unwrap();
+<span class="macro">assert_eq!</span>(first_char(), <span class="string">&#39;A&#39;</span>);
+
+<span class="comment">// ✅ gets the first char without cloning the `String`
+</span><span class="kw">let </span>first_char = <span class="kw">move </span>|| name.with(|n| n.chars().next().unwrap());
+<span class="macro">assert_eq!</span>(first_char(), <span class="string">&#39;A&#39;</span>);
+name.set(<span class="string">&quot;Bob&quot;</span>.to_string());
+<span class="macro">assert_eq!</span>(first_char(), <span class="string">&#39;B&#39;</span>);</code></pre></div>
+</div></div><script src="../../implementors/leptos_reactive/signal/trait.SignalWith.js" async></script></section></div></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":["server"],"enum":["Encoding","Payload","ServerFnError"],"fn":["call_server_fn","server_fn_by_path","server_fns_by_path","set_server_url"],"trait":["ServerFn","ServerFunctionRegistry"],"type":["ServerFnTraitObj"]};

@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Extracts a context value of type `T` from the reactive system by traversing it upwards, beginning from the current Scope and iterating through its parents, if any. The context value should have been provided elsewhere using provide_context."><title>use_context in leptos_reactive - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="leptos_reactive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../static.files/storage-62ce34ea385b278a.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../leptos_reactive/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../leptos_reactive/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><div class="sidebar-elems"><h2><a href="index.html">In leptos_reactive</a></h2></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Function <a href="index.html">leptos_reactive</a>::<wbr><a class="fn" href="#">use_context</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../src/leptos_reactive/context.rs.html#109-142">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><code>pub fn use_context&lt;T&gt;(cx: <a class="struct" href="struct.Scope.html" title="struct leptos_reactive::Scope">Scope</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;T&gt;<span class="where fmt-newline">where
+    T: <a class="trait" href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> + 'static,</span></code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Extracts a context value of type <code>T</code> from the reactive system by traversing
+it upwards, beginning from the current <a href="struct.Scope.html" title="struct leptos_reactive::Scope">Scope</a> and iterating
+through its parents, if any. The context value should have been provided elsewhere
+using <a href="fn.provide_context.html" title="fn leptos_reactive::provide_context">provide_context</a>.</p>
+<p>This is useful for passing values down to components or functions lower in a
+hierarchy without needs to “prop drill” by passing them through each layer as
+arguments to a function or properties of a component.</p>
+<p>Context works similarly to variable scope: a context that is provided higher in
+the component tree can be used lower down, but a context that is provided lower
+in the tree cannot be used higher up.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>leptos::<span class="kw-2">*</span>;
+
+<span class="comment">// define a newtype we&#39;ll provide as context
+// contexts are stored by their types, so it can be useful to create
+// a new type to avoid confusion with other `WriteSignal&lt;i32&gt;`s we may have
+// all types to be shared via context should implement `Clone`
+</span><span class="attr">#[derive(Copy, Clone)]
+</span><span class="kw">struct </span>ValueSetter(WriteSignal&lt;i32&gt;);
+
+<span class="attr">#[component]
+</span><span class="kw">pub fn </span>Provider(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="kw">let </span>(value, set_value) = create_signal(cx, <span class="number">0</span>);
+     
+    <span class="comment">// the newtype pattern isn&#39;t *necessary* here but is a good practice
+    // it avoids confusion with other possible future `WriteSignal&lt;bool&gt;` contexts
+    // and makes it easier to refer to it in ButtonD
+    </span>provide_context(cx, ValueSetter(set_value));
+
+    <span class="comment">// because &lt;Consumer/&gt; is nested inside &lt;Provider/&gt;,
+    // it has access to the provided context
+    </span><span class="macro">view! </span>{ cx, &lt;div&gt;&lt;Consumer/&gt;&lt;/div&gt; }
+}
+
+<span class="attr">#[component]
+</span><span class="kw">pub fn </span>Consumer(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="comment">// consume the provided context of type `ValueSetter` using `use_context`
+    // this traverses up the tree of `Scope`s and gets the nearest provided `ValueSetter`
+    </span><span class="kw">let </span>set_value = use_context::&lt;ValueSetter&gt;(cx).unwrap().<span class="number">0</span>;
+
+    <span class="macro">todo!</span>()
+}</code></pre></div>
+</div></details></section></div></main></body></html>

@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"leptos_hot_reload":[["impl&lt;'ast&gt; <a class=\"trait\" href=\"syn/gen/visit/trait.Visit.html\" title=\"trait syn::gen::visit::Visit\">Visit</a>&lt;'ast&gt; for <a class=\"struct\" href=\"leptos_hot_reload/struct.ViewMacroVisitor.html\" title=\"struct leptos_hot_reload::ViewMacroVisitor\">ViewMacroVisitor</a>&lt;'ast&gt;"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

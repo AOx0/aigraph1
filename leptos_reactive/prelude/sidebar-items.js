@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MaybeSignal"],"fn":["create_memo","create_selector","create_selector_with_fn"],"struct":["Memo","Signal","SignalSetter"],"trait":["IntoSignal","IntoSignalSetter"]};

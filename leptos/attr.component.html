@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Annotates a function so that it can be used with your template as a Leptos `&lt;Component/&gt;`."><title>component in leptos - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="leptos" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../static.files/storage-62ce34ea385b278a.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc attr"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../leptos/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../leptos/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><div class="sidebar-elems"><h2><a href="index.html">In leptos</a></h2></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Attribute Macro <a href="index.html">leptos</a>::<wbr><a class="attr" href="#">component</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../src/leptos_macro/lib.rs.html#620">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><code>#[component]</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Annotates a function so that it can be used with your template as a Leptos <code>&lt;Component/&gt;</code>.</p>
+<p>The <code>#[component]</code> macro allows you to annotate plain Rust functions as components
+and use them within your Leptos <a href="macro.view.html" title="macro leptos::view">view</a> as if they were custom HTML elements. The
+component function takes a <a href="https://docs.rs/leptos/latest/leptos/struct.Scope.html">Scope</a>
+and any number of other arguments. When you use the component somewhere else,
+the names of its arguments are the names of the properties you use in the <a href="macro.view.html" title="macro leptos::view">view</a> macro.</p>
+<p>Every component function should have the return type <code>-&gt; impl IntoView</code>.</p>
+<p>You can add Rust doc comments to component function arguments and the macro will use them to
+generate documentation for the component.</p>
+<p>Here’s how you would define and use a simple Leptos component which can accept custom properties for a name and age:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::time::Duration;
+
+<span class="attr">#[component]
+</span><span class="kw">fn </span>HelloComponent(
+    cx: Scope,
+    <span class="doccomment">/// The user&#39;s name.
+    </span>name: String,
+    <span class="doccomment">/// The user&#39;s age.
+    </span>age: u8,
+) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="comment">// create the signals (reactive values) that will update the UI
+    </span><span class="kw">let </span>(age, set_age) = create_signal(cx, age);
+    <span class="comment">// increase `age` by 1 every second
+    </span>set_interval(
+        <span class="kw">move </span>|| set_age.update(|age| <span class="kw-2">*</span>age += <span class="number">1</span>),
+        Duration::from_secs(<span class="number">1</span>),
+    );
+
+    <span class="comment">// return the user interface, which will be automatically updated
+    // when signal values change
+    </span><span class="macro">view! </span>{ cx,
+      &lt;p&gt;<span class="string">&quot;Your name is &quot; </span>{name} <span class="string">&quot; and you are &quot; </span>{age} <span class="string">&quot; years old.&quot;</span>&lt;/p&gt;
+    }
+}
+
+<span class="attr">#[component]
+</span><span class="kw">fn </span>App(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="macro">view! </span>{ cx,
+      &lt;main&gt;
+        &lt;HelloComponent name=<span class="string">&quot;Greg&quot;</span>.to_string() age=<span class="number">32</span>/&gt;
+      &lt;/main&gt;
+    }
+}</code></pre></div>
+<p>The <code>#[component]</code> macro creates a struct with a name like <code>HelloComponentProps</code>. If you define
+your component in one module and import it into another, make sure you import this <code>___Props</code>
+struct as well.</p>
+<p>Here are some important details about how Leptos components work within the framework:</p>
+<ol>
+<li>
+<p><strong>The component function only runs once.</strong> Your component function is not a “render” function
+that re-runs whenever changes happen in the state. It’s a “setup” function that runs once to
+create the user interface, and sets up a reactive system to update it. This means it’s okay
+to do relatively expensive work within the component function, as it will only happen once,
+not on every state change.</p>
+</li>
+<li>
+<p>Component names are usually in <code>PascalCase</code>. If you use a <code>snake_case</code> name,
+then the generated component’s name will still be in <code>PascalCase</code>. This is how the framework
+recognizes that a particular tag is a component, not an HTML element. It’s important to be aware
+of this when using or importing the component.</p>
+</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="comment">// PascalCase: Generated component will be called MyComponent
+</span><span class="attr">#[component]
+</span><span class="kw">fn </span>MyComponent(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="macro">todo!</span>()
+}
+
+<span class="comment">// snake_case: Generated component will be called MySnakeCaseComponent
+</span><span class="attr">#[component]
+</span><span class="kw">fn </span>my_snake_case_component(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="macro">todo!</span>()
+}</code></pre></div>
+<ol start="3">
+<li>The macro generates a type <code>ComponentProps</code> for every <code>Component</code> (so, <code>HomePage</code> generates <code>HomePageProps</code>,
+<code>Button</code> generates <code>ButtonProps</code>, etc.) When you’re importing the component, you also need to <strong>explicitly import
+the prop type.</strong></li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">use </span>component::{MyComponent, MyComponentProps};
+
+<span class="kw">mod </span>component {
+    <span class="kw">use </span>leptos::<span class="kw-2">*</span>;
+
+    <span class="attr">#[component]
+    </span><span class="kw">pub fn </span>MyComponent(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+        <span class="macro">todo!</span>()
+    }
+}</code></pre></div>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">use </span>snake_case_component::{
+    MySnakeCaseComponent, MySnakeCaseComponentProps,
+};
+
+<span class="kw">mod </span>snake_case_component {
+    <span class="kw">use </span>leptos::<span class="kw-2">*</span>;
+
+    <span class="attr">#[component]
+    </span><span class="kw">pub fn </span>my_snake_case_component(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+        <span class="macro">todo!</span>()
+    }
+}</code></pre></div>
+<ol start="4">
+<li>You can pass generic arguments, but they should be defined in a <code>where</code> clause and not inline.</li>
+</ol>
+<div class="example-wrap"><pre class="language-compile_error"><code>// ❌ This won&#39;t work.
+# use leptos::*;
+use leptos::html::Div;
+
+#[component]
+fn MyComponent&lt;T: Fn() -&gt; HtmlElement&lt;Div&gt;&gt;(cx: Scope, render_prop: T) -&gt; impl IntoView {
+  todo!()
+}
+</code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// ✅ Do this instead
+</span><span class="kw">use </span>leptos::html::Div;
+
+<span class="attr">#[component]
+</span><span class="kw">fn </span>MyComponent&lt;T&gt;(cx: Scope, render_prop: T) -&gt; <span class="kw">impl </span>IntoView
+<span class="kw">where
+    </span>T: Fn() -&gt; HtmlElement&lt;Div&gt;,
+{
+    <span class="macro">todo!</span>()
+}</code></pre></div>
+<ol start="5">
+<li>You can access the children passed into the component with the <code>children</code> property, which takes
+an argument of the type <code>Children</code>. This is an alias for <code>Box&lt;dyn FnOnce(Scope) -&gt; Fragment&gt;</code>.
+If you need <code>children</code> to be a <code>Fn</code> or <code>FnMut</code>, you can use the <code>ChildrenFn</code> or <code>ChildrenFnMut</code>
+type aliases.</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[component]
+</span><span class="kw">fn </span>ComponentWithChildren(cx: Scope, children: Children) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="macro">view! </span>{
+      cx,
+      &lt;ul&gt;
+        {children(cx)
+          .nodes
+          .into_iter()
+          .map(|child| <span class="macro">view! </span>{ cx, &lt;li&gt;{child}&lt;/li&gt; })
+          .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()}
+      &lt;/ul&gt;
+    }
+}
+
+<span class="attr">#[component]
+</span><span class="kw">fn </span>WrapSomeChildren(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="macro">view! </span>{ cx,
+      &lt;ComponentWithChildren&gt;
+        <span class="string">&quot;Ooh, look at us!&quot;
+        </span>&lt;span&gt;<span class="string">&quot;We&#39;re being projected!&quot;</span>&lt;/span&gt;
+      &lt;/ComponentWithChildren&gt;
+    }
+}</code></pre></div>
+<h3 id="customizing-properties"><a href="#customizing-properties">Customizing Properties</a></h3>
+<p>You can use the <code>#[prop]</code> attribute on individual component properties (function arguments) to
+customize the types that component property can receive. You can use the following attributes:</p>
+<ul>
+<li><code>#[prop(into)]</code>: This will call <code>.into()</code> on any value passed into the component prop. (For example,
+you could apply <code>#[prop(into)]</code> to a prop that takes
+<a href="https://docs.rs/leptos/latest/leptos/struct.Signal.html">Signal</a>, which would
+allow users to pass a <a href="https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html">ReadSignal</a> or
+<a href="https://docs.rs/leptos/latest/leptos/struct.RwSignal.html">RwSignal</a>
+and automatically convert it.)</li>
+<li><code>#[prop(optional)]</code>: If the user does not specify this property when they use the component,
+it will be set to its default value. If the property type is <code>Option&lt;T&gt;</code>, values should be passed
+as <code>name=T</code> and will be received as <code>Some(T)</code>.</li>
+<li><code>#[prop(optional_no_strip)]</code>: The same as <code>optional</code>, but requires values to be passed as <code>None</code> or
+<code>Some(T)</code> explicitly. This means that the optional property can be omitted (and be <code>None</code>), or explicitly
+specified as either <code>None</code> or <code>Some(T)</code>.</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="attr">#[component]
+</span><span class="kw">pub fn </span>MyComponent(
+    cx: Scope,
+    <span class="attr">#[prop(into)] </span>name: String,
+    <span class="attr">#[prop(optional)] </span>optional_value: <span class="prelude-ty">Option</span>&lt;i32&gt;,
+    <span class="attr">#[prop(optional_no_strip)] </span>optional_no_strip: <span class="prelude-ty">Option</span>&lt;i32&gt;,
+) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="comment">// whatever UI you need
+</span>}
+
+<span class="attr">#[component]
+</span><span class="kw">pub fn </span>App(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="macro">view! </span>{ cx,
+      &lt;MyComponent
+        name=<span class="string">&quot;Greg&quot; </span><span class="comment">// automatically converted to String with `.into()`
+        </span>optional_value=<span class="number">42 </span><span class="comment">// received as `Some(42)`
+        </span>optional_no_strip=<span class="prelude-val">Some</span>(<span class="number">42</span>) <span class="comment">// received as `Some(42)`
+      </span>/&gt;
+      &lt;MyComponent
+        name=<span class="string">&quot;Bob&quot; </span><span class="comment">// automatically converted to String with `.into()`
+        // optional values can both be omitted, and received as `None`
+      </span>/&gt;
+    }
+}</code></pre></div>
+</div></details></section></div></main></body></html>

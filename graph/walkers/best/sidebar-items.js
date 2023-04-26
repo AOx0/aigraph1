@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["a_star","dijkstra","greedy","weighted_a_star"],"struct":["BestFirst"]};

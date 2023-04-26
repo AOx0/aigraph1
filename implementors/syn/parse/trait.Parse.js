@@ -1,0 +1,6 @@
+(function() {var implementors = {
+"attribute_derive":[["impl&lt;T&gt; <a class=\"trait\" href=\"syn/parse/trait.Parse.html\" title=\"trait syn::parse::Parse\">Parse</a> for <a class=\"struct\" href=\"attribute_derive/struct.Array.html\" title=\"struct attribute_derive::Array\">Array</a>&lt;T&gt;<span class=\"where fmt-newline\">where\n    T: <a class=\"trait\" href=\"syn/parse/trait.Parse.html\" title=\"trait syn::parse::Parse\">Parse</a>,</span>"]],
+"syn":[],
+"syn_rsx":[["impl <a class=\"trait\" href=\"syn/parse/trait.Parse.html\" title=\"trait syn::parse::Parse\">Parse</a> for <a class=\"struct\" href=\"syn_rsx/punctuation/struct.Dash.html\" title=\"struct syn_rsx::punctuation::Dash\">Dash</a>"]],
+"wasm_bindgen_macro_support":[["impl <a class=\"trait\" href=\"https://docs.rs/syn/1.0.109/syn/parse/trait.Parse.html\" title=\"trait syn::parse::Parse\">Parse</a> for <a class=\"struct\" href=\"wasm_bindgen_macro_support/struct.BindgenAttrs.html\" title=\"struct wasm_bindgen_macro_support::BindgenAttrs\">BindgenAttrs</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

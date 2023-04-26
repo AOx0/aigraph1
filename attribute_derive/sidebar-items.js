@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Array","IdentValue"],"trait":["Attribute","AttributeIdent","ConvertParsed","Error","TryExtendOne"]};

@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Basicly clap for attribute macros:"><title>attribute_derive - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="attribute_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../attribute_derive/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../attribute_derive/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">Crate attribute_derive</a></h2><div class="sidebar-elems"><ul class="block"><li class="version">Version 0.5.0</li><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#structs">Structs</a></li><li><a href="#traits">Traits</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">attribute_derive</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../src/attribute_derive/lib.rs.html#1-863">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Basicly clap for attribute macros:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Attribute)]
+#[attribute(ident = collection)]
+#[attribute(error(missing_field = <span class="string">&quot;`{field}` was not specified&quot;</span>))]
+</span><span class="kw">struct </span>CollectionAttribute {
+    <span class="comment">// Options are optional by default (will be set to None if not specified)
+    </span>authority: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    name: String,
+    <span class="comment">// Any type implementing default can be flagged as default
+    // This will be set to Vec::default() when not specified
+    </span><span class="attr">#[attribute(optional)]
+    </span>views: Vec&lt;Type&gt;,
+    <span class="comment">// Booleans can be used without assiging a value. as a flag.
+    // If omitted they are set to false
+    </span>some_flag: bool,
+}</code></pre></div>
+<p>Will be able to parse an attribute like this:</p>
+<div class="example-wrap"><pre class="language-text"><code>#[collection(authority=&quot;Some String&quot;, name = r#&quot;Another string&quot;#, views = [Option, ()])]
+</code></pre></div>
+<p>Any type that <a href="trait.ConvertParsed.html" title="trait attribute_derive::ConvertParsed"><code>ConvertParsed</code></a> is implemented for is supported. These
+should be the general types that syn supports like <a href="../syn/lit/struct.LitStr.html" title="struct syn::lit::LitStr"><code>LitStr</code></a>
+or <a href="../syn/ty/enum.Type.html" title="enum syn::ty::Type"><code>Type</code></a> or that have a direct equivalent in those like <a href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String"><code>String</code></a>,
+<a href="https://doc.rust-lang.org/nightly/std/primitive.char.html" title="primitive char"><code>char</code></a> or <a href="https://doc.rust-lang.org/nightly/std/primitive.f32.html" title="primitive f32"><code>f32</code></a>. A special treatment have <a href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec"><code>Vecs</code></a> which are parsed
+using <a href="struct.Array.html" title="struct attribute_derive::Array"><code>Array</code></a> with the syntax <code>[a, b, c]</code> and <a href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option"><code>Options</code></a> that
+will be <a href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html#variant.None" title="variant core::option::Option::None"><code>None</code></a> if not specified and <a href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html#variant.Some" title="variant core::option::Option::Some"><code>Some</code></a> when the value is specified
+via the attribute. It is not specified via <code>Some(value)</code> but as just
+<code>value</code>.</p>
+<h2 id="attributes"><a href="#attributes">Attributes</a></h2>
+<p>The parsing of attributes can be modified with the following parameters via
+the <code>#[attribute(&lt;params&gt;)]</code> attribute. All of them are optional. Error
+messages are formatted using <a href="https://docs.rs/interpolator/latest/interpolator/">interpolator</a>, and only support display and on
+lists <code>i</code> formatting. See <a href="https://docs.rs/interpolator/latest/interpolator/">interpolator</a> docs for details.</p>
+<h4 id="struct"><a href="#struct">Struct</a></h4>
+<ul>
+<li>
+<p><code>ident = &lt;ident&gt;</code> The attribute ident. Improves error messages and enables
+the <a href="trait.Attribute.html#method.from_attributes" title="associated function attribute_derive::Attribute::from_attributes"><code>from_attributes</code></a> and
+<a href="trait.Attribute.html#method.remove_attributes" title="associated function attribute_derive::Attribute::remove_attributes"><code>remove_attributes</code></a> functions.</p>
+</li>
+<li>
+<p><code>aliases = [&lt;alias&gt;, ...]</code> Aliases for the attribute ident.</p>
+</li>
+<li>
+<p><code>error = &quot;&lt;error message&gt;&quot;</code> Overrides default error message.</p>
+</li>
+<li>
+<p><code>error(</code></p>
+<ul>
+<li><code>unknown_field = &quot;supported fields are {expected_fields:i..-1(`{}`)(, )} and `{expected_fields:i-1}`&quot;,</code> Custom error message printed if an
+unknown property is specified and attribute has more than one field.
+Supports <code>{found_field}</code> and <code>{expected_fields:i}</code> placeholders.</li>
+<li><code>unknown_field_single = &quot;expected supported field `{expected_field}`&quot;,</code> Custom error message printed if an unknown
+property is specified, and attribute only has a single field. Supports
+<code>{found_field}</code> and <code>{expected_field}</code> placeholders.</li>
+<li><code>unknown_field_empty = &quot;expected empty attribute&quot;,</code> Custom error
+message printed if a property is specified, and attribute has no
+fields. Supports <code>{found_field}</code> placeholder.</li>
+<li><code>duplicate_field = &quot;`{field}` is specified multiple times&quot;,</code> Custom
+error message printed if a property is specified multiple times.
+Supports <code>{field}</code> placeholder.</li>
+<li><code>missing_field = &quot;required `{field}` is not specified&quot;,</code> Custom
+error message printed if a required property is not specified.
+Supports <code>{field}</code> placeholder.</li>
+<li><code>field_help = &quot;try `#[{attribute}({field}={example})]`&quot;,</code> Additional
+help message printed if a required property is not specified or has an
+error. Supports <code>{attribute}</code>, <code>{field}</code> and <code>{example}</code> placeholder.</li>
+<li><code>missing_flag = &quot;required `{flag}` is not specified&quot;,</code> Custom error
+message printed if a required flag is not specified. Supports <code>{flag}</code>
+placeholder.</li>
+<li><code>flag_help = &quot;try `#[{attribute}({flag})]`&quot;,</code> Additional help
+message printed if a required flag is not specified. Supports
+<code>{attribute}</code> and <code>{flag}</code> placeholder.</li>
+<li><code>conflict = &quot;`{first}` conflicts with mutually exclusive `{second}`&quot;</code> Custom error message printed if conflicting properties
+are specified. Supports <code>{first}</code> and <code>{second}</code> placeholder.</li>
+</ul>
+<p><code>)</code></p>
+</li>
+</ul>
+<h4 id="fields-1"><a href="#fields-1">Fields</a></h4>
+<ul>
+<li><code>optional</code> / <code>optional = true</code> If field is not specified, the default
+value is used instead.</li>
+<li><code>optional = false</code> Disables implicit optionality of <a href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option"><code>Option</code></a>, <a href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec"><code>Vec</code></a>
+and <a href="https://doc.rust-lang.org/nightly/std/primitive.bool.html" title="primitive bool"><code>bool</code></a>. Note that this makes <code>Option&lt;T&gt;</code> behave the same as <code>T</code> and
+makes a bool a mandatory flag.</li>
+<li><code>default = &lt;default expr&gt;</code> provides a default to be used instead of
+<a href="https://doc.rust-lang.org/nightly/core/default/trait.Default.html" title="trait core::default::Default"><code>Default</code></a>. Enables <code>optional</code>.</li>
+<li><code>conflicts = [&lt;field&gt;, ...]</code> Conflicting fields</li>
+<li><code>example = &quot;&lt;example&gt;&quot;</code></li>
+</ul>
+<h2 id="limitations"><a href="#limitations">Limitations</a></h2>
+<p>There are some limitations in syntax parsing that will be lifted in future
+releases.</p>
+<ul>
+<li>literals in top level (meaning something like <code>#[attr(42, 3.14, &quot;hi&quot;)]</code></li>
+<li>function like arguments (something like <code>#[attr(view(a = &quot;test&quot;))]</code></li>
+<li>other syntaxes, maybe something like <code>key: value</code></li>
+</ul>
+<h2 id="parse-methods"><a href="#parse-methods">Parse methods</a></h2>
+<p>There are multiple ways of parsing a struct deriving <a href="trait.Attribute.html" title="trait attribute_derive::Attribute"><code>Attribute</code></a>.</p>
+<p>For helper attributes there is:</p>
+<ul>
+<li><a href="trait.Attribute.html#method.from_attributes" title="associated function attribute_derive::Attribute::from_attributes"><code>Attribute::from_attributes</code></a> which takes in an <a href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute"><code>IntoIterator&lt;Item = &amp;'a syn::Attribute</code></a>
+(e.g. a <a href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute"><code>&amp;Vec&lt;syn::Attribute&gt;</code></a>). Most useful for derive
+macros.</li>
+<li><a href="trait.Attribute.html#method.remove_attributes" title="associated function attribute_derive::Attribute::remove_attributes"><code>Attribute::remove_attributes</code></a> which takes an <a href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute"><code>&amp;mut Vec&lt;syn::Attribute&gt;</code></a>
+and does not only parse the <a href="trait.Attribute.html" title="trait attribute_derive::Attribute"><code>Attribute</code></a> but also removes those matching.
+Useful for helper attributes for proc macros, where the helper attributes
+need to be removed.</li>
+</ul>
+<p>For parsing a single <a href="../proc_macro2/struct.TokenStream.html" title="struct proc_macro2::TokenStream"><code>TokenStream</code></a> e.g. for parsing the proc macro input
+there a two ways:</p>
+<ul>
+<li><a href="trait.Attribute.html#method.from_args" title="associated function attribute_derive::Attribute::from_args"><code>Attribute::from_args</code></a> taking in a <a href="../proc_macro2/struct.TokenStream.html" title="struct proc_macro2::TokenStream"><code>TokenStream</code></a></li>
+<li>As <code>derive(Attribute)</code> also derives <a href="../syn/parse/trait.Parse.html" title="trait syn::parse::Parse"><code>Parse</code></a> so you can use the
+<a href="../syn/parse/index.html" title="mod syn::parse">parse</a> API,
+e.g. with <a href="../syn/macro.parse_macro_input.html" title="macro syn::parse_macro_input"><code>parse_macro_input!(tokens as Attribute)</code></a>.</li>
+</ul>
+</div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.Array.html" title="struct attribute_derive::Array">Array</a></div><div class="desc docblock-short">Helper struct to parse array literals:
+<code>[a, b, c]</code></div></li><li><div class="item-name"><a class="struct" href="struct.IdentValue.html" title="struct attribute_derive::IdentValue">IdentValue</a></div><div class="desc docblock-short">Helper struct to hold a value and the ident of its property</div></li></ul><h2 id="traits" class="small-section-header"><a href="#traits">Traits</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.Attribute.html" title="trait attribute_derive::Attribute">Attribute</a></div><div class="desc docblock-short">The trait you actually derive on your attribute struct.</div></li><li><div class="item-name"><a class="trait" href="trait.AttributeIdent.html" title="trait attribute_derive::AttributeIdent">AttributeIdent</a></div><div class="desc docblock-short">Helper trait providing the path for an attribute.</div></li><li><div class="item-name"><a class="trait" href="trait.ConvertParsed.html" title="trait attribute_derive::ConvertParsed">ConvertParsed</a></div><div class="desc docblock-short">Helper trait to convert syn types implementing <a href="../syn/parse/trait.Parse.html" title="trait syn::parse::Parse"><code>Parse</code></a> like
+<a href="../syn/lit/struct.LitStr.html" title="struct syn::lit::LitStr"><code>LitStr</code></a> to rust types like <a href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String"><code>String</code></a></div></li><li><div class="item-name"><a class="trait" href="trait.Error.html" title="trait attribute_derive::Error">Error</a></div><div class="desc docblock-short">Helper trait to generate sensible errors</div></li><li><div class="item-name"><a class="trait" href="trait.TryExtendOne.html" title="trait attribute_derive::TryExtendOne">TryExtendOne</a></div><div class="desc docblock-short">Trait to join two structs of the same type</div></li></ul></section></div></main></body></html>

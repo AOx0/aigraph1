@@ -1,0 +1,94 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The trait you actually derive on your attribute struct."><title>Attribute in attribute_derive - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="attribute_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../static.files/storage-62ce34ea385b278a.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../attribute_derive/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../attribute_derive/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">Attribute</a></h2><div class="sidebar-elems"><section><h3><a href="#required-associated-types">Required Associated Types</a></h3><ul class="block"><li><a href="#associatedtype.Parser">Parser</a></li></ul><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.from_parser">from_parser</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.from_args">from_args</a></li><li><a href="#method.from_attributes">from_attributes</a></li><li><a href="#method.remove_attributes">remove_attributes</a></li></ul><h3><a href="#implementors">Implementors</a></h3></section><h2><a href="index.html">In attribute_derive</a></h2></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Trait <a href="index.html">attribute_derive</a>::<wbr><a class="trait" href="#">Attribute</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../src/attribute_derive/lib.rs.html#222-325">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><code>pub trait Attribute: <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a> {
+    type <a href="#associatedtype.Parser" class="associatedtype">Parser</a>: <a class="trait" href="trait.TryExtendOne.html" title="trait attribute_derive::TryExtendOne">TryExtendOne</a> + <a class="trait" href="../syn/parse/trait.Parse.html" title="trait syn::parse::Parse">Parse</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/core/default/trait.Default.html" title="trait core::default::Default">Default</a>;
+
+    // Required method
+    fn <a href="#tymethod.from_parser" class="fn">from_parser</a>(parser: Self::<a class="associatedtype" href="trait.Attribute.html#associatedtype.Parser" title="type attribute_derive::Attribute::Parser">Parser</a>) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt;;
+
+    // Provided methods
+    fn <a href="#method.from_attributes" class="fn">from_attributes</a>&lt;'a&gt;(
+        attrs: impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/iter/traits/collect/trait.IntoIterator.html" title="trait core::iter::traits::collect::IntoIterator">IntoIterator</a>&lt;Item = &amp;'a <a class="struct" href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute">Attribute</a>&gt;
+    ) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt;
+       <span class="where">where Self: <a class="trait" href="trait.AttributeIdent.html" title="trait attribute_derive::AttributeIdent">AttributeIdent</a></span> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.remove_attributes" class="fn">remove_attributes</a>(attrs: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute">Attribute</a>&gt;) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt;
+       <span class="where">where Self: <a class="trait" href="trait.AttributeIdent.html" title="trait attribute_derive::AttributeIdent">AttributeIdent</a></span> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.from_args" class="fn">from_args</a>(tokens: <a class="struct" href="../proc_macro2/struct.TokenStream.html" title="struct proc_macro2::TokenStream">TokenStream</a>) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt; { ... }
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The trait you actually derive on your attribute struct.</p>
+<p>Basic gist is a struct like this:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Attribute)]
+#[attribute(ident = collection)]
+#[attribute(error(missing_field = <span class="string">&quot;`{field}` was not specified&quot;</span>))]
+</span><span class="kw">struct </span>CollectionAttribute {
+    <span class="comment">// Options are optional by default (will be set to None if not specified)
+    </span>authority: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    name: String,
+    <span class="comment">// Any type implementing default can be flagged as default
+    // This will be set to Vec::default() when not specified
+    </span><span class="attr">#[attribute(optional)]
+    </span>views: Vec&lt;Type&gt;,
+    <span class="comment">// Booleans can be used without assiging a value. as a flag.
+    // If omitted they are set to false
+    </span>some_flag: bool,
+}</code></pre></div>
+<p>Will be able to parse an attribute like this:</p>
+<div class="example-wrap"><pre class="language-text"><code>#[collection(authority=&quot;Some String&quot;, name = r#&quot;Another string&quot;#, views = [Option, ()], some_flag)]
+</code></pre></div></div></details><h2 id="required-associated-types" class="small-section-header">Required Associated Types<a href="#required-associated-types" class="anchor">§</a></h2><div class="methods"><details class="toggle" open><summary><section id="associatedtype.Parser" class="method"><a class="srclink rightside" href="../src/attribute_derive/lib.rs.html#224">source</a><h4 class="code-header">type <a href="#associatedtype.Parser" class="associatedtype">Parser</a>: <a class="trait" href="trait.TryExtendOne.html" title="trait attribute_derive::TryExtendOne">TryExtendOne</a> + <a class="trait" href="../syn/parse/trait.Parse.html" title="trait syn::parse::Parse">Parse</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/core/default/trait.Default.html" title="trait core::default::Default">Default</a></h4></section></summary><div class="docblock"><p>Helper struct for storing and parsing attributes</p>
+</div></details></div><h2 id="required-methods" class="small-section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.from_parser" class="method"><a class="srclink rightside" href="../src/attribute_derive/lib.rs.html#227">source</a><h4 class="code-header">fn <a href="#tymethod.from_parser" class="fn">from_parser</a>(parser: Self::<a class="associatedtype" href="trait.Attribute.html#associatedtype.Parser" title="type attribute_derive::Attribute::Parser">Parser</a>) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt;</h4></section></summary><div class="docblock"><p>Handles conversion from <code>Parser</code> used by the other functions internally</p>
+</div></details></div><h2 id="provided-methods" class="small-section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.from_attributes" class="method"><a class="srclink rightside" href="../src/attribute_derive/lib.rs.html#252-266">source</a><h4 class="code-header">fn <a href="#method.from_attributes" class="fn">from_attributes</a>&lt;'a&gt;(
+    attrs: impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/iter/traits/collect/trait.IntoIterator.html" title="trait core::iter::traits::collect::IntoIterator">IntoIterator</a>&lt;Item = &amp;'a <a class="struct" href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute">Attribute</a>&gt;
+) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt;<span class="where fmt-newline">where
+    Self: <a class="trait" href="trait.AttributeIdent.html" title="trait attribute_derive::AttributeIdent">AttributeIdent</a>,</span></h4></section></summary><div class="docblock"><p>Parses an <a href="https://doc.rust-lang.org/nightly/core/iter/traits/collect/trait.IntoIterator.html" title="trait core::iter::traits::collect::IntoIterator"><code>IntoIterator</code></a> of <a href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute"><code>syn::Attributes</code></a> e.g.
+<a href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec"><code>Vec&lt;Attribute&gt;</code></a>. Only availible if you specify the attribute
+ident: <code>#[attribute(ident=&quot;&lt;ident&gt;&quot;)]</code> when using the derive macro.</p>
+<p>It can therefore parse fields set over multiple attributes like:</p>
+<div class="example-wrap"><pre class="language-text"><code>#[collection(authority = &quot;Authority&quot;, name = &quot;Name&quot;)]
+#[collection(views = [A, B])]
+</code></pre></div>
+<p>and also catch duplicate/conflicting settings over those.</p>
+<p>This is best used for derive macros, where you don’t need to remove your
+attributes.</p>
+<h5 id="errors"><a href="#errors">Errors</a></h5>
+<p>Fails with a <a href="../syn/error/struct.Error.html" title="struct syn::error::Error"><code>syn::Error</code></a> so you can conveniently return that as a
+compiler error in a proc macro in the following cases</p>
+<ul>
+<li>A necessary parameter is omitted</li>
+<li>Invalid input is given for a parameter</li>
+<li>A non aggregating parameter is specified multiple times</li>
+<li>An attribute called <a href="trait.AttributeIdent.html#associatedconstant.IDENTS" title="associated constant attribute_derive::AttributeIdent::IDENTS"><code>IDENTS</code></a> has
+invalid syntax (e.g. <code>#attr(a: &quot;a&quot;)</code>)</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_attributes" class="method"><a class="srclink rightside" href="../src/attribute_derive/lib.rs.html#291-305">source</a><h4 class="code-header">fn <a href="#method.remove_attributes" class="fn">remove_attributes</a>(attrs: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute">Attribute</a>&gt;) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt;<span class="where fmt-newline">where
+    Self: <a class="trait" href="trait.AttributeIdent.html" title="trait attribute_derive::AttributeIdent">AttributeIdent</a>,</span></h4></section></summary><div class="docblock"><p>Parses an <a href="../syn/attr/struct.Attribute.html" title="struct syn::attr::Attribute"><code>&amp;mut Vec&lt;syn::Attributes&gt;</code></a>. Removing
+matching attributes. Only availible if you specify an ident:
+<code>#[attribute(ident=&quot;&lt;ident&gt;&quot;)]</code> when using the derive macro.</p>
+<p>It can therefore parse fields set over multiple attributes like:</p>
+<div class="example-wrap"><pre class="language-text"><code>#[collection(authority = &quot;Authority&quot;, name = &quot;Name&quot;)]
+#[collection(views = [A, B])]
+</code></pre></div>
+<p>and also catch duplicate/conflicting settings over those.</p>
+<p>Use this if you are implementing an attribute macro, and need to remove
+your helper attributes.</p>
+<h5 id="errors-1"><a href="#errors-1">Errors</a></h5>
+<p>Fails with a <a href="../syn/error/struct.Error.html" title="struct syn::error::Error"><code>syn::Error</code></a> so you can conveniently return that as a
+compiler error in a proc macro in the following cases</p>
+<ul>
+<li>A necessary parameter is omitted</li>
+<li>Invalid input is given for a parameter</li>
+<li>A non aggregating parameter is specified multiple times</li>
+<li>An attribute called <a href="trait.AttributeIdent.html#associatedconstant.IDENTS" title="associated constant attribute_derive::AttributeIdent::IDENTS"><code>IDENTS</code></a> has
+invalid syntax (e.g. <code>#attr(a: &quot;a&quot;)</code>)</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.from_args" class="method"><a class="srclink rightside" href="../src/attribute_derive/lib.rs.html#322-324">source</a><h4 class="code-header">fn <a href="#method.from_args" class="fn">from_args</a>(tokens: <a class="struct" href="../proc_macro2/struct.TokenStream.html" title="struct proc_macro2::TokenStream">TokenStream</a>) -&gt; <a class="type" href="../syn/error/type.Result.html" title="type syn::error::Result">Result</a>&lt;Self&gt;</h4></section></summary><div class="docblock"><p>Parses a <a href="../proc_macro2/struct.TokenStream.html" title="struct proc_macro2::TokenStream"><code>TokenStream</code></a>.</p>
+<p>Useful for implementing general proc macros to parse the input of your
+macro.</p>
+<p>Due to this only parsing the input for a single attribute it is not able
+to aggregate input spread over multiple attributes.</p>
+<h5 id="errors-2"><a href="#errors-2">Errors</a></h5>
+<p>Fails with a <a href="../syn/error/struct.Error.html" title="struct syn::error::Error"><code>syn::Error</code></a> so you can conveniently return that as a
+compiler error in a proc macro in the following cases</p>
+<ul>
+<li>A necessary parameter is omitted</li>
+<li>Invalid input is given for a parameter</li>
+<li>A non aggregating parameter is specified multiple times</li>
+</ul>
+</div></details></div><h2 id="implementors" class="small-section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"></div><script src="../implementors/attribute_derive/trait.Attribute.js" async></script></section></div></main></body></html>

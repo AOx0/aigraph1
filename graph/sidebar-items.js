@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Directed","Direction"],"fn":["full_connected_graph","mexico_graph","test_graph","unit_graph"],"macro":["count","graph"],"mod":["rrand","step","walkers"],"struct":["EdgeIndex","Graph","Node","NodeIndex","PGraph"],"trait":["Coords","EdgeType","IndexType"]};

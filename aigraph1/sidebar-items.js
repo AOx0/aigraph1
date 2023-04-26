@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["METHODS"],"fn":["App","block_button","create_machine","gen_row","main","restart_colors","set_stroke","timed_search","toggle_items","update_hints","visual_search"],"mod":["svg"],"struct":["AppProps","AppPropsBuilder"]};

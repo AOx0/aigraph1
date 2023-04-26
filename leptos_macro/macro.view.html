@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The `view` macro uses RSX (like JSX, but Rust!) It follows most of the same rules as HTML, with the following differences:"><title>view in leptos_macro - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="leptos_macro" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../static.files/storage-62ce34ea385b278a.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../leptos_macro/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../leptos_macro/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><div class="sidebar-elems"><h2><a href="index.html">In leptos_macro</a></h2></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Macro <a href="index.html">leptos_macro</a>::<wbr><a class="macro" href="#">view</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../src/leptos_macro/lib.rs.html#283">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><code>view!() { /* proc-macro */ }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The <code>view</code> macro uses RSX (like JSX, but Rust!) It follows most of the
+same rules as HTML, with the following differences:</p>
+<ol>
+<li>Text content should be provided as a Rust string, i.e., double-quoted:</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">view! </span>{ cx, &lt;p&gt;<span class="string">&quot;Here’s some text&quot;</span>&lt;/p&gt; };</code></pre></div>
+<ol start="2">
+<li>Self-closing tags need an explicit <code>/</code> as in XML/XHTML</li>
+</ol>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="comment">// ❌ not like this
+</span><span class="macro">view! </span>{ cx, &lt;input <span class="kw">type</span>=<span class="string">&quot;text&quot; </span>name=<span class="string">&quot;name&quot;</span>&gt; }</code></pre></div>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// ✅ add that slash
+</span><span class="macro">view! </span>{ cx, &lt;input <span class="kw">type</span>=<span class="string">&quot;text&quot; </span>name=<span class="string">&quot;name&quot; </span>/&gt; }</code></pre></div>
+<ol start="3">
+<li>Components (functions annotated with <code>#[component]</code>) can be inserted as camel-cased tags</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">view! </span>{ cx, &lt;div&gt;&lt;Counter initial_value=<span class="number">3 </span>/&gt;&lt;/div&gt; }</code></pre></div>
+<ol start="4">
+<li>
+<p>Dynamic content can be wrapped in curly braces (<code>{ }</code>) to insert text nodes, elements, or set attributes.
+If you insert a signal here, Leptos will create an effect to update the DOM whenever the value changes.
+<em>(“Signal” here means <code>Fn() -&gt; T</code> where <code>T</code> is the appropriate type for that node: a <code>String</code> in case
+of text nodes, a <code>bool</code> for <code>class:</code> attributes, etc.)</em></p>
+<p>Attributes can take a wide variety of primitive types that can be converted to strings. They can also
+take an <code>Option</code>, in which case <code>Some</code> sets the attribute and <code>None</code> removes the attribute.</p>
+</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(count, set_count) = create_signal(cx, <span class="number">0</span>);
+
+<span class="macro">view! </span>{
+  cx,
+  <span class="comment">// ❌ not like this: `count()` returns an `i32`, not a function
+  </span>&lt;p&gt;{count()}&lt;/p&gt;
+  <span class="comment">// ✅ this is good: Leptos sees the function and knows it&#39;s a dynamic value
+  </span>&lt;p&gt;{<span class="kw">move </span>|| count.get()}&lt;/p&gt;
+  <span class="comment">// 🔥 `count` is itself a function, so you can pass it directly (unless you&#39;re on `stable`)
+  </span>&lt;p&gt;{count}&lt;/p&gt;
+}</code></pre></div>
+<ol start="5">
+<li>Event handlers can be added with <code>on:</code> attributes. In most cases, the events are given the correct type
+based on the event name.</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">view! </span>{
+  cx,
+  &lt;button on:click=|ev| {
+    <span class="macro">log::debug!</span>(<span class="string">&quot;click event: {ev:#?}&quot;</span>);
+  }&gt;
+    <span class="string">&quot;Click me&quot;
+  </span>&lt;/button&gt;
+}</code></pre></div>
+<ol start="6">
+<li>DOM properties can be set with <code>prop:</code> attributes, which take any primitive type or <code>JsValue</code> (or a signal
+that returns a primitive or JsValue). They can also take an <code>Option</code>, in which case <code>Some</code> sets the property
+and <code>None</code> deletes the property.</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(name, set_name) = create_signal(cx, <span class="string">&quot;Alice&quot;</span>.to_string());
+
+<span class="macro">view! </span>{
+  cx,
+  &lt;input
+    <span class="kw">type</span>=<span class="string">&quot;text&quot;
+    </span>name=<span class="string">&quot;user_name&quot;
+    </span>value={name} <span class="comment">// this only sets the default value!
+    </span>prop:value={name} <span class="comment">// here&#39;s how you update values. Sorry, I didn’t invent the DOM.
+    </span>on:click=<span class="kw">move </span>|ev| set_name(event_target_value(<span class="kw-2">&amp;</span>ev)) <span class="comment">// `event_target_value` is a useful little Leptos helper
+  </span>/&gt;
+}</code></pre></div>
+<ol start="7">
+<li>Classes can be toggled with <code>class:</code> attributes, which take a <code>bool</code> (or a signal that returns a <code>bool</code>).</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(count, set_count) = create_signal(cx, <span class="number">2</span>);
+<span class="macro">view! </span>{ cx, &lt;div class:hidden-div={<span class="kw">move </span>|| count() &lt; <span class="number">3</span>}&gt;<span class="string">&quot;Now you see me, now you don’t.&quot;</span>&lt;/div&gt; }</code></pre></div>
+<p>Class names can include dashes, but cannot (at the moment) include a dash-separated segment of only numbers.</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(count, set_count) = create_signal(cx, <span class="number">2</span>);
+<span class="comment">// `hidden-div-25` is invalid at the moment
+</span><span class="macro">view! </span>{ cx, &lt;div class:hidden-div-<span class="number">25</span>={<span class="kw">move </span>|| count() &lt; <span class="number">3</span>}&gt;<span class="string">&quot;Now you see me, now you don’t.&quot;</span>&lt;/div&gt; }</code></pre></div>
+<p>However, you can pass arbitrary class names using the syntax <code>class=(&quot;name&quot;, value)</code>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>(count, set_count) = create_signal(cx, <span class="number">2</span>);
+<span class="comment">// this allows you to use CSS frameworks that include complex class names
+</span><span class="macro">view! </span>{ cx,
+  &lt;div
+    class=(<span class="string">&quot;is-[this_-_really]-necessary-42&quot;</span>, <span class="kw">move </span>|| count() &lt; <span class="number">3</span>)
+  &gt;
+    <span class="string">&quot;Now you see me, now you don’t.&quot;
+  </span>&lt;/div&gt;
+}</code></pre></div>
+<ol start="8">
+<li>You can use the <code>node_ref</code> or <code>_ref</code> attribute to store a reference to its DOM element in a
+<a href="https://docs.rs/leptos/latest/leptos/struct.NodeRef.html">NodeRef</a> to use later.</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>leptos::html::Input;
+
+<span class="kw">let </span>(value, set_value) = create_signal(cx, <span class="number">0</span>);
+<span class="kw">let </span>my_input = create_node_ref::&lt;Input&gt;(cx);
+<span class="macro">view! </span>{ cx, &lt;input <span class="kw">type</span>=<span class="string">&quot;text&quot; </span>_ref=my_input/&gt; }
+<span class="comment">// `my_input` now contains an `Element` that we can use anywhere</span></code></pre></div>
+<ol start="9">
+<li>You can add the same class to every element in the view by passing in a special
+<code>class = {/* ... */},</code> argument after <code>cx, </code>. This is useful for injecting a class
+provided by a scoped styling library.</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>class = <span class="string">&quot;mycustomclass&quot;</span>;
+<span class="macro">view! </span>{ cx, class = class,
+  &lt;div&gt; <span class="comment">// will have class=&quot;mycustomclass&quot;
+    </span>&lt;p&gt;<span class="string">&quot;Some text&quot;</span>&lt;/p&gt; <span class="comment">// will also have class &quot;mycustomclass&quot;
+  </span>&lt;/div&gt;
+}</code></pre></div>
+<ol start="10">
+<li>You can set any HTML element’s <code>innerHTML</code> with the <code>inner_html</code> attribute on an
+element. Be careful: this HTML will not be escaped, so you should ensure that it
+only contains trusted input.</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>html = <span class="string">&quot;&lt;p&gt;This HTML will be injected.&lt;/p&gt;&quot;</span>;
+<span class="macro">view! </span>{ cx,
+  &lt;div inner_html=html/&gt;
+}</code></pre></div>
+<p>Here’s a simple example that shows off several of these features, put together</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">pub fn </span>SimpleCounter(cx: Scope) -&gt; <span class="kw">impl </span>IntoView {
+    <span class="comment">// create a reactive signal with the initial value
+    </span><span class="kw">let </span>(value, set_value) = create_signal(cx, <span class="number">0</span>);
+
+    <span class="comment">// create event handlers for our buttons
+    // note that `value` and `set_value` are `Copy`, so it&#39;s super easy to move them into closures
+    </span><span class="kw">let </span>clear = <span class="kw">move </span>|_ev| set_value(<span class="number">0</span>);
+    <span class="kw">let </span>decrement = <span class="kw">move </span>|_ev| set_value.update(|value| <span class="kw-2">*</span>value -= <span class="number">1</span>);
+    <span class="kw">let </span>increment = <span class="kw">move </span>|_ev| set_value.update(|value| <span class="kw-2">*</span>value += <span class="number">1</span>);
+
+    <span class="comment">// this JSX is compiled to an HTML template string for performance
+    </span><span class="macro">view! </span>{
+        cx,
+        &lt;div&gt;
+            &lt;button on:click=clear&gt;<span class="string">&quot;Clear&quot;</span>&lt;/button&gt;
+            &lt;button on:click=decrement&gt;<span class="string">&quot;-1&quot;</span>&lt;/button&gt;
+            &lt;span&gt;<span class="string">&quot;Value: &quot; </span>{<span class="kw">move </span>|| value().to_string()} <span class="string">&quot;!&quot;</span>&lt;/span&gt;
+            &lt;button on:click=increment&gt;<span class="string">&quot;+1&quot;</span>&lt;/button&gt;
+        &lt;/div&gt;
+    }
+}</code></pre></div>
+</div></details></section></div></main></body></html>

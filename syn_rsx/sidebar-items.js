@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error","Node","NodeName","NodeType"],"fn":["parse","parse2","parse2_with_config","parse_with_config"],"mod":["punctuation"],"struct":["NodeAttribute","NodeBlock","NodeComment","NodeDoctype","NodeElement","NodeFragment","NodeText","NodeValueExpr","Parser","ParserConfig"]};

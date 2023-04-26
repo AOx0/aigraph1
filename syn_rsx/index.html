@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="`syn`-powered parser for JSX-like `TokenStream`s, aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros."><title>syn_rsx - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="syn_rsx" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../syn_rsx/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../syn_rsx/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">Crate syn_rsx</a></h2><div class="sidebar-elems"><ul class="block"><li class="version">Version 0.9.0</li><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#functions">Functions</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">syn_rsx</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../src/syn_rsx/lib.rs.html#1-223">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p><a href="/syn"><code>syn</code></a>-powered parser for JSX-like <a href="https://doc.rust-lang.org/proc_macro/struct.TokenStream.html"><code>TokenStream</code></a>s, aka RSX. The parsed
+result is a nested <a href="enum.Node.html"><code>Node</code></a> structure, similar to the browser DOM, where
+node name and value are syn expressions to support building proc macros.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::convert::TryFrom;
+
+<span class="kw">use </span>eyre::bail;
+<span class="kw">use </span>quote::quote;
+<span class="kw">use </span>syn_rsx::{parse2, Node, NodeAttribute, NodeElement, NodeText};
+
+<span class="comment">// Create HTML `TokenStream`.
+</span><span class="kw">let </span>tokens = <span class="macro">quote! </span>{ &lt;hello world&gt;<span class="string">&quot;hi&quot;</span>&lt;/hello&gt; };
+
+<span class="comment">// Parse the tokens into a tree of `Node`s.
+</span><span class="kw">let </span>nodes = parse2(tokens)<span class="question-mark">?</span>;
+
+<span class="comment">// Extract some specific nodes from the tree.
+</span><span class="kw">let </span>Node::Element(element) = <span class="kw-2">&amp;</span>nodes[<span class="number">0</span>] <span class="kw">else </span>{ <span class="macro">bail!</span>(<span class="string">&quot;element&quot;</span>) };
+<span class="kw">let </span>Node::Attribute(attribute) = <span class="kw-2">&amp;</span>element.attributes[<span class="number">0</span>] <span class="kw">else </span>{ <span class="macro">bail!</span>(<span class="string">&quot;attribute&quot;</span>) };
+<span class="kw">let </span>Node::Text(text) = <span class="kw-2">&amp;</span>element.children[<span class="number">0</span>] <span class="kw">else </span>{ <span class="macro">bail!</span>(<span class="string">&quot;text&quot;</span>) };
+
+<span class="comment">// Work with the nodes.
+</span><span class="macro">assert_eq!</span>(element.name.to_string(), <span class="string">&quot;hello&quot;</span>);
+<span class="macro">assert_eq!</span>(attribute.key.to_string(), <span class="string">&quot;world&quot;</span>);
+<span class="macro">assert_eq!</span>(String::try_from(<span class="kw-2">&amp;</span>text.value)<span class="question-mark">?</span>, <span class="string">&quot;hi&quot;</span>);</code></pre></div>
+<p>You might want to check out the <a href="https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro">html-to-string-macro example</a> as well.</p>
+<h3 id="features"><a href="#features">Features</a></h3>
+<ul>
+<li>
+<p><strong>Not opinionated</strong></p>
+<p>Every tag or attribute name is valid</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>&lt;hello world /&gt;</code></pre></div>
+</li>
+<li>
+<p><strong>Text nodes</strong></p>
+<p>Support for <a href="https://github.com/stoically/syn-rsx/issues/2">unquoted text is planned</a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>&lt;div&gt;<span class="string">&quot;String literal&quot;</span>&lt;/div&gt;</code></pre></div>
+</li>
+<li>
+<p><strong>Node names separated by dash, colon or double colon</strong></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>&lt;tag-name attribute-key=<span class="string">&quot;value&quot; </span>/&gt;
+&lt;tag:name attribute:key=<span class="string">&quot;value&quot; </span>/&gt;
+&lt;tag::name attribute::key=<span class="string">&quot;value&quot; </span>/&gt;</code></pre></div>
+</li>
+<li>
+<p><strong>Node names with reserved keywords</strong></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>&lt;input <span class="kw">type</span>=<span class="string">&quot;submit&quot; </span>/&gt;</code></pre></div>
+</li>
+<li>
+<p><strong>Doctypes, Comments and Fragments</strong></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>&lt;!DOCTYPE html&gt;
+&lt;!-- <span class="string">&quot;comment&quot; </span>--&gt;
+&lt;&gt;&lt;/&gt;</code></pre></div>
+</li>
+<li>
+<p><strong>Braced blocks are parsed as arbitrary Rust code</strong></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>&lt;{ <span class="kw">let </span>block = <span class="string">&quot;in node name position&quot;</span>; } /&gt;
+&lt;div&gt;{ <span class="kw">let </span>block = <span class="string">&quot;in node position&quot;</span>; }&lt;/div&gt;
+&lt;div { <span class="kw">let </span>block = <span class="string">&quot;in attribute position&quot;</span>; } /&gt;
+&lt;div key={ <span class="kw">let </span>block = <span class="string">&quot;in attribute value position&quot;</span>; } /&gt;</code></pre></div>
+</li>
+<li>
+<p><strong>Attribute values can be any valid syn expression without requiring
+braces</strong></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>&lt;div key=some::value() /&gt;</code></pre></div>
+</li>
+<li>
+<p><strong>Helpful error reporting out of the box</strong></p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code>error: open tag has no corresponding close tag and is not <span class="self">self</span>-closing
+--&gt; examples/html-to-string-<span class="kw">macro</span>/tests/lib.rs:<span class="number">5</span>:<span class="number">24
+  </span>|
+<span class="number">5 </span>|     <span class="macro">html_to_string! </span>{ &lt;div&gt; };
+  |                        ^^^</code></pre></div>
+</li>
+<li>
+<p><strong>Customization</strong></p>
+<p>A <a href="struct.ParserConfig.html"><code>ParserConfig</code></a> to customize parsing behavior is available, so if you
+have   slightly different requirements for parsing and it’s not yet
+customizable   feel free to open an issue or pull request to extend the
+configuration.</p>
+<p>One highlight with regards to customization is the <a href="struct.ParserConfig.html#method.transform_block"><code>transform_block</code></a>
+configuration, which takes a closure that receives raw block content as
+<code>ParseStream</code> and lets you optionally convert it to a <code>TokenStream</code>. That
+makes it   possible to have custom syntax in blocks. More details in <a href="https://github.com/stoically/syn-rsx/issues/9">#9</a></p>
+</li>
+</ul>
+</div></details><h2 id="modules" class="small-section-header"><a href="#modules">Modules</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="punctuation/index.html" title="mod syn_rsx::punctuation">punctuation</a></div><div class="desc docblock-short">Custom syn punctuations</div></li></ul><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.NodeAttribute.html" title="struct syn_rsx::NodeAttribute">NodeAttribute</a></div><div class="desc docblock-short">Attribute node.</div></li><li><div class="item-name"><a class="struct" href="struct.NodeBlock.html" title="struct syn_rsx::NodeBlock">NodeBlock</a></div><div class="desc docblock-short">Block node.</div></li><li><div class="item-name"><a class="struct" href="struct.NodeComment.html" title="struct syn_rsx::NodeComment">NodeComment</a></div><div class="desc docblock-short">Comment node.</div></li><li><div class="item-name"><a class="struct" href="struct.NodeDoctype.html" title="struct syn_rsx::NodeDoctype">NodeDoctype</a></div><div class="desc docblock-short">Doctype node.</div></li><li><div class="item-name"><a class="struct" href="struct.NodeElement.html" title="struct syn_rsx::NodeElement">NodeElement</a></div><div class="desc docblock-short">Element node.</div></li><li><div class="item-name"><a class="struct" href="struct.NodeFragment.html" title="struct syn_rsx::NodeFragment">NodeFragment</a></div><div class="desc docblock-short">Fragement node.</div></li><li><div class="item-name"><a class="struct" href="struct.NodeText.html" title="struct syn_rsx::NodeText">NodeText</a></div><div class="desc docblock-short">Text node.</div></li><li><div class="item-name"><a class="struct" href="struct.NodeValueExpr.html" title="struct syn_rsx::NodeValueExpr">NodeValueExpr</a></div><div class="desc docblock-short">Smart pointer to <code>syn::Expr</code>.</div></li><li><div class="item-name"><a class="struct" href="struct.Parser.html" title="struct syn_rsx::Parser">Parser</a></div><div class="desc docblock-short">RSX Parser</div></li><li><div class="item-name"><a class="struct" href="struct.ParserConfig.html" title="struct syn_rsx::ParserConfig">ParserConfig</a></div><div class="desc docblock-short">Configures the <code>Parser</code> behavior</div></li></ul><h2 id="enums" class="small-section-header"><a href="#enums">Enums</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.Error.html" title="enum syn_rsx::Error">Error</a></div></li><li><div class="item-name"><a class="enum" href="enum.Node.html" title="enum syn_rsx::Node">Node</a></div><div class="desc docblock-short">Node in the tree.</div></li><li><div class="item-name"><a class="enum" href="enum.NodeName.html" title="enum syn_rsx::NodeName">NodeName</a></div><div class="desc docblock-short">Name of the node.</div></li><li><div class="item-name"><a class="enum" href="enum.NodeType.html" title="enum syn_rsx::NodeType">NodeType</a></div><div class="desc docblock-short">Node types.</div></li></ul><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.parse.html" title="fn syn_rsx::parse">parse</a></div><div class="desc docblock-short">Parse the given <a href="https://doc.rust-lang.org/proc_macro/struct.TokenStream.html"><code>proc-macro::TokenStream</code></a> into a <a href="struct.Node.html"><code>Node</code></a> tree.</div></li><li><div class="item-name"><a class="fn" href="fn.parse2.html" title="fn syn_rsx::parse2">parse2</a></div><div class="desc docblock-short">Parse the given <a href="https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html"><code>proc-macro2::TokenStream</code></a> into a <a href="struct.Node.html"><code>Node</code></a> tree.</div></li><li><div class="item-name"><a class="fn" href="fn.parse2_with_config.html" title="fn syn_rsx::parse2_with_config">parse2_with_config</a></div><div class="desc docblock-short">Parse the given <a href="https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html"><code>proc-macro2::TokenStream</code></a> into a <a href="struct.Node.html"><code>Node</code></a> tree with
+custom <a href="struct.ParserConfig.html"><code>ParserConfig</code></a>.</div></li><li><div class="item-name"><a class="fn" href="fn.parse_with_config.html" title="fn syn_rsx::parse_with_config">parse_with_config</a></div><div class="desc docblock-short">Parse the given <a href="https://doc.rust-lang.org/proc_macro/struct.TokenStream.html"><code>proc-macro::TokenStream</code></a> into a <a href="struct.Node.html"><code>Node</code></a> tree with custom
+<a href="struct.ParserConfig.html"><code>ParserConfig</code></a>.</div></li></ul></section></div></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["DrainFilter"],"trait":["VecExt"]};

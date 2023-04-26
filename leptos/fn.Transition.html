@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="If any Resources are read in the `children` of this component, it will show the `fallback` while they are loading. Once all are resolved, it will render the `children`. Unlike `Suspense`, this will not fall back to the `fallback` state if there are further changes after the initial load."><title>Transition in leptos - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="leptos" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (458d4dae8 2023-04-25)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../static.files/storage-62ce34ea385b278a.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../leptos/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../leptos/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><div class="sidebar-elems"><h2><a href="index.html">In leptos</a></h2></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Function <a href="index.html">leptos</a>::<wbr><a class="fn" href="#">Transition</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="srclink" href="../src/leptos/transition.rs.html#63">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><code>pub fn Transition&lt;F, E&gt;(
+    cx: <a class="struct" href="struct.Scope.html" title="struct leptos::Scope">Scope</a>,
+    props: <a class="struct" href="struct.TransitionProps.html" title="struct leptos::TransitionProps">TransitionProps</a>&lt;F, E&gt;
+) -&gt; impl <a class="trait" href="trait.IntoView.html" title="trait leptos::IntoView">IntoView</a><span class="where fmt-newline">where
+    F: <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.Fn.html" title="trait core::ops::function::Fn">Fn</a>() -&gt; E + 'static,
+    E: <a class="trait" href="trait.IntoView.html" title="trait leptos::IntoView">IntoView</a>,</span></code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>If any <a href="struct.Resource.html" title="struct leptos::Resource">Resource</a>s are read in the <code>children</code> of this
+component, it will show the <code>fallback</code> while they are loading. Once all are resolved,
+it will render the <code>children</code>. Unlike <a href="fn.Suspense.html" title="fn leptos::Suspense"><code>Suspense</code></a>, this will not fall
+back to the <code>fallback</code> state if there are further changes after the initial load.</p>
+<p>Note that the <code>children</code> will be rendered initially (in order to capture the fact that
+those resources are read under the suspense), so you cannot assume that resources have
+<code>Some</code> value in <code>children</code>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">async fn </span>fetch_cats(how_many: u32) -&gt; <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt; {
+    <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[])
+}
+
+<span class="kw">let </span>(cat_count, set_cat_count) = create_signal::&lt;u32&gt;(cx, <span class="number">1</span>);
+<span class="kw">let </span>(pending, set_pending) = create_signal(cx, <span class="bool-val">false</span>);
+
+<span class="kw">let </span>cats = create_resource(cx, cat_count, |count| fetch_cats(count));
+
+<span class="macro">view! </span>{ cx,
+  &lt;div&gt;
+    &lt;Transition
+      fallback=<span class="kw">move </span>|| <span class="macro">view! </span>{ cx, &lt;p&gt;<span class="string">&quot;Loading...&quot;</span>&lt;/p&gt;}
+      set_pending=set_pending.into()
+    &gt;
+      {<span class="kw">move </span>|| {
+          cats.read(cx).map(|data| <span class="kw">match </span>data {
+            <span class="prelude-val">None </span>=&gt; <span class="macro">view! </span>{ cx,  &lt;pre&gt;<span class="string">&quot;Error&quot;</span>&lt;/pre&gt; }.into_any(),
+            <span class="prelude-val">Some</span>(cats) =&gt; <span class="macro">view! </span>{ cx,
+              &lt;div&gt;{
+                cats.iter()
+                  .map(|src| {
+                    <span class="macro">view! </span>{ cx,
+                      &lt;img src={src}/&gt;
+                    }
+                  })
+                  .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+              }&lt;/div&gt;
+            }.into_any(),
+          })
+        }
+      }
+    &lt;/Transition&gt;
+  &lt;/div&gt;
+};</code></pre></div>
+<h2 id="required-props"><a href="#required-props">Required Props</a></h2>
+<ul>
+<li><strong>cx</strong>: <a href="struct.Scope.html" title="struct leptos::Scope"><code>Scope</code></a></li>
+<li><strong>fallback</strong>: [<code>F</code>]
+<ul>
+<li>Will be displayed while resources are pending.</li>
+</ul>
+</li>
+<li><strong>children</strong>: [<code>Box&lt;dyn Fn(Scope) -&gt; Fragment&gt;</code>]
+<ul>
+<li>Will be displayed once all resources have resolved.</li>
+</ul>
+</li>
+</ul>
+<h2 id="optional-props"><a href="#optional-props">Optional Props</a></h2>
+<ul>
+<li><strong>set_pending</strong>: <a href="struct.SignalSetter.html" title="struct leptos::SignalSetter"><code>SignalSetter&lt;bool&gt;</code></a>
+<ul>
+<li>A function that will be called when the component transitions into or out of
+the <code>pending</code> state, with its argument indicating whether it is pending (<code>true</code>)
+or not pending (<code>false</code>).</li>
+</ul>
+</li>
+</ul>
+</div></details></section></div></main></body></html>
