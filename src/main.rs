@@ -38,7 +38,7 @@ pub fn App(cx: Scope) -> impl IntoView {
     let img: &'static str = Box::leak(Box::new(
         SvgPlot::new(graph.repr.clone(), None).print_to_string(),
     ));
-    let (temperature, set_temperature) = create_signal(cx, 150.);
+    let (temperature, set_temperature) = create_signal(cx, 550.);
 
     let (time, set_time) = create_signal(cx, 10);
     let (start, set_start) = create_signal(cx, "Cancun".to_string());
@@ -53,9 +53,14 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     let update_valid_hints = move || {
         request_animation_frame(move || {
-            if let Err(err) =
-                update_hints(graph, &start, &end, valid_starting_node, valid_ending_node)
-            {
+            if let Err(err) = update_hints(
+                graph,
+                &start,
+                &end,
+                valid_starting_node,
+                valid_ending_node,
+                blocked_button.get(),
+            ) {
                 log!("Error updating hints: {}", err);
             }
         })
@@ -75,6 +80,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             });
         }
     };
+
     create_effect(cx, move |_| remove_size_restriction());
 
     let search = move |_| {
@@ -86,7 +92,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             return;
         }
         set_blocked.set(true);
-        block_button(true);
+        block_button(true).unwrap_or_else(|err| log!("Error blocking button: {:?}", err));
 
         spawn_local(async move {
             if method.get() == "Simulated Annealing" {
@@ -144,7 +150,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                 .await;
             }
             set_blocked.set(false);
-            block_button(false);
+            block_button(false).unwrap_or_else(|err| log!("Error blocking button: {:?}", err));
         })
     };
 
@@ -160,15 +166,42 @@ pub fn App(cx: Scope) -> impl IntoView {
     };
 
     let set_temperature = move |e: web_sys::Event| {
-        set_temperature.set(event_target_value(&e).parse().unwrap_or(150.));
+        set_temperature.set(event_target_value(&e).parse().unwrap_or(550.));
     };
 
     let set_method = move |e: web_sys::Event| {
         let temperature_input = document().get_element_by_id("sim-ann").unwrap();
+        temperature_input
+            .class_list()
+            .toggle_with_force("hidden", event_target_value(&e) != "Simulated Annealing")
+            .unwrap();
+        let temperature_input = document().get_element_by_id("sa-distance").unwrap();
+        temperature_input
+            .class_list()
+            .toggle_with_force("hidden", event_target_value(&e) != "Simulated Annealing")
+            .unwrap();
+        let temperature_input = document().get_element_by_id("end-div").unwrap();
+        temperature_input
+            .class_list()
+            .toggle_with_force("hidden", event_target_value(&e) == "Simulated Annealing")
+            .unwrap();
+        let temperature_input = document().get_element_by_id("graph-toggle").unwrap();
+        temperature_input
+            .class_list()
+            .toggle_with_force("hidden", event_target_value(&e) == "Simulated Annealing")
+            .unwrap();
+        let temperature_input = document().get_element_by_id("graph-time").unwrap();
+        temperature_input
+            .class_list()
+            .toggle_with_force("hidden", event_target_value(&e) == "Simulated Annealing")
+            .unwrap();
+
+        let svg_container = document().get_element_by_id("svg-container").unwrap();
         if event_target_value(&e) == "Simulated Annealing" {
-            temperature_input.class_list().remove_1("hidden").unwrap();
+            svg_container.set_inner_html("");
         } else {
-            temperature_input.class_list().add_1("hidden").unwrap();
+            svg_container.set_inner_html(img);
+            remove_size_restriction();
         }
 
         set_method.set(event_target_value(&e));
@@ -225,7 +258,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         <p class="text-sm font-bold pb-1" >"Starting node"</p>
                         <input id="start-field" class="dark:bg-[#0d1117] focus:border-transparent focus:ring-0 border-2 dark:border-[#0d1117] rounded p-2" placeholder="Start" prop:value={start.get()} on:input=set_start />
                     </div>
-                    <div>
+                    <div id="end-div">
                         <p class="text-sm font-bold pb-1" >"Target node"</p>
                         <input id="end-field" class="dark:bg-[#0d1117] focus:border-transparent focus:ring-0 border-2 dark:border-[#0d1117] rounded p-2" placeholder="End" prop:value={end.get()} on:input=set_end />
                     </div>
@@ -246,7 +279,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                             />
                         </select>
                     </div>
-                    <div class="flex space-x-2">
+                    <div id="sa-distance" class="hidden flex space-x-2">
                         <p>"Distance:"</p>
                         <p id="state-indicator">"0"</p>
                     </div>
@@ -400,8 +433,12 @@ fn update_hints(
     end: &ReadSignal<String>,
     valid_starting_node: ReadSignal<bool>,
     valid_ending_node: ReadSignal<bool>,
+    blocked_button: bool,
 ) -> Result<()> {
-    block_button(valid_ending_node.get() && valid_starting_node.get());
+    block_button(!(valid_ending_node.get() && valid_starting_node.get()) || blocked_button)
+        .unwrap_or_else(|err| {
+            log!("Error while blocking button with error: {:?}", err);
+        });
 
     // Update start input class list based on whether the start node exists in the graph
     let start_input = document()
@@ -592,13 +629,13 @@ fn set_stroke(rel: u32, stroke: &'static str) {
 fn gen_row(name: &str, result: (f32, usize, usize, u64, f32)) -> String {
     format!(
         "<tr>
-    <td class=\"border-t border-b px-4 py-2\">{}</td>
-    <td class=\"border-t border-b px-4 py-2\">{:.2}</td>
-    <td class=\"border-t border-b px-4 py-2\">{}</td>
-    <td class=\"border-t border-b px-4 py-2\">{}</td>
-    <td class=\"border-t border-b px-4 py-2\">{}</td>
-    <td class=\"border-t border-b px-4 py-2\">{:.2}</td>
-    </tr>",
+            <td class=\"border-t border-b px-4 py-2\">{}</td>
+            <td class=\"border-t border-b px-4 py-2\">{:.2}</td>
+            <td class=\"border-t border-b px-4 py-2\">{}</td>
+            <td class=\"border-t border-b px-4 py-2\">{}</td>
+            <td class=\"border-t border-b px-4 py-2\">{}</td>
+            <td class=\"border-t border-b px-4 py-2\">{:.2}</td>
+        </tr>",
         name, result.0, result.1, result.2, result.3, result.4
     )
 }

@@ -72,7 +72,7 @@ impl<'a, Ix: IndexType> SimAnnealing<'a, Ix> {
 impl<'a, Ix: IndexType> Walker<Ix> for SimAnnealing<'a, Ix> {
     fn step(&mut self) -> WalkerState<Ix> {
         self.temperature -= 100. * 0.1 / self.temperature;
-        if self.temperature <= 0. {
+        if self.temperature <= 0.1 {
             WalkerState::Done
         } else {
             let new = self.perturb_state();

@@ -156,6 +156,10 @@ where
                         .unwrap_or(Ordering::Equal)
                 });
 
+                let len = self.neighbors.len();
+                self.neighbors
+                    .partial_shuffle(&mut rrand::get_rng(), len / 3);
+
                 self.neighbors.iter().copied().rev().for_each(|child_idx| {
                     self.border.push_front(Step {
                         caller: Some(parent.clone()),
